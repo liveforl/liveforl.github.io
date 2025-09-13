@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智商测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .question {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        
+        .countdown {
+            font-size: 48px;
+            color: #e74c3c;
+            margin: 20px 0;
+        }
+        
+        .options {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .option-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .start-btn:hover {
+            background-color: #229954;
+        }
+        
+        .scream-window {
+            width: 500px;
+            height: 680px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: black;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .scream-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .final-message {
+            font-size: 36px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .small-text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .final-options {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .final-btn {
+            padding: 10px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .final-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .retry-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .exit-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 开始界面 -->
+    <div id="startScreen" class="container">
+        <h1>智商测试</h1>
+        <button class="start-btn" onclick="startGame()">开始游戏</button>
+    </div>
+    
+    <!-- 游戏界面 -->
+    <div id="gameScreen" class="container" style="display: none;">
+        <h1>智商测试</h1>
+        <div id="questionText" class="question"></div>
+        <div id="countdown" class="countdown"></div>
+        <div id="options" class="options"></div>
+    </div>
+    
+    <!-- 尖叫窗口 -->
+    <div id="screamWindow" class="scream-window">
+        <img src="hello.jpeg">
+    </div>
+    
+    <!-- 音频元素 -->
+    <audio id="screamAudio" preload="auto">
+        <source src="y1771.wav">
+    </audio>
+
+    <script>
+        let currentPage = 0;
+        let countdownTimer;
+        
+        const questions = [
+            {
+                question: "如果所有的玫瑰都是花，所有的花都需要水，那么所有的玫瑰都需要水吗？",
+                options: ["是的", "不是", "不确定", "以上都对"]
+            },
+            {
+                question: "一个农夫有17只羊，除了9只都死了，还剩多少只？",
+                options: ["8只", "9只", "17只", "0只"]
+            },
+            {
+                question: "如果A比B高，B比C高，那么A和C谁更高？",
+                options: ["A更高", "C更高", "一样高", "无法确定"]
+            },
+            {
+                question: "什么东西越洗越脏？",
+                options: ["水", "肥皂", "毛巾", "衣服"]
+            },
+            {
+                question: "如果1=5，2=10，3=15，4=20，那么5=？",
+                options: ["25", "1", "50", "100"]
+            },
+            {
+                question: "一个数字加上5，乘以5，减去5，除以5，结果还是5，这个数字是？",
+                options: ["1", "5", "0", "10"]
+            },
+            {
+                question: "如果昨天是明天，那么今天就是星期六。请问实际上今天星期几？",
+                options: ["星期四", "星期五", "星期日", "星期一"]
+            },
+            {
+                question: "什么东西有头无脚，有身无手？",
+                options: ["蛇", "鱼", "蚯蚓", "针"]
+            },
+            {
+                question: "你觉得你的智商高吗？",
+                options: []
+            },
+            {
+                question: "",
+                options: []
+            },
+            {
+                question: "哈哈，被骗了吧",
+                options: ["重来", "滚！"]
+            }
+        ];
+        
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            currentPage = 0;
+            showQuestion();
+        }
+        
+        function showQuestion() {
+            const questionText = document.getElementById('questionText');
+            const optionsDiv = document.getElementById('options');
+            const countdownDiv = document.getElementById('countdown');
+            
+            optionsDiv.style.display = 'none';
+            optionsDiv.innerHTML = '';
+            
+            if (currentPage === 8) {
+                // 第九页特殊处理
+                questionText.textContent = questions[currentPage].question;
+                startCountdown(5, () => {
+                    currentPage++;
+                    showQuestion();
+                });
+            } else if (currentPage === 9) {
+                // 第十页尖叫窗口
+                showScreamWindow();
+            } else if (currentPage === 10) {
+                // 最后一页
+                questionText.innerHTML = `<div class="final-message">${questions[currentPage].question}</div>
+                                         <div class="small-text">要重来吗？</div>`;
+                const finalOptions = document.createElement('div');
+                finalOptions.className = 'final-options';
+                
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'final-btn retry-btn';
+                retryBtn.textContent = '重来';
+                retryBtn.onclick = () => {
+                    currentPage = 0;
+                    showQuestion();
+                };
+                
+                const exitBtn = document.createElement('button');
+                exitBtn.className = 'final-btn exit-btn';
+                exitBtn.textContent = '滚！';
+                exitBtn.onclick = () => {
+                    currentPage = 9;
+                    showScreamWindow();
+                };
+                
+                finalOptions.appendChild(retryBtn);
+                finalOptions.appendChild(exitBtn);
+                optionsDiv.appendChild(finalOptions);
+                optionsDiv.style.display = 'block';
+            } else {
+                // 普通问题页
+                questionText.textContent = questions[currentPage].question;
+                startCountdown(5, () => {
+                    showOptions();
+                });
+            }
+        }
+        
+        function startCountdown(seconds, callback) {
+            const countdownDiv = document.getElementById('countdown');
+            let timeLeft = seconds;
+            
+            countdownDiv.textContent = timeLeft;
+            
+            countdownTimer = setInterval(() => {
+                timeLeft--;
+                countdownDiv.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    callback();
+                }
+            }, 1000);
+        }
+        
+        function showOptions() {
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            
+            questions[currentPage].options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.textContent = option;
+                button.onclick = () => {
+                    currentPage++;
+                    if (currentPage < questions.length) {
+                        showQuestion();
+                    }
+                };
+                optionsDiv.appendChild(button);
+            });
+            
+            optionsDiv.style.display = 'block';
+        }
+        
+        function showScreamWindow() {
+            const screamWindow = document.getElementById('screamWindow');
+            const audio = document.getElementById('screamAudio');
+            
+            screamWindow.style.display = 'block';
+            audio.play().catch(e => console.log('音频播放失败:', e));
+            
+            startCountdown(3, () => {
+                screamWindow.style.display = 'none';
+                audio.pause();
+                audio.currentTime = 0;
+                currentPage++;
+                showQuestion();
+            });
+        }
+    </script>
+</body>
+</html>
