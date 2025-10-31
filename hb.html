@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>历史上的今天 - 精确到秒</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background-image: url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .current-date {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .current-time {
+            font-size: 18px;
+            color: #7f8c8d;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        .events-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding-bottom: 40px;
+        }
+
+        .event-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .event-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .event-year {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .event-title {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .event-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.3s ease;
+        }
+
+        .event-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .event-link::after {
+            content: '→';
+            transition: transform 0.3s ease;
+        }
+
+        .event-link:hover::after {
+            transform: translateX(3px);
+        }
+
+        .event-type {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .event-type.event {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .event-type.birth {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .event-type.death {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .timer {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 12px;
+            color: #7f8c8d;
+            font-family: 'Courier New', monospace;
+            background: rgba(236, 240, 241, 0.7);
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #d32f2f;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+
+            .current-date {
+                font-size: 24px;
+            }
+
+            .current-time {
+                font-size: 16px;
+            }
+
+            .event-card {
+                padding: 15px;
+            }
+
+            .event-title {
+                font-size: 15px;
+                padding-right: 60px;
+            }
+
+            .event-year {
+                font-size: 13px;
+                padding: 4px 12px;
+            }
+
+            .event-type {
+                top: 15px;
+                right: 15px;
+                font-size: 11px;
+            }
+
+            .timer {
+                bottom: 8px;
+                right: 15px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .current-date {
+                font-size: 20px;
+            }
+
+            .current-time {
+                font-size: 14px;
+            }
+
+            .event-title {
+                font-size: 14px;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scroll-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .scroll-indicator.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scroll-indicator:hover {
+            transform: scale(1.1);
+            background: white;
+        }
+
+        .scroll-indicator::before {
+            content: '↑';
+            font-size: 20px;
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="current-date" id="currentDate"></div>
+            <div class="current-time" id="currentTime"></div>
+        </div>
+        
+        <div id="eventsContainer" class="events-container">
+            <div class="loading">正在加载历史事件...</div>
+        </div>
+    </div>
+
+    <div class="scroll-indicator" id="scrollIndicator"></div>
+
+    <script>
+        class HistoryToday {
+            constructor() {
+                this.events = [];
+                this.timers = new Map();
+                this.init();
+            }
+
+            init() {
+                this.updateDateTime();
+                this.loadEvents();
+                this.setupScrollIndicator();
+                
+                // 每秒更新时间
+                setInterval(() => this.updateDateTime(), 1000);
+                
+                // 每分钟重新加载事件（以防跨天）
+                setInterval(() => this.loadEvents(), 60000);
+            }
+
+            updateDateTime() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                });
+                const timeStr = now.toLocaleTimeString('zh-CN', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                document.getElementById('currentDate').textContent = dateStr;
+                document.getElementById('currentTime').textContent = timeStr;
+            }
+
+            async loadEvents() {
+                try {
+                    const now = new Date();
+                    const month = now.getMonth() + 1;
+                    const day = now.getDate();
+                    
+                    // 使用缓存或重新获取
+                    const cacheKey = `history_${month}_${day}`;
+                    const cached = localStorage.getItem(cacheKey);
+                    const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+                    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < 3600000; // 1小时缓存
+                    
+                    if (cached && isCacheValid) {
+                        this.events = JSON.parse(cached);
+                        this.renderEvents();
+                    } else {
+                        const response = await fetch(`https://api.asilu.com/today`);
+                        if (!response.ok) throw new Error('网络请求失败');
+                        
+                        const data = await response.json();
+                        if (data.code === 200 && data.data) {
+                            this.events = data.data;
+                            
+                            // 缓存数据
+                            localStorage.setItem(cacheKey, JSON.stringify(this.events));
+                            localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+                            
+                            this.renderEvents();
+                        } else {
+                            throw new Error('数据格式错误');
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载失败:', error);
+                    this.showError('加载历史事件失败，请稍后重试');
+                }
+            }
+
+            renderEvents() {
+                const container = document.getElementById('eventsContainer');
+                container.innerHTML = '';
+                
+                if (this.events.length === 0) {
+                    container.innerHTML = '<div class="error">暂无历史事件数据</div>';
+                    return;
+                }
+
+                this.events.forEach((event, index) => {
+                    const card = this.createEventCard(event, index);
+                    container.appendChild(card);
+                    
+                    // 添加淡入动画
+                    setTimeout(() => {
+                        card.classList.add('fade-in');
+                    }, index * 100);
+                });
+            }
+
+            createEventCard(event, index) {
+                const card = document.createElement('div');
+                card.className = 'event-card';
+                
+                const typeClass = event.type || 'event';
+                const typeText = {
+                    'event': '事件',
+                    'birth': '出生',
+                    'death': '逝世'
+                }[typeClass] || '事件';
+                
+                card.innerHTML = `
+                    <span class="event-type ${typeClass}">${typeText}</span>
+                    <div class="event-year">${event.year}年</div>
+                    <div class="event-title">${event.title}</div>
+                    <a href="${event.link}" target="_blank" class="event-link">查看详情</a>
+                    <div class="timer" id="timer-${index}">计时: 00:00:00</div>
+                `;
+                
+                // 启动计时器
+                this.startTimer(index);
+                
+                return card;
+            }
+
+            startTimer(index) {
+                const startTime = Date.now();
+                const timerId = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    const hours = Math.floor(elapsed / 3600);
+                    const minutes = Math.floor((elapsed % 3600) / 60);
+                    const seconds = elapsed % 60;
+                    
+                    const timerElement = document.getElementById(`timer-${index}`);
+                    if (timerElement) {
+                        timerElement.textContent = `计时: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    } else {
+                        // 元素被移除，清除计时器
+                        clearInterval(timerId);
+                        this.timers.delete(index);
+                    }
+                }, 1000);
+                
+                this.timers.set(index, timerId);
+            }
+
+            showError(message) {
+                const container = document.getElementById('eventsContainer');
+                container.innerHTML = `<div class="error">${message}</div>`;
+            }
+
+            setupScrollIndicator() {
+                const indicator = document.getElementById('scrollIndicator');
+                
+                window.addEventListener('scroll', () => {
+                    if (window.pageYOffset > 300) {
+                        indicator.classList.add('visible');
+                    } else {
+                        indicator.classList.remove('visible');
+                    }
+                });
+                
+                indicator.addEventListener('click', () => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new HistoryToday();
+        });
+
+        // 防止图片加载失败
+        document.addEventListener('error', (e) => {
+            if (e.target.tagName === 'IMG') {
+                e.target.style.display = 'none';
+            }
+        }, true);
+    </script>
+</body>
+</html>
