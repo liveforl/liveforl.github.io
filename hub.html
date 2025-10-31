@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>时间显示艺术</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #f0f0f0;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .beijing-time {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .date-info {
+            font-size: 1rem;
+            color: #e0e0e0;
+        }
+
+        .time-display {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .time-display h3 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* 时钟样式 */
+        .clock-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .clock {
+            width: 180px;
+            height: 180px;
+            border: 8px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .clock-center {
+            width: 10px;
+            height: 10px;
+            background: #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .hand {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 4px;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .hour-hand {
+            width: 6px;
+            height: 50px;
+            background: #ffffff;
+            margin-left: -3px;
+            margin-top: -50px;
+        }
+
+        .minute-hand {
+            width: 4px;
+            height: 70px;
+            background: #ffffff;
+            margin-left: -2px;
+            margin-top: -70px;
+        }
+
+        .second-hand {
+            width: 2px;
+            height: 80px;
+            background: #ff6b6b;
+            margin-left: -1px;
+            margin-top: -80px;
+        }
+
+        .clock-number {
+            position: absolute;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 40px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            border-radius: 20px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 0 10px rgba(0, 201, 255, 0.5);
+        }
+
+        .progress-time {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1.1rem;
+            color: #e0e0e0;
+        }
+
+        /* 俄罗斯方块样式 */
+        .tetris-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .tetris-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            gap: 1px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            width: 250px;
+            height: 400px;
+        }
+
+        .tetris-cell {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .tetris-cell.filled {
+            background: linear-gradient(135deg, #00c9ff, #0072ff);
+            box-shadow: 0 0 5px rgba(0, 201, 255, 0.5);
+            animation: placeBlock 0.3s ease;
+        }
+
+        @keyframes placeBlock {
+            0% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .tetris-time {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            color: #e0e0e0;
+        }
+
+        .tetris-info {
+            display: flex;
+            justify-content: space-between;
+            width: 250px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #e0e0e0;
+        }
+
+        /* 沙漏样式 */
+        .hourglass-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .hourglass {
+            width: 100px;
+            height: 150px;
+            position: relative;
+            background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.2) 0%, 
+                rgba(255, 255, 255, 0.2) 45%, 
+                transparent 45%, 
+                transparent 55%, 
+                rgba(255, 255, 255, 0.2) 55%, 
+                rgba(255, 255, 255, 0.2) 100%);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .hourglass::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -3px;
+            right: -3px;
+            height: 0;
+            border-top: 3px solid rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%);
+        }
+
+        .sand-top {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+            background: linear-gradient(180deg, #00c9ff, #0072ff);
+            transition: height 0.5s ease;
+            border-radius: 2px 2px 0 0;
+            box-shadow: 0 0 8px rgba(0, 201, 255, 0.3);
+        }
+
+        .sand-bottom {
+            position: absolute;
+            bottom: 3px;
+            left: 3px;
+            right: 3px;
+            background: linear-gradient(180deg, #0072ff, #00c9ff);
+            transition: height 0.5s ease;
+            border-radius: 0 0 2px 2px;
+            box-shadow: 0 0 8px rgba(0, 201, 255, 0.3);
+        }
+
+        .sand-stream {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 0;
+            background: linear-gradient(180deg, #00c9ff, #0072ff);
+            transition: opacity 0.3s ease;
+            box-shadow: 0 0 5px rgba(0, 201, 255, 0.5);
+        }
+
+        .hourglass.flipping {
+            animation: flip 1s ease-in-out;
+        }
+
+        @keyframes flip {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hourglass-time {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            color: #e0e0e0;
+        }
+
+        .hourglass-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #e0e0e0;
+        }
+
+        /* 电池样式 */
+        .battery-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .battery {
+            width: 120px;
+            height: 60px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .battery::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .battery-fill {
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            bottom: 2px;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            border-radius: 4px;
+            transition: width 0.5s ease, background 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 0 8px rgba(0, 201, 255, 0.3);
+        }
+
+        .battery.charging .battery-fill {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+
+        .battery-time {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            color: #e0e0e0;
+        }
+
+        /* 水龙头样式 */
+        .faucet-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            position: relative;
+            height: 250px;
+        }
+
+        .faucet {
+            width: 80px;
+            height: 40px;
+            background: linear-gradient(135deg, #bdc3c7, #2c3e50);
+            border-radius: 10px 10px 0 0;
+            position: relative;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .faucet::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 10px;
+            background: #2c3e50;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .water-drop {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: linear-gradient(180deg, #00c9ff, #0072ff);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: drop 1s infinite;
+            box-shadow: 0 0 5px rgba(0, 201, 255, 0.5);
+        }
+
+        @keyframes drop {
+            0% {
+                top: 50px;
+                opacity: 1;
+            }
+            100% {
+                top: 180px;
+                opacity: 0;
+            }
+        }
+
+        .cup {
+            width: 100px;
+            height: 120px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .cup::before {
+            content: '';
+            position: absolute;
+            right: -15px;
+            top: 20px;
+            width: 20px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-left: none;
+            border-radius: 0 15px 15px 0;
+        }
+
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #00c9ff, #0072ff);
+            transition: height 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 0 10px rgba(0, 201, 255, 0.3);
+        }
+
+        .cup.tipping {
+            animation: tip 1s ease-in-out;
+        }
+
+        @keyframes tip {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(45deg); }
+        }
+
+        .faucet-time {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            color: #e0e0e0;
+        }
+
+        @media (max-width: 480px) {
+            .beijing-time {
+                font-size: 2rem;
+            }
+            
+            .clock {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .hour-hand {
+                height: 40px;
+                margin-top: -40px;
+            }
+            
+            .minute-hand {
+                height: 55px;
+                margin-top: -55px;
+            }
+            
+            .second-hand {
+                height: 65px;
+                margin-top: -65px;
+            }
+            
+            .tetris-board {
+                width: 200px;
+                height: 320px;
+            }
+            
+            .tetris-info {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="beijing-time" id="beijingTime">00:00:00</div>
+            <div class="date-info" id="dateInfo">2024年1月1日 星期一</div>
+        </div>
+
+        <!-- 纯时钟 -->
+        <div class="time-display">
+            <h3>经典时钟</h3>
+            <div class="clock-container">
+                <div class="clock">
+                    <div class="clock-number" style="top: 5px; left: 50%; transform: translateX(-50%);">12</div>
+                    <div class="clock-number" style="top: 50%; right: 5px; transform: translateY(-50%);">3</div>
+                    <div class="clock-number" style="bottom: 5px; left: 50%; transform: translateX(-50%);">6</div>
+                    <div class="clock-number" style="top: 50%; left: 5px; transform: translateY(-50%);">9</div>
+                    <div class="hand hour-hand" id="hourHand"></div>
+                    <div class="hand minute-hand" id="minuteHand"></div>
+                    <div class="hand second-hand" id="secondHand"></div>
+                    <div class="clock-center"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="time-display">
+            <h3>时间进度条</h3>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+                <div class="progress-time" id="progressTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 俄罗斯方块 -->
+        <div class="time-display">
+            <h3>时间方块</h3>
+            <div class="tetris-container">
+                <div class="tetris-info">
+                    <span>已填充: <span id="filledCount">0</span>/180</span>
+                    <span>剩余: <span id="remainingTime">24:00:00</span></span>
+                </div>
+                <div class="tetris-board" id="tetrisBoard"></div>
+                <div class="tetris-time" id="tetrisTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 沙漏 -->
+        <div class="time-display">
+            <h3>时间沙漏</h3>
+            <div class="hourglass-container">
+                <div class="hourglass-info">
+                    <span>上: <span id="topPercentage">100</span>%</span>
+                    <span>下: <span id="bottomPercentage">0</span>%</span>
+                </div>
+                <div class="hourglass" id="hourglass">
+                    <div class="sand-top" id="sandTop"></div>
+                    <div class="sand-stream" id="sandStream"></div>
+                    <div class="sand-bottom" id="sandBottom"></div>
+                </div>
+                <div class="hourglass-time" id="hourglassTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 电池图标 -->
+        <div class="time-display">
+            <h3>时间电池</h3>
+            <div class="battery-container">
+                <div class="battery" id="battery">
+                    <div class="battery-fill" id="batteryFill">0%</div>
+                </div>
+                <div class="battery-time" id="batteryTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 水龙头 -->
+        <div class="time-display">
+            <h3>时间水滴</h3>
+            <div class="faucet-container">
+                <div class="faucet"></div>
+                <div class="water-drop" id="waterDrop"></div>
+                <div class="cup" id="cup">
+                    <div class="water-level" id="waterLevel">00:00:00</div>
+                </div>
+                <div class="faucet-time" id="faucetTime">00:00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let tetrisCells = [];
+        let isNight = false;
+        let hourglassFlipped = false;
+
+        // 初始化
+        function init() {
+            setupTetris();
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
+
+        // 设置俄罗斯方块面板
+        function setupTetris() {
+            const board = document.getElementById('tetrisBoard');
+            if (!board) return;
+            board.innerHTML = '';
+            tetrisCells = [];
+
+            for (let row = 0; row < 20; row++) {
+                tetrisCells[row] = [];
+                for (let col = 0; col < 10; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'tetris-cell';
+                    cell.id = `cell-${row}-${col}`;
+                    board.appendChild(cell);
+                    tetrisCells[row][col] = cell;
+                }
+            }
+        }
+
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            isNight = hours < 6 || hours >= 18;
+
+            // 更新北京时间
+            const beijingTime = document.getElementById('beijingTime');
+            if (beijingTime) beijingTime.textContent = formatTime(hours, minutes, seconds);
+
+            // 更新日期信息
+            updateDateInfo(now);
+
+            // 更新各种时间显示
+            updateClock(hours, minutes, seconds);
+            updateProgressBar(hours, minutes, seconds);
+            updateTetris(hours, minutes, seconds);
+            updateHourglass(hours, minutes, seconds);
+            updateBattery(hours, minutes, seconds);
+            updateFaucet(hours, minutes, seconds);
+        }
+
+        // 格式化时间
+        function formatTime(hours, minutes, seconds) {
+            return `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+        }
+
+        // 补零
+        function padZero(num) {
+            return num < 10 ? '0' + num : num;
+        }
+
+        // 更新日期信息
+        function updateDateInfo(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekday = weekdays[date.getDay()];
+
+            const dateInfo = document.getElementById('dateInfo');
+            if (dateInfo) dateInfo.textContent = `${year}年${month}月${day}日 ${weekday}`;
+        }
+
+        // 更新时钟
+        function updateClock(hours, minutes, seconds) {
+            const hourDeg = (hours % 12) * 30 + minutes * .5;
+            const minuteDeg = minutes * 6 + seconds * .1;
+            const secondDeg = seconds * 6;
+
+            const hourHand = document.getElementById('hourHand');
+            const minuteHand = document.getElementById('minuteHand');
+            const secondHand = document.getElementById('secondHand');
+
+            if (hourHand) hourHand.style.transform = `rotate(${hourDeg}deg)`;
+            if (minuteHand) minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+            if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+        }
+
+        // 更新进度条
+        function updateProgressBar(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const dayProgress = (totalSeconds / 43200) * 100;
+            const displayProgress = dayProgress <= 100 ? dayProgress : 200 - dayProgress;
+
+            const progressFill = document.getElementById('progressFill');
+            const progressTime = document.getElementById('progressTime');
+
+            if (progressFill) {
+                progressFill.style.width = displayProgress + '%';
+                progressFill.textContent = Math.round(displayProgress) + '%';
+            }
+            if (progressTime) progressTime.textContent = formatTime(hours, minutes, seconds);
+        }
+
+        // 更新俄罗斯方块
+        function updateTetris(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const dayProgress = totalSeconds / 86400;
+
+            const totalColsToFill = 9;
+            const colsToFill = Math.floor(dayProgress * totalColsToFill);
+
+            for (let row = 0; row < 20; row++) {
+                for (let col = 0; col < 10; col++) {
+                    tetrisCells[row][col].classList.remove('filled');
+                }
+            }
+
+            let filledCells = 0;
+            for (let col = 9; col > 0; col--) {
+                const colsRemaining = 9 - col;
+                if (colsRemaining < colsToFill) {
+                    for (let row = 0; row < 20; row++) {
+                        tetrisCells[row][col].classList.add('filled');
+                        filledCells++;
+                    }
+                } else if (colsRemaining === colsToFill) {
+                    const rowsToFill = Math.floor((dayProgress * totalColsToFill - Math.floor(dayProgress * totalColsToFill)) * 20);
+                    for (let row = 19; row >= 20 - rowsToFill; row--) {
+                        tetrisCells[row][col].classList.add('filled');
+                        filledCells++;
+                    }
+                }
+            }
+
+            if (dayProgress >= .999) {
+                for (let row = 0; row < 20; row++) {
+                    tetrisCells[row: 5px; transform: translateY(-50%);">3</div>
+                    <div class="clock-number" style="bottom: 5px; left: 50%; transform: translateX(-50%);">6</div>
+                    <div class="clock-number" style="top: 50%; left: 5px; transform: translateY(-50%);">9</div>
+                    <div class="hand hour-hand" id="hourHand"></div>
+                    <div class="hand minute-hand" id="minuteHand"></div>
+                    <div class="hand second-hand" id="secondHand"></div>
+                    <div class="clock-center"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="time-display">
+            <h3>时间进度条</h3>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+                <div class="progress-time" id="progressTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 俄罗斯方块 -->
+        <div class="time-display">
+            <h3>时间方块</h3>
+            <div class="tetris-container">
+                <div class="tetris-info">
+                    <span>已填充: <span id="filledCount">0</span>/180</span>
+                    <span>剩余: <span id="remainingTime">24:00:00</span></span>
+                </div>
+                <div class="tetris-board" id="tetrisBoard"></div>
+                <div class="tetris-time" id="tetrisTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 沙漏 -->
+        <div class="time-display">
+            <h3>时间沙漏</h3>
+            <div class="hourglass-container">
+                <div class="hourglass-info">
+                    <span>上: <span id="topPercentage">100</span>%</span>
+                    <span>下: <span id="bottomPercentage">0</span>%</span>
+                </div>
+                <div class="hourglass" id="hourglass">
+                    <div class="sand-top" id="sandTop"></div>
+                    <div class="sand-stream" id="sandStream"></div>
+                    <div class="sand-bottom" id="sandBottom"></div>
+                </div>
+                <div class="hourglass-time" id="hourglassTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 电池图标 -->
+        <div class="time-display">
+            <h3>时间电池</h3>
+            <div class="battery-container">
+                <div class="battery" id="battery">
+                    <div class="battery-fill" id="batteryFill">0%</div>
+                </div>
+                <div class="battery-time" id="batteryTime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- 水龙头 -->
+        <div class="time-display">
+            <h3>时间水滴</h3>
+            <div class="faucet-container">
+                <div class="faucet"></div>
+                <div class="water-drop" id="waterDrop"></div>
+                <div class="cup" id="cup">
+                    <div class="water-level" id="waterLevel">00:00:00</div>
+                </div>
+                <div class="faucet-time" id="faucetTime">00:00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let tetrisCells = [];
+        let isNight = false;
+        let hourglassFlipped = false;
+
+        // 初始化
+        function init() {
+            setupTetris();
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
+
+        // 设置俄罗斯方块面板
+        function setupTetris() {
+            const board = document.getElementById('tetrisBoard');
+            if (!board) return;
+            board.innerHTML = '';
+            tetrisCells = [];
+
+            for (let row = 0; row < 20; row++) {
+                tetrisCells[row] = [];
+                for (let col = 0; col < 10; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'tetris-cell';
+                    cell.id = `cell-${row}-${col}`;
+                    board.appendChild(cell);
+                    tetrisCells[row][col] = cell;
+                }
+            }
+        }
+
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            isNight = hours < 6 || hours >= 18;
+
+            // 更新北京时间
+            const beijingTime = document.getElementById('beijingTime');
+            if (beijingTime) beijingTime.textContent = formatTime(hours, minutes, seconds);
+
+            // 更新日期信息
+            updateDateInfo(now);
+
+            // 更新各种时间显示
+            updateClock(hours, minutes, seconds);
+            updateProgressBar(hours, minutes, seconds);
+            updateTetris(hours, minutes, seconds);
+            updateHourglass(hours, minutes, seconds);
+            updateBattery(hours, minutes, seconds);
+            updateFaucet(hours, minutes, seconds);
+        }
+
+        // 格式化时间
+        function formatTime(hours, minutes, seconds) {
+            return `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+        }
+
+        // 补零
+        function padZero(num) {
+            return num < 10 ? '0' + num : num;
+        }
+
+        // 更新日期信息
+        function updateDateInfo(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekday = weekdays[date.getDay()];
+
+            const dateInfo = document.getElementById('dateInfo');
+            if (dateInfo) dateInfo.textContent = `${year}年${month}月${day}日 ${weekday}`;
+        }
+
+        // 更新时钟
+        function updateClock(hours, minutes, seconds) {
+            const hourDeg = (hours % 12) * 30 + minutes * .5;
+            const minuteDeg = minutes * 6 + seconds * .1;
+            const secondDeg = seconds * 6;
+
+            const hourHand = document.getElementById('hourHand');
+            const minuteHand = document.getElementById('minuteHand');
+            const secondHand = document.getElementById('secondHand');
+
+            if (hourHand) hourHand.style.transform = `rotate(${hourDeg}deg)`;
+            if (minuteHand) minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+            if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+        }
+
+        // 更新进度条
+        function updateProgressBar(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const dayProgress = (totalSeconds / 43200) * 100;
+            const displayProgress = dayProgress <= 100 ? dayProgress : 200 - dayProgress;
+
+            const progressFill = document.getElementById('progressFill');
+            const progressTime = document.getElementById('progressTime');
+
+            if (progressFill) {
+                progressFill.style.width = displayProgress + '%';
+                progressFill.textContent = Math.round(displayProgress) + '%';
+            }
+            if (progressTime) progressTime.textContent = formatTime(hours, minutes, seconds);
+        }
+
+        // 更新俄罗斯方块
+        function updateTetris(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const dayProgress = totalSeconds / 86400;
+
+            const totalColsToFill = 9;
+            const colsToFill = Math.floor(dayProgress * totalColsToFill);
+
+            for (let row = 0; row < 20; row++) {
+                for (let col = 0; col < 10; col++) {
+                    tetrisCells[row][col].classList.remove('filled');
+                }
+            }
+
+            let filledCells = 0;
+            for (let col = 9; col > 0; col--) {
+                const colsRemaining = 9 - col;
+                if (colsRemaining < colsToFill) {
+                    for (let row = 0; row < 20; row++) {
+                        tetrisCells[row][col].classList.add('filled');
+                        filledCells++;
+                    }
+                } else if (colsRemaining === colsToFill) {
+                    const rowsToFill = Math.floor((dayProgress * totalColsToFill - Math.floor(dayProgress * totalColsToFill)) * 20);
+                    for (let row = 19; row >= 20 - rowsToFill; row--) {
+                        tetrisCells[row][col].classList.add('filled');
+                        filledCells++;
+                    }
+                }
+            }
+
+            if (dayProgress >= .999) {
+                for (let row = 0; row < 20; row++) {
+                    tetrisCells[row][0].classList.add('filled');
+                    filledCells++;
+                }
+                setTimeout(() => setupTetris(), 2000);
+            }
+
+            const filledCount = document.getElementById('filledCount');
+            const remainingTime = document.getElementById('remainingTime');
+            const tetrisTime = document.getElementById('tetrisTime');
+
+            const remainingSeconds = 86400 - totalSeconds;
+            const remainingHours = Math.floor(remainingSeconds / 3600);
+            const remainingMinutes = Math.floor((remainingSeconds % 3600) / 60);
+            const remainingSecs = remainingSeconds % 60;
+
+            if (filledCount) filledCount.textContent = filledCells;
+            if (remainingTime) remainingTime.textContent = `${padZero(remainingHours)}:${padZero(remainingMinutes)}:${padZero(remainingSecs)}`;
+            if (tetrisTime) tetrisTime.textContent = formatTime(hours, minutes, seconds);
+        }
+
+        // 更新沙漏
+        function updateHourglass(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const dayProgress = totalSeconds / 86400;
+
+            const sandTop = document.getElementById('sandTop');
+            const sandBottom = document.getElementById('sandBottom');
+            const sandStream = document.getElementById('sandStream');
+            const hourglass = document.getElementById('hourglass');
+
+            const topPercentage = 100 - (dayProgress * 100);
+            const bottomPercentage = dayProgress * 100;
+
+            if (sandTop) sandTop.style.height = topPercentage + '%';
+            if (sandBottom) sandBottom.style.height = bottomPercentage + '%';
+            if (sandStream) {
+                sandStream.style.opacity = (dayProgress > 0 && dayProgress < .999) ? '1' : '0';
+            }
+
+            if (dayProgress >= .999 && !hourglassFlipped) {
+                hourglassFlipped = true;
+                if (hourglass) hourglass.classList.add('flipping');
+                setTimeout(() => {
+                    hourglassFlipped = false;
+                    if (hourglass) hourglass.classList.remove('flipping');
+                }, 1000);
+            }
+
+            const topPct = document.getElementById('topPercentage');
+            const bottomPct = document.getElementById('bottomPercentage');
+            const hourglassTime = document.getElementById('hourglassTime');
+
+            if (topPct) topPct.textContent = Math.round(topPercentage);
+            if (bottomPct) bottomPct.textContent = Math.round(bottomPercentage);
+            if (hourglassTime) hourglassTime.textContent = formatTime(hours, minutes, seconds);
+        }
+
+        // 更新电池
+        function updateBattery(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            let percentage = 0;
+
+            if (isNight) {
+                if (hours >= 18) {
+                    percentage = ((hours - 18) * 3600 + minutes * 60 + seconds) / 43200 * 100;
+                } else {
+                    percentage = (hours * 3600 + minutes * 60 + seconds) / 21600 * 100;
+                }
+            } else {
+                percentage = 100 - ((hours - 6) * 3600 + minutes * 60 + seconds) / 43200 * 100;
+            }
+
+            const battery = document.getElementById('battery');
+            const batteryFill = document.getElementById('batteryFill');
+            const batteryTime = document.getElementById('batteryTime');
+
+            if (batteryFill) {
+                batteryFill.style.width = percentage + '%';
+                batteryFill.textContent = Math.round(percentage) + '%';
+            }
+            if (battery) {
+                if (isNight) battery.classList.add('charging');
+                else battery.classList.remove('charging');
+            }
+            if (batteryTime) batteryTime.textContent = formatTime(hours, minutes, seconds);
+        }
+
+        // 更新水龙头
+        function updateFaucet(hours, minutes, seconds) {
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const dayProgress = (totalSeconds / 86400) * 100;
+
+            const waterLevel = document.getElementById('waterLevel');
+            const cup = document.getElementById('cup');
+            const faucetTime = document.getElementById('faucetTime');
+
+            if (dayProgress >= 100) {
+                if (cup && !cup.classList.contains('tipping')) {
+                    cup.classList.add('tipping');
+                    setTimeout(() => cup.classList.remove('tipping'), 1000);
+                }
+                if (waterLevel) waterLevel.style.height = '0%';
+            } else {
+                if (waterLevel) waterLevel.style.height = dayProgress + '%';
+            }
+
+            if (waterLevel) waterLevel.textContent = formatTime(hours, minutes, seconds);
+            if (faucetTime) faucetTime.textContent = formatTime(hours, minutes, seconds);
+        }
+
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>
