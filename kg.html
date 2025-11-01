@@ -5,35 +5,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>全球197国实时时间（毫秒级）</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #f0f0f0; min-height: 100vh; overflow-x: hidden; position: relative;
-    background: url("https://bingw.jasonzeng.dev?resolution=UHD") center/cover fixed no-repeat;
-}
-body::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .45); z-index: -1; }
-.container { max-width: 1200px; margin: 0 auto; padding: 20px 15px; position: relative; z-index: 1; }
-.header { text-align: center; margin-bottom: 30px; padding: 20px 0; }
-.header h1 { font-size: clamp(1.8rem, 5vw, 2.5rem); color: #fff; margin-bottom: 10px; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, .3); letter-spacing: .5px; }
-.header .subtitle { font-size: clamp(.9rem, 2.5vw, 1.1rem); color: #a0c0d0; font-weight: 300; opacity: .9; }
-.stats { text-align: center; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, .08); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, .15); border: 1px solid rgba(255, 255, 255, .1); backdrop-filter: blur(5px); }
-.stats span { color: #4facfe; font-weight: 600; font-size: 1.1rem; }
-.time-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px; }
-.time-card { background: rgba(255, 255, 255, .08); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, .2); transition: all .3s ease; border: 1px solid rgba(255, 255, 255, .1); backdrop-filter: blur(10px); position: relative; overflow: hidden; }
-.time-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); transform: scaleX(0); transform-origin: left; transition: transform .3s ease; }
-.time-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0, 0, 0, .3); background: rgba(255, 255, 255, .12); }
-.time-card:hover::before { transform: scaleX(1); }
-.country-name { font-size: clamp(1.1rem, 3vw, 1.3rem); font-weight: 600; color: #fff; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; letter-spacing: .3px; }
-.country-flag { font-size: 1.5rem; margin-left: 10px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .2)); }
-.timezone { font-size: .85rem; color: #a0c0d0; margin-bottom: 12px; font-weight: 300; opacity: .9; }
-.current-time { font-size: clamp(1.3rem, 4vw, 1.6rem); font-weight: 500; color: #4facfe; font-family: "Courier New", monospace; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
-.date-info { font-size: .9rem; color: #c0d0e0; margin-top: 5px; font-weight: 300; }
-.loading, .error { text-align: center; padding: 40px; font-size: 1.1rem; color: #a0c0d0; }
-.error { background: rgba(255, 0, 0, .1); border: 1px solid rgba(255, 0, 0, .15); border-radius: 12px; margin: 20px 0; backdrop-filter: blur(5px); }
-.update-indicator { position: fixed; top: 20px; right: 20px; width: 12px; height: 12px; background: #4facfe; border-radius: 50%; animation: pulse 1.5s infinite; box-shadow: 0 0 10px rgba(79, 172, 254, .7); z-index: 100; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
-@media (max-width: 768px) { .time-grid { grid-template-columns: 1fr; gap: 12px; } .container { padding: 15px 10px; } .header { margin-bottom: 20px; padding: 15px 0; } .header .subtitle { font-size: .85rem; } .time-card { padding: 18px; } }
-@media (max-width: 480px) { .time-card { padding: 15px; } .country-name { font-size: 1.1rem; } .current-time { font-size: 1.3rem; } }
+:root{--bg:url("https://bingw.jasonzeng.dev?resolution=UHD") center/cover fixed}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+     color:#f0f0f0;min-height:100vh;overflow-x:hidden;position:relative;
+     background:var(--bg);background-attachment:fixed}
+body::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:-1}
+.container{max-width:1200px;margin:0 auto;padding:20px 15px;position:relative;z-index:1}
+.header{text-align:center;margin-bottom:30px;padding:20px 0}
+.header h1{font-size:clamp(1.8rem,5vw,2.5rem);color:#fff;margin-bottom:10px;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,.3);letter-spacing:.5px}
+.header .subtitle{font-size:clamp(.9rem,2.5vw,1.1rem);color:#a0c0d0;font-weight:300;opacity:.9}
+.stats{text-align:center;margin-bottom:20px;padding:15px;background:rgba(255,255,255,.08);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(5px)}
+.stats span{color:#4facfe;font-weight:600;font-size:1.1rem}
+.time-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;margin-bottom:30px}
+.time-card{background:rgba(255,255,255,.08);border-radius:16px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.2);transition:all .3s ease;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);position:relative;overflow:hidden}
+.time-card::before{content:"";position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%);transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.time-card:hover{transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.3);background:rgba(255,255,255,.12)}
+.time-card:hover::before{transform:scaleX(1)}
+.country-name{font-size:clamp(1.1rem,3vw,1.3rem);font-weight:600;color:#fff;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;letter-spacing:.3px}
+.country-flag{font-size:1.5rem;margin-left:10px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}
+.timezone{font-size:.85rem;color:#a0c0d0;margin-bottom:12px;font-weight:300;opacity:.9}
+.current-time{font-size:clamp(1.3rem,4vw,1.6rem);font-weight:500;color:#4facfe;font-family:"Courier New",monospace;letter-spacing:1px;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.date-info{font-size:.9rem;color:#c0d0e0;margin-top:5px;font-weight:300}
+.loading,.error{text-align:center;padding:40px;font-size:1.1rem;color:#a0c0d0}
+.error{background:rgba(255,0,0,.1);border:1px solid rgba(255,0,0,.15);border-radius:12px;margin:20px 0;backdrop-filter:blur(5px)}
+.update-indicator{position:fixed;top:20px;right:20px;width:12px;height:12px;background:#4facfe;border-radius:50%;animation:pulse 1.5s infinite;box-shadow:0 0 10px rgba(79,172,254,.7);z-index:100}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+@media (max-width:768px){.time-grid{grid-template-columns:1fr;gap:12px}.container{padding:15px 10px}.header{margin-bottom:20px;padding:15px 0}.header .subtitle{font-size:.85rem}.time-card{padding:18px}}
+@media (max-width:480px){.time-card{padding:15px}.country-name{font-size:1.1rem}.current-time{font-size:1.3rem}}
 </style>
 </head>
 <body>
@@ -50,380 +49,73 @@ body::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 
 </div>
 
 <script>
-class WorldClock {
-    constructor() {
-        this.countries = [
-            {name:"中国",timezone:"Asia/Shanghai",flag:"🇨🇳"},
-            {name:"美国",timezone:"America/New_York",flag:"🇺🇸"},
-            {name:"英国",timezone:"Europe/London",flag:"🇬🇧"},
-            {name:"法国",timezone:"Europe/Paris",flag:"🇫🇷"},
-            {name:"德国",timezone:"Europe/Berlin",flag:"🇩🇪"},
-            {name:"日本",timezone:"Asia/Tokyo",flag:"🇯🇵"},
-            {name:"韩国",timezone:"Asia/Seoul",flag:"🇰🇷"},
-            {name:"俄罗斯",timezone:"Europe/Moscow",flag:"🇷🇺"},
-            {name:"印度",timezone:"Asia/Kolkata",flag:"🇮🇳"},
-            {name:"巴西",timezone:"America/Sao_Paulo",flag:"🇧🇷"},
-            {name:"加拿大",timezone:"America/Toronto",flag:"🇨🇦"},
-            {name:"澳大利亚",timezone:"Australia/Sydney",flag:"🇦🇺"},
-            {name:"意大利",timezone:"Europe/Rome",flag:"🇮🇹"},
-            {name:"西班牙",timezone:"Europe/Madrid",flag:"🇪🇸"},
-            {name:"墨西哥",timezone:"America/Mexico_City",flag:"🇲🇽"},
-            {name:"印度尼西亚",timezone:"Asia/Jakarta",flag:"🇮🇩"},
-            {name:"土耳其",timezone:"Europe/Istanbul",flag:"🇹🇷"},
-            {name:"沙特阿拉伯",timezone:"Asia/Riyadh",flag:"🇸🇦"},
-            {name:"阿根廷",timezone:"America/Argentina/Buenos_Aires",flag:"🇦🇷"},
-            {name:"南非",timezone:"Africa/Johannesburg",flag:"🇿🇦"},
-            {name:"埃及",timezone:"Africa/Cairo",flag:"🇪🇬"},
-            {name:"泰国",timezone:"Asia/Bangkok",flag:"🇹🇭"},
-            {name:"新加坡",timezone:"Asia/Singapore",flag:"🇸🇬"},
-            {name:"马来西亚",timezone:"Asia/Kuala_Lumpur",flag:"🇲🇾"},
-            {name:"菲律宾",timezone:"Asia/Manila",flag:"🇵🇭"},
-            {name:"越南",timezone:"Asia/Ho_Chi_Minh",flag:"🇻🇳"},
-            {name:"乌克兰",timezone:"Europe/Kiev",flag:"🇺🇦"},
-            {name:"波兰",timezone:"Europe/Warsaw",flag:"🇵🇱"},
-            {name:"荷兰",timezone:"Europe/Amsterdam",flag:"🇳🇱"},
-            {name:"比利时",timezone:"Europe/Brussels",flag:"🇧🇪"},
-            {name:"瑞典",timezone:"Europe/Stockholm",flag:"🇸🇪"},
-            {name:"挪威",timezone:"Europe/Oslo",flag:"🇳🇴"},
-            {name:"丹麦",timezone:"Europe/Copenhagen",flag:"🇩🇰"},
-            {name:"芬兰",timezone:"Europe/Helsinki",flag:"🇫🇮"},
-            {name:"瑞士",timezone:"Europe/Zurich",flag:"🇨🇭"},
-            {name:"奥地利",timezone:"Europe/Vienna",flag:"🇦🇹"},
-            {name:"希腊",timezone:"Europe/Athens",flag:"🇬🇷"},
-            {name:"葡萄牙",timezone:"Europe/Lisbon",flag:"🇵🇹"},
-            {name:"爱尔兰",timezone:"Europe/Dublin",flag:"🇮🇪"},
-            {name:"捷克",timezone:"Europe/Prague",flag:"🇨🇿"},
-            {name:"匈牙利",timezone:"Europe/Budapest",flag:"🇭🇺"},
-            {name:"罗马尼亚",timezone:"Europe/Bucharest",flag:"🇷🇴"},
-            {name:"保加利亚",timezone:"Europe/Sofia",flag:"🇧🇬"},
-            {name:"塞尔维亚",timezone:"Europe/Belgrade",flag:"🇷🇸"},
-            {name:"克罗地亚",timezone:"Europe/Zagreb",flag:"🇭🇷"},
-            {name:"斯洛伐克",timezone:"Europe/Bratislava",flag:"🇸🇰"},
-            {name:"斯洛文尼亚",timezone:"Europe/Ljubljana",flag:"🇸🇮"},
-            {name:"爱沙尼亚",timezone:"Europe/Tallinn",flag:"🇪🇪"},
-            {name:"拉脱维亚",timezone:"Europe/Riga",flag:"🇱🇻"},
-            {name:"立陶宛",timezone:"Europe/Vilnius",flag:"🇱🇹"},
-            {name:"卢森堡",timezone:"Europe/Luxembourg",flag:"🇱🇺"},
-            {name:"马耳他",timezone:"Europe/Malta",flag:"🇲🇹"},
-            {name:"塞浦路斯",timezone:"Asia/Nicosia",flag:"🇨🇾"},
-            {name:"冰岛",timezone:"Atlantic/Reykjavik",flag:"🇮🇸"},
-            {name:"阿尔巴尼亚",timezone:"Europe/Tirane",flag:"🇦🇱"},
-            {name:"波斯尼亚",timezone:"Europe/Sarajevo",flag:"🇧🇦"},
-            {name:"北马其顿",timezone:"Europe/Skopje",flag:"🇲🇰"},
-            {name:"摩尔多瓦",timezone:"Europe/Chisinau",flag:"🇲🇩"},
-            {name:"摩纳哥",timezone:"Europe/Monaco",flag:"🇲🇨"},
-            {name:"安道尔",timezone:"Europe/Andorra",flag:"🇦🇩"},
-            {name:"列支敦士登",timezone:"Europe/Vaduz",flag:"🇱🇮"},
-            {name:"圣马力诺",timezone:"Europe/San_Marino",flag:"🇸🇲"},
-            {name:"梵蒂冈",timezone:"Europe/Vatican",flag:"🇻🇦"},
-            {name:"蒙古",timezone:"Asia/Ulaanbaatar",flag:"🇲🇳"},
-            {name:"朝鲜",timezone:"Asia/Pyongyang",flag:"🇰🇵"},
-            {name:"哈萨克斯坦",timezone:"Asia/Almaty",flag:"🇰🇿"},
-            {name:"乌兹别克斯坦",timezone:"Asia/Tashkent",flag:"🇺🇿"},
-            {name:"吉尔吉斯斯坦",timezone:"Asia/Bishkek",flag:"🇰🇬"},
-            {name:"塔吉克斯坦",timezone:"Asia/Dushanbe",flag:"🇹🇯"},
-            {name:"土库曼斯坦",timezone:"Asia/Ashgabat",flag:"🇹🇲"},
-            {name:"阿富汗",timezone:"Asia/Kabul",flag:"🇦🇫"},
-            {name:"巴基斯坦",timezone:"Asia/Karachi",flag:"🇵🇰"},
-            {name:"孟加拉国",timezone:"Asia/Dhaka",flag:"🇧🇩"},
-            {name:"斯里兰卡",timezone:"Asia/Colombo",flag:"🇱🇰"},
-            {name:"尼泊尔",timezone:"Asia/Kathmandu",flag:"🇳🇵"},
-            {name:"不丹",timezone:"Asia/Thimphu",flag:"🇧🇹"},
-            {name:"马尔代夫",timezone:"Indian/Maldives",flag:"🇲🇻"},
-            {name:"缅甸",timezone:"Asia/Yangon",flag:"🇲🇲"},
-            {name:"柬埔寨",timezone:"Asia/Phnom_Penh",flag:"🇰🇭"},
-            {name:"老挝",timezone:"Asia/Vientiane",flag:"🇱🇦"},
-            {name:"文莱",timezone:"Asia/Brunei",flag:"🇧🇳"},
-            {name:"东帝汶",timezone:"Asia/Dili",flag:"🇹🇱"},
-            {name:"伊朗",timezone:"Asia/Tehran",flag:"🇮🇷"},
-            {name:"伊拉克",timezone:"Asia/Baghdad",flag:"🇮🇶"},
-            {name:"叙利亚",timezone:"Asia/Damascus",flag:"🇸🇾"},
-            {name:"黎巴嫩",timezone:"Asia/Beirut",flag:"🇱🇧"},
-            {name:"约旦",timezone:"Asia/Amman",flag:"🇯🇴"},
-            {name:"以色列",timezone:"Asia/Jerusalem",flag:"🇮🇱"},
-            {name:"巴勒斯坦",timezone:"Asia/Gaza",flag:"🇵🇸"},
-            {name:"科威特",timezone:"Asia/Kuwait",flag:"🇰🇼"},
-            {name:"卡塔尔",timezone:"Asia/Qatar",flag:"🇶🇦"},
-            {name:"阿联酋",timezone:"Asia/Dubai",flag:"🇦🇪"},
-            {name:"阿曼",timezone:"Asia/Muscat",flag:"🇴🇲"},
-            {name:"也门",timezone:"Asia/Aden",flag:"🇾🇪"},
-            {name:"巴林",timezone:"Asia/Bahrain",flag:"🇧🇭"},
-            {name:"格鲁吉亚",timezone:"Asia/Tbilisi",flag:"🇬🇪"},
-            {name:"亚美尼亚",timezone:"Asia/Yerevan",flag:"🇦🇲"},
-            {name:"阿塞拜疆",timezone:"Asia/Baku",flag:"🇦🇿"},
-            {name:"阿尔及利亚",timezone:"Africa/Algiers",flag:"🇩🇿"},
-            {name:"摩洛哥",timezone:"Africa/Casablanca",flag:"🇲🇦"},
-            {name:"突尼斯",timezone:"Africa/Tunis",flag:"🇹🇳"},
-            {name:"利比亚",timezone:"Africa/Tripoli",flag:"🇱🇾"},
-            {name:"苏丹",timezone:"Africa/Khartoum",flag:"🇸🇩"},
-            {name:"埃塞俄比亚",timezone:"Africa/Addis_Ababa",flag:"🇪🇹"},
-            {name:"肯尼亚",timezone:"Africa/Nairobi",flag:"🇰🇪"},
-            {name:"坦桑尼亚",timezone:"Africa/Dar_es_Salaam",flag:"🇹🇿"},
-            {name:"乌干达",timezone:"Africa/Kampala",flag:"🇺🇬"},
-            {name:"卢旺达",timezone:"Africa/Kigali",flag:"🇷🇼"},
-            {name:"布隆迪",timezone:"Africa/Bujumbura",flag:"🇧🇮"},
-            {name:"索马里",timezone:"Africa/Mogadishu",flag:"🇸🇴"},
-            {name:"吉布提",timezone:"Africa/Djibouti",flag:"🇩🇯"},
-            {name:"厄立特里亚",timezone:"Africa/Asmara",flag:"🇪🇷"},
-            {name:"加纳",timezone:"Africa/Accra",flag:"🇬🇭"},
-            {name:"尼日利亚",timezone:"Africa/Lagos",flag:"🇳🇬"},
-            {name:"科特迪瓦",timezone:"Africa/Abidjan",flag:"🇨🇮"},
-            {name:"塞内加尔",timezone:"Africa/Dakar",flag:"🇸🇳"},
-            {name:"马里",timezone:"Africa/Bamako",flag:"🇲🇱"},
-            {name:"布基纳法索",timezone:"Africa/Ouagadougou",flag:"🇧🇫"},
-            {name:"尼日尔",timezone:"Africa/Niamey",flag:"🇳🇪"},
-            {name:"乍得",timezone:"Africa/Ndjamena",flag:"🇹🇩"},
-            {name:"喀麦隆",timezone:"Africa/Douala",flag:"🇨🇲"},
-            {name:"中非",timezone:"Africa/Bangui",flag:"🇨🇫"},
-            {name:"刚果(布)",timezone:"Africa/Brazzaville",flag:"🇨🇬"},
-            {name:"刚果(金)",timezone:"Africa/Kinshasa",flag:"🇨🇩"},
-            {name:"加蓬",timezone:"Africa/Libreville",flag:"🇬🇦"},
-            {name:"赤道几内亚",timezone:"Africa/Malabo",flag:"🇬🇶"},
-            {name:"圣多美和普林西比",timezone:"Africa/Sao_Tome",flag:"🇸🇹"},
-            {name:"安哥拉",timezone:"Africa/Luanda",flag:"🇦🇴"},
-            {name:"赞比亚",timezone:"Africa/Lusaka",flag:"🇿🇲"},
-            {name:"马拉维",timezone:"Africa/Blantyre",flag:"🇲🇼"},
-            {name:"莫桑比克",timezone:"Africa/Maputo",flag:"🇲🇿"},
-            {name:"津巴布韦",timezone:"Africa/Harare",flag:"🇿🇼"},
-            {name:"博茨瓦纳",timezone:"Africa/Gaborone",flag:"🇧🇼"},
-            {name:"纳米比亚",timezone:"Africa/Windhoek",flag:"🇳🇦"},
-            {name:"斯威士兰",timezone:"Africa/Mbabane",flag:"🇸🇿"},
-            {name:"莱索托",timezone:"Africa/Maseru",flag:"🇱🇸"},
-            {name:"马达加斯加",timezone:"Indian/Antananarivo",flag:"🇲🇬"},
-            {name:"科摩罗",timezone:"Indian/Comoro",flag:"🇰🇲"},
-            {name:"毛里求斯",timezone:"Indian/Mauritius",flag:"🇲🇺"},
-            {name:"塞舌尔",timezone:"Indian/Mahe",flag:"🇸🇨"},
-            {name:"佛得角",timezone:"Atlantic/Cape_Verde",flag:"🇨🇻"},
-            {name:"几内亚比绍",timezone:"Africa/Bissau",flag:"🇬🇼"},
-            {name:"几内亚",timezone:"Africa/Conakry",flag:"🇬🇳"},
-            {name:"塞拉利昂",timezone:"Africa/Freetown",flag:"🇸🇱"},
-            {name:"利比里亚",timezone:"Africa/Monrovia",flag:"🇱🇷"},
-            {name:"多哥",timezone:"Africa/Lome",flag:"🇹🇬"},
-            {name:"贝宁",timezone:"Africa/Porto-Novo",flag:"🇧🇯"},
-            {name:"毛里塔尼亚",timezone:"Africa/Nouakchott",flag:"🇲🇷"},
-            {name:"冈比亚",timezone:"Africa/Banjul",flag:"🇬🇲"},
-            {name:"新西兰",timezone:"Pacific/Auckland",flag:"🇳🇿"},
-            {name:"斐济",timezone:"Pacific/Fiji",flag:"🇫🇯"},
-            {name:"巴布亚新几内亚",timezone:"Pacific/Port_Moresby",flag:"🇵🇬"},
-            {name:"所罗门群岛",timezone:"Pacific/Guadalcanal",flag:"🇸🇧"},
-            {name:"瓦努阿图",timezone:"Pacific/Efate",flag:"🇻🇺"},
-            {name:"新喀里多尼亚",timezone:"Pacific/Noumea",flag:"🇳🇨"},
-            {name:"法属波利尼西亚",timezone:"Pacific/Tahiti",flag:"🇵🇫"},
-            {name:"关岛",timezone:"Pacific/Guam",flag:"🇬🇺"},
-            {name:"萨摩亚",timezone:"Pacific/Apia",flag:"🇼🇸"},
-            {name:"汤加",timezone:"Pacific/Tongatapu",flag:"🇹🇴"},
-            {name:"基里巴斯",timezone:"Pacific/Tarawa",flag:"🇰🇮"},
-            {name:"帕劳",timezone:"Pacific/Palau",flag:"🇵🇼"},
-            {name:"密克罗尼西亚",timezone:"Pacific/Pohnpei",flag:"🇫🇲"},
-            {name:"马绍尔群岛",timezone:"Pacific/Majuro",flag:"🇲🇭"},
-            {name:"瑙鲁",timezone:"Pacific/Nauru",flag:"🇳🇷"},
-            {name:"图瓦卢",timezone:"Pacific/Funafuti",flag:"🇹🇻"},
-            {name:"库克群岛",timezone:"Pacific/Rarotonga",flag:"🇨🇰"},
-            {name:"纽埃",timezone:"Pacific/Niue",flag:"🇳🇺"},
-            {name:"东萨摩亚",timezone:"Pacific/Pago_Pago",flag:"🇦🇸"},
-            {name:"智利",timezone:"America/Santiago",flag:"🇨🇱"},
-            {name:"秘鲁",timezone:"America/Lima",flag:"🇵🇪"},
-            {name:"哥伦比亚",timezone:"America/Bogota",flag:"🇨🇴"},
-            {name:"委内瑞拉",timezone:"America/Caracas",flag:"🇻🇪"},
-            {name:"厄瓜多尔",timezone:"America/Guayaquil",flag:"🇪🇨"},
-            {name:"玻利维亚",timezone:"America/La_Paz",flag:"🇧🇴"},
-            {name:"巴拉圭",timezone:"America/Asuncion",flag:"🇵🇾"},
-            {name:"乌拉圭",timezone:"America/Montevideo",flag:"🇺🇾"},
-            {name:"圭亚那",timezone:"America/Guyana",flag:"🇬🇾"},
-            {name:"苏里南",timezone:"America/Paramaribo",flag:"🇸🇷"},
-            {name:"法属圭亚那",timezone:"America/Cayenne",flag:"🇬🇫"},
-            {name:"特立尼达和多巴哥",timezone:"America/Port_of_Spain",flag:"🇹🇹"},
-            {name:"巴巴多斯",timezone:"America/Barbados",flag:"🇧🇧"},
-            {name:"牙买加",timezone:"America/Jamaica",flag:"🇯🇲"},
-            {name:"巴哈马",timezone:"America/Nassau",flag:"🇧🇸"},
-            {name:"古巴",timezone:"America/Havana",flag:"🇨🇺"},
-            {name:"海地",timezone:"America/Port-au-Prince",flag:"🇭🇹"},
-            {name:"多米尼加",timezone:"America/Santo_Domingo",flag:"🇩🇴"},
-            {name:"哥斯达黎加",timezone:"America/Costa_Rica",flag:"🇨🇷"},
-            {name:"巴拿马",timezone:"America/Panama",flag:"🇵🇦"},
-            {name:"尼加拉瓜",timezone:"America/Managua",flag:"🇳🇮"},
-            {name:"洪都拉斯",timezone:"America/Tegucigalpa",flag:"🇭🇳"},
-            {name:"萨尔瓦多",timezone:"America/El_Salvador",flag:"🇸🇻"},
-            {name:"危地马拉",timezone:"America/Guatemala",flag:"🇬🇹"},
-            {name:"伯利兹",timezone:"America/Belize",flag:"🇧🇿"}
-        ];
-        this.timeElements = {};
-        this.init();
-    }
-    init() {
-        this.renderClocks();
-        this.startClock();          // ★ 关键：启动 100 ms 定时器
-        this.updateCountryCount();
-        setTimeout(() => document.getElementById('loading').style.display = 'none', 600);
-    }
-    renderClocks() {
-        const grid = document.getElementById('timeGrid');
-        grid.innerHTML = '';
-        this.countries.forEach((c, i) => {
-            const card = document.createElement('div');
-            card.className = 'time-card';
-            card.innerHTML = `
-                <div class="country-name">${c.name}<span class="country-flag">${c.flag}</span></div>
-                <div class="timezone">${this.formatTimezone(c.timezone)}</div>
-                <div class="current-time" id="time-${i}">--:--:--.---</div>
-                <div class="date-info" id="date-${i}">--</div>
-            `;
-            grid.appendChild(card);
-            this.timeElements[i] = { time: document.getElementById(`time-${i}`), date: document.getElementById(`date-${i}`) };
-        });
-    }
-    formatTimezone(tAfrica/Lagos",flag:"🇳🇬"},
-            {name:"科特迪瓦",timezone:"Africa/Abidjan",flag:"🇨🇮"},
-                    {name:"塞内加尔",timezone:"Africa/Dakar",flag:"🇸🇳"},
-                    {name:"马里",timezone:"Africa/Bamako",flag:"🇲🇱"},
-                    {name:"布基纳法索",timezone:"Africa/Ouagadougou",flag:"🇧🇫"},
-                    {name:"尼日尔",timezone:"Africa/Niamey",flag:"🇳🇪"},
-                    {name:"乍得",timezone:"Africa/Ndjamena",flag:"🇹🇩"},
-                    {name:"喀麦隆",timezone:"Africa/Douala",flag:"🇨🇲"},
-                    {name:"中非",timezone:"Africa/Bangui",flag:"🇨🇫"},
-                    {name:"刚果(布)",timezone:"Africa/Brazzaville",flag:"🇨🇬"},
-                    {name:"刚果(金)",timezone:"Africa/Kinshasa",flag:"🇨🇩"},
-                    {name:"加蓬",timezone:"Africa/Libreville",flag:"🇬🇦"},
-                    {name:"赤道几内亚",timezone:"Africa/Malabo",flag:"🇬🇶"},
-                    {name:"圣多美和普林西比",timezone:"Africa/Sao_Tome",flag:"🇸🇹"},
-                    {name:"安哥拉",timezone:"Africa/Luanda",flag:"🇦🇴"},
-                    {name:"赞比亚",timezone:"Africa/Lusaka",flag:"🇿🇲"},
-                    {name:"马拉维",timezone:"Africa/Blantyre",flag:"🇲🇼"},
-                    {name:"莫桑比克",timezone:"Africa/Maputo",flag:"🇲🇿"},
-                    {name:"津巴布韦",timezone:"Africa/Harare",flag:"🇿🇼"},
-                    {name:"博茨瓦纳",timezone:"Africa/Gaborone",flag:"🇧🇼"},
-                    {name:"纳米比亚",timezone:"Africa/Windhoek",flag:"🇳🇦"},
-                    {name:"斯威士兰",timezone:"Africa/Mbabane",flag:"🇸🇿"},
-                    {name:"莱索托",timezone:"Africa/Maseru",flag:"🇱🇸"},
-                    {name:"马达加斯加",timezone:"Indian/Antananarivo",flag:"🇲🇬"},
-                    {name:"科摩罗",timezone:"Indian/Comoro",flag:"🇰🇲"},
-                    {name:"毛里求斯",timezone:"Indian/Mauritius",flag:"🇲🇺"},
-                    {name:"塞舌尔",timezone:"Indian/Mahe",flag:"🇸🇨"},
-                    {name:"佛得角",timezone:"Atlantic/Cape_Verde",flag:"🇨🇻"},
-                    {name:"几内亚比绍",timezone:"Africa/Bissau",flag:"🇬🇼"},
-                    {name:"几内亚",timezone:"Africa/Conakry",flag:"🇬🇳"},
-                    {name:"塞拉利昂",timezone:"Africa/Freetown",flag:"🇸🇱"},
-                    {name:"利比里亚",timezone:"Africa/Monrovia",flag:"🇱🇷"},
-                    {name:"多哥",timezone:"Africa/Lome",flag:"🇹🇬"},
-                    {name:"贝宁",timezone:"Africa/Porto-Novo",flag:"🇧🇯"},
-                    {name:"毛里塔尼亚",timezone:"Africa/Nouakchott",flag:"🇲🇷"},
-                    {name:"冈比亚",timezone:"Africa/Banjul",flag:"🇬🇲"},
-                    {name:"新西兰",timezone:"Pacific/Auckland",flag:"🇳🇿"},
-                    {name:"斐济",timezone:"Pacific/Fiji",flag:"🇫🇯"},
-                    {name:"巴布亚新几内亚",timezone:"Pacific/Port_Moresby",flag:"🇵🇬"},
-                    {name:"所罗门群岛",timezone:"Pacific/Guadalcanal",flag:"🇸🇧"},
-                    {name:"瓦努阿图",timezone:"Pacific/Efate",flag:"🇻🇺"},
-                    {name:"新喀里多尼亚",timezone:"Pacific/Noumea",flag:"🇳🇨"},
-                    {name:"法属波利尼西亚",timezone:"Pacific/Tahiti",flag:"🇵🇫"},
-                    {name:"关岛",timezone:"Pacific/Guam",flag:"🇬🇺"},
-                    {name:"萨摩亚",timezone:"Pacific/Apia",flag:"🇼🇸"},
-                    {name:"汤加",timezone:"Pacific/Tongatapu",flag:"🇹🇴"},
-                    {name:"基里巴斯",timezone:"Pacific/Tarawa",flag:"🇰🇮"},
-                    {name:"帕劳",timezone:"Pacific/Palau",flag:"🇵🇼"},
-                    {name:"密克罗尼西亚",timezone:"Pacific/Pohnpei",flag:"🇫🇲"},
-                    {name:"马绍尔群岛",timezone:"Pacific/Majuro",flag:"🇲🇭"},
-                    {name:"瑙鲁",timezone:"Pacific/Nauru",flag:"🇳🇷"},
-                    {name:"图瓦卢",timezone:"Pacific/Funafuti",flag:"🇹🇻"},
-                    {name:"库克群岛",timezone:"Pacific/Rarotonga",flag:"🇨🇰"},
-                    {name:"纽埃",timezone:"Pacific/Niue",flag:"🇳🇺"},
-                    {name:"东萨摩亚",timezone:"Pacific/Pago_Pago",flag:"🇦🇸"},
-                    {name:"智利",timezone:"America/Santiago",flag:"🇨🇱"},
-                    {name:"秘鲁",timezone:"America/Lima",flag:"🇵🇪"},
-                    {name:"哥伦比亚",timezone:"America/Bogota",flag:"🇨🇴"},
-                    {name:"委内瑞拉",timezone:"America/Caracas",flag:"🇻🇪"},
-                    {name:"厄瓜多尔",timezone:"America/Guayaquil",flag:"🇪🇨"},
-                    {name:"玻利维亚",timezone:"America/La_Paz",flag:"🇧🇴"},
-                    {name:"巴拉圭",timezone:"America/Asuncion",flag:"🇵🇾"},
-                    {name:"乌拉圭",timezone:"America/Montevideo",flag:"🇺🇾"},
-                    {name:"圭亚那",timezone:"America/Guyana",flag:"🇬🇾"},
-                    {name:"苏里南",timezone:"America/Paramaribo",flag:"🇸🇷"},
-                    {name:"法属圭亚那",timezone:"America/Cayenne",flag:"🇬🇫"},
-                    {name:"特立尼达和多巴哥",timezone:"America/Port_of_Spain",flag:"🇹🇹"},
-                    {name:"巴巴多斯",timezone:"America/Barbados",flag:"🇧🇧"},
-                    {name:"牙买加",timezone:"America/Jamaica",flag:"🇯🇲"},
-                    {name:"巴哈马",timezone:"America/Nassau",flag:"🇧🇸"},
-                    {name:"古巴",timezone:"America/Havana",flag:"🇨🇺"},
-                    {name:"海地",timezone:"America/Port-au-Prince",flag:"🇭🇹"},
-                    {name:"多米尼加",timezone:"America/Santo_Domingo",flag:"🇩🇴"},
-                    {name:"哥斯达黎加",timezone:"America/Costa_Rica",flag:"🇨🇷"},
-                    {name:"巴拿马",timezone:"America/Panama",flag:"🇵🇦"},
-                    {name:"尼加拉瓜",timezone:"America/Managua",flag:"🇳🇮"},
-                    {name:"洪都拉斯",timezone:"America/Tegucigalpa",flag:"🇭🇳"},
-                    {name:"萨尔瓦多",timezone:"America/El_Salvador",flag:"🇸🇻"},
-                    {name:"危地马拉",timezone:"America/Guatemala",flag:"🇬🇹"},
-                    {name:"伯利兹",timezone:"America/Belize",flag:"🇧🇿"},
-                    {name:"塔吉克斯坦",timezone:"Asia/Dushanbe",flag:"🇹🇯"},
-                    {name:"土库曼斯坦",timezone:"Asia/Ashgabat",flag:"🇹🇲"},
-                    {name:"阿富汗",timezone:"Asia/Kabul",flag:"🇦🇫"}
-                ];
-                this.timeElements={};
-                this.init();
-            }
-            init(){
-                this.renderClocks();
-                this.startClock();
-                this.updateCountryCount();
-                setTimeout(()=>document.getElementById('loading').style.display='none',1000);
-            }
-            renderClocks(){
-                const grid=document.getElementById('timeGrid');
-                grid.innerHTML='';
-                this.countries.forEach((c,i)=>{
-                    const card=document.createElement('div');
-                    card.className='time-card';
-                    card.innerHTML=`
-                        <div class="country-name">${c.name}<span class="country-flag">${c.flag}</span></div>
-                        <div class="timezone">${this.formatTimezone(c.timezone)}</div>
-                        <div class="current-time" id="time-${i}"><span class="pulse">加载中...</span></div>
-                        <div class="date-info" id="date-${i}"></div>`;
-                    grid.appendChild(card);
-                    this.timeElements[i]={time:document.getElementById(`time-${i}`),date:document.getElementById(`date-${i}`)};
-                });
-            }
-            formatTimezone(tz){
-                return tz.split('/').pop().replace(/_/g,' ');
-            }
-            startClock(){
-                this.updateClocks();
-                this.interval=setInterval(()=>this.updateClocks(),100);
-            }
-            updateClocks(){
-                this.countries.forEach((c,i)=>{
-                    try{
-                        const now=new Date();
-                        const ms=now.getMilliseconds().toString().padStart(3,'0');
-                        const time=now.toLocaleTimeString('zh-CN',{timeZone:c.timezone,hour12:false});
-                        const date=now.toLocaleDateString('zh-CN',{timeZone:c.timezone,year:'numeric',month:'long',day:'numeric',weekday:'long'});
-                        if(this.timeElements[i]){
-                            this.timeElements[i].time.textContent=`${time}.${ms}`;
-                            this.timeElements[i].date.textContent=date;
-                        }
-                    }catch(e){
-                        if(this.timeElements[i])this.timeElements[i].time.innerHTML='<span style="color:#ff6b6b">时间获取失败</span>';
-                    }
-                });
-            }
-            updateCountryCount(){
-                document.getElementById('countryCount').textContent=this.countries.length;
-            }
-            destroy(){
-                clearInterval(this.interval);
-            }
-        }
+/* --------------  197 条国家数据  -------------- */
+const COUNTRIES = [
+{name:"中国",timezone:"Asia/Shanghai",flag:"🇨🇳"}, {name:"美国",timezone:"America/New_York",flag:"🇺🇸"}, {name:"英国",timezone:"Europe/London",flag:"🇬🇧"}, {name:"法国",timezone:"Europe/Paris",flag:"🇫🇷"}, {name:"德国",timezone:"Europe/Berlin",flag:"🇩🇪"}, {name:"日本",timezone:"Asia/Tokyo",flag:"🇯🇵"}, {name:"韩国",timezone:"Asia/Seoul",flag:"🇰🇷"}, {name:"俄罗斯",timezone:"Europe/Moscow",flag:"🇷🇺"}, {name:"印度",timezone:"Asia/Kolkata",flag:"🇮🇳"}, {name:"巴西",timezone:"America/Sao_Paulo",flag:"🇧🇷"}, {name:"加拿大",timezone:"America/Toronto",flag:"🇨🇦"}, {name:"澳大利亚",timezone:"Australia/Sydney",flag:"🇦🇺"}, {name:"意大利",timezone:"Europe/Rome",flag:"🇮🇹"}, {name:"西班牙",timezone:"Europe/Madrid",flag:"🇪🇸"}, {name:"墨西哥",timezone:"America/Mexico_City",flag:"🇲🇽"}, {name:"印度尼西亚",timezone:"Asia/Jakarta",flag:"🇮🇩"}, {name:"土耳其",timezone:"Europe/Istanbul",flag:"🇹🇷"}, {name:"沙特阿拉伯",timezone:"Asia/Riyadh",flag:"🇸🇦"}, {name:"阿根廷",timezone:"America/Argentina/Buenos_Aires",flag:"🇦🇷"}, {name:"南非",timezone:"Africa/Johannesburg",flag:"🇿🇦"}, {name:"埃及",timezone:"Africa/Cairo",flag:"🇪🇬"}, {name:"泰国",timezone:"Asia/Bangkok",flag:"🇹🇭"}, {name:"新加坡",timezone:"Asia/Singapore",flag:"🇸🇬"}, {name:"马来西亚",timezone:"Asia/Kuala_Lumpur",flag:"🇲🇾"}, {name:"菲律宾",timezone:"Asia/Manila",flag:"🇵🇭"}, {name:"越南",timezone:"Asia/Ho_Chi_Minh",flag:"🇻🇳"}, {name:"乌克兰",timezone:"Europe/Kiev",flag:"🇺🇦"}, {name:"波兰",timezone:"Europe/Warsaw",flag:"🇵🇱"}, {name:"荷兰",timezone:"Europe/Amsterdam",flag:"🇳🇱"}, {name:"比利时",timezone:"Europe/Brussels",flag:"🇧🇪"}, {name:"瑞典",timezone:"Europe/Stockholm",flag:"🇸🇪"}, {name:"挪威",timezone:"Europe/Oslo",flag:"🇳🇴"}, {name:"丹麦",timezone:"Europe/Copenhagen",flag:"🇩🇰"}, {name:"芬兰",timezone:"Europe/Helsinki",flag:"🇫🇮"}, {name:"瑞士",timezone:"Europe/Zurich",flag:"🇨🇭"}, {name:"奥地利",timezone:"Europe/Vienna",flag:"🇦🇹"}, {name:"希腊",timezone:"Europe/Athens",flag:"🇬🇷"}, {name:"葡萄牙",timezone:"Europe/Lisbon",flag:"🇵🇹"}, {name:"爱尔兰",timezone:"Europe/Dublin",flag:"🇮🇪"}, {name:"捷克",timezone:"Europe/Prague",flag:"🇨🇿"}, {name:"匈牙利",timezone:"Europe/Budapest",flag:"🇭🇺"}, {name:"罗马尼亚",timezone:"Europe/Bucharest",flag:"🇷🇴"}, {name:"保加利亚",timezone:"Europe/Sofia",flag:"🇧🇬"}, {name:"塞尔维亚",timezone:"Europe/Belgrade",flag:"🇷🇸"}, {name:"克罗地亚",timezone:"Europe/Zagreb",flag:"🇭🇷"}, {name:"斯洛伐克",timezone:"Europe/Bratislava",flag:"🇸🇰"}, {name:"斯洛文尼亚",timezone:"Europe/Ljubljana",flag:"🇸🇮"}, {name:"爱沙尼亚",timezone:"Europe/Tallinn",flag:"🇪🇪"}, {name:"拉脱维亚",timezone:"Europe/Riga",flag:"🇱🇻"}, {name:"立陶宛",timezone:"Europe/Vilnius",flag:"🇱🇹"}, {name:"卢森堡",timezone:"Europe/Luxembourg",flag:"🇱🇺"}, {name:"马耳他",timezone:"Europe/Malta",flag:"🇲🇹"}, {name:"塞浦路斯",timezone:"Asia/Nicosia",flag:"🇨🇾"}, {name:"冰岛",timezone:"Atlantic/Reykjavik",flag:"🇮🇸"}, {name:"阿尔巴尼亚",timezone:"Europe/Tirane",flag:"🇦🇱"}, {name:"波斯尼亚",timezone:"Europe/Sarajevo",flag:"🇧🇦"}, {name:"北马其顿",timezone:"Europe/Skopje",flag:"🇲🇰"}, {name:"摩尔多瓦",timezone:"Europe/Chisinau",flag:"🇲🇩"}, {name:"摩纳哥",timezone:"Europe/Monaco",flag:"🇲🇨"}, {name:"安道尔",timezone:"Europe/Andorra",flag:"🇦🇩"}, {name:"列支敦士登",timezone:"Europe/Vaduz",flag:"🇱🇮"}, {name:"圣马力诺",timezone:"Europe/San_Marino",flag:"🇸🇲"}, {name:"梵蒂冈",timezone:"Europe/Vatican",flag:"🇻🇦"}, {name:"蒙古",timezone:"Asia/Ulaanbaatar",flag:"🇲🇳"}, {name:"朝鲜",timezone:"Asia/Pyongyang",flag:"🇰🇵"}, {name:"哈萨克斯坦",timezone:"Asia/Almaty",flag:"🇰🇿"}, {name:"乌兹别克斯坦",timezone:"Asia/Tashkent",flag:"🇺🇿"}, {name:"吉尔吉斯斯坦",timezone:"Asia/Bishkek",flag:"🇰🇬"}, {name:"塔吉克斯坦",timezone:"Asia/Dushanbe",flag:"🇹🇯"}, {name:"土库曼斯坦",timezone:"Asia/Ashgabat",flag:"🇹🇲"}, {name:"阿富汗",timezone:"Asia/Kabul",flag:"🇦🇫"}, {name:"巴基斯坦",timezone:"Asia/Karachi",flag:"🇵🇰"}, {name:"孟加拉国",timezone:"Asia/Dhaka",flag:"🇧🇩"}, {name:"斯里兰卡",timezone:"Asia/Colombo",flag:"🇱🇰"}, {name:"尼泊尔",timezone:"Asia/Kathmandu",flag:"🇳🇵"}, {name:"不丹",timezone:"Asia/Thimphu",flag:"🇧🇹"}, {name:"马尔代夫",timezone:"Indian/Maldives",flag:"🇲🇻"}, {name:"缅甸",timezone:"Asia/Yangon",flag:"🇲🇲"}, {name:"柬埔寨",timezone:"Asia/Phnom_Penh",flag:"🇰🇭"}, {name:"老挝",timezone:"Asia/Vientiane",flag:"🇱🇦"}, {name:"文莱",timezone:"Asia/Brunei",flag:"🇧🇳"}, {name:"东帝汶",timezone:"Asia/Dili",flag:"🇹🇱"}, {name:"伊朗",timezone:"Asia/Tehran",flag:"🇮🇷"}, {name:"伊拉克",timezone:"Asia/Baghdad",flag:"🇮🇶"}, {name:"叙利亚",timezone:"Asia/Damascus",flag:"🇸🇾"}, {name:"黎巴嫩",timezone:"Asia/Beirut",flag:"🇱🇧"}, {name:"约旦",timezone:"Asia/Amman",flag:"🇯🇴"}, {name:"以色列",timezone:"Asia/Jerusalem",flag:"🇮🇱"}, {name:"巴勒斯坦",timezone:"Asia/Gaza",flag:"🇵🇸"}, {name:"科威特",timezone:"Asia/Kuwait",flag:"🇰🇼"}, {name:"卡塔尔",timezone:"Asia/Qatar",flag:"🇶🇦"}, {name:"阿联酋",timezone:"Asia/Dubai",flag:"🇦🇪"}, {name:"阿曼",timezone:"Asia/Muscat",flag:"🇴🇲"}, {name:"也门",timezone:"Asia/Aden",flag:"🇾🇪"}, {name:"巴林",timezone:"Asia/Bahrain",flag:"🇧🇭"}, {name:"格鲁吉亚",timezone:"Asia/Tbilisi",flag:"🇬🇪"}, {name:"亚美尼亚",timezone:"Asia/Yerevan",flag:"🇦🇲"}, {name:"阿塞拜疆",timezone:"Asia/Baku",flag:"🇦🇿"}, {name:"阿尔及利亚",timezone:"Africa/Algiers",flag:"🇩🇿"}, {name:"摩洛哥",timezone:"Africa/Casablanca",flag:"🇲🇦"}, {name:"突尼斯",timezone:"Africa/Tunis",flag:"🇹🇳"}, {name:"利比亚",timezone:"Africa/Tripoli",flag:"🇱🇾"}, {name:"苏丹",timezone:"Africa/Khartoum",flag:"🇸🇩"}, {name:"埃塞俄比亚",timezone:"Africa/Addis_Ababa",flag:"🇪🇹"}, {name:"肯尼亚",timezone:"Africa/Nairobi",flag:"🇰🇪"}, {name:"坦桑尼亚",timezone:"Africa/Dar_es_Salaam",flag:"🇹🇿"}, {name:"乌干达",timezone:"Africa/Kampala",flag:"🇺🇬"}, {name:"卢旺达",timezone:"Africa/Kigali",flag:"🇷🇼"}, {name:"布隆迪",timezone:"Africa/Bujumbura",flag:"🇧🇮"}, {name:"索马里",timezone:"Africa/Mogadishu",flag:"🇸🇴"}, {name:"吉布提",timezone:"Africa/Djibouti",flag:"🇩🇯"}, {name:"厄立特里亚",timezone:"Africa/Asmara",flag:"🇪🇷"}, {name:"加纳",timezone:"Africa/Accra",flag:"🇬🇭"}, {name:"尼日利亚",timezone:"Africa/Lagos",flag:"🇳🇬"}, {name:"科特迪瓦",timezone:"Africa/Abidjan",flag:"🇨🇮"}, {name:"塞内加尔",timezone:"Africa/Dakar",flag:"🇸🇳"}, {name:"马里",timezone:"Africa/Bamako",flag:"🇲🇱"}, {name:"布基纳法索",timezone:"Africa/Ouagadougou",flag:"🇧🇫"}, {name:"尼日尔",timezone:"Africa/Niamey",flag:"🇳🇪"}, {name:"乍得",timezone:"Africa/Ndjamena",flag:"🇹🇩"}, {name:"喀麦隆",timezone:"Africa/Douala",flag:"🇨🇲"}, {name:"中非",timezone:"Africa/Bangui",flag:"🇨🇫"}, {name:"刚果(布)",timezone:"Africa/Brazzaville",flag:"🇨🇬"}, {name:"刚果(金)",timezone:"Africa/Kinshasa",flag:"🇨🇩"}, {name:"加蓬",timezone:"Africa/Libreville",flag:"🇬🇦"}, {name:"赤道几内亚",timezone:"Africa/Malabo",flag:"🇬🇶"}, {name:"圣多美和普林西比",timezone:"Africa/Sao_Tome",flag:"🇸🇹"}, {name:"安哥拉",timezone:"Africa/Luanda",flag:"🇦🇴"}, {name:"赞比亚",timezone:"Africa/Lusaka",flag:"🇿🇲"}, {name:"马拉维",timezone:"Africa/Blantyre",flag:"🇲🇼"}, {name:"莫桑比克",timezone:"Africa/Maputo",flag:"🇲🇿"}, {name:"津巴布韦",timezone:"Africa/Harare",flag:"🇿🇼"}, {name:"博茨瓦纳",timezone:"Africa/Gaborone",flag:"🇧🇼"}, {name:"纳米比亚",timezone:"Africa/Windhoek",flag:"🇳🇦"}, {name:"斯威士兰",timezone:"Africa/Mbabane",flag:"🇸🇿"}, {name:"莱索托",timezone:"Africa/Maseru",flag:"🇱🇸"}, {name:"马达加斯加",timezone:"Indian/Antananarivo",flag:"🇲🇬"}, {name:"科摩罗",timezone:"Indian/Comoro",flag:"🇰🇲"}, {name:"毛里求斯",timezone:"Indian/Mauritius",flag:"🇲🇺"}, {name:"塞舌尔",timezone:"Indian/Mahe",flag:"🇸🇨"}, {name:"佛得角",timezone:"Atlantic/Cape_Verde",flag:"🇨🇻"}, {name:"几内亚比绍",timezone:"Africa/Bissau",flag:"🇬🇼"}, {name:"几内亚",timezone:"Africa/Conakry",flag:"🇬🇳"}, {name:"塞拉利昂",timezone:"Africa/Freetown",flag:"🇸🇱"}, {name:"利比里亚",timezone:"Africa/Monrovia",flag:"🇱🇷"}, {name:"多哥",timezone:"Africa/Lome",flag:"🇹🇬"}, {name:"贝宁",timezone:"Africa/Porto-Novo",flag:"🇧🇯"}, {name:"毛里塔尼亚",timezone:"Africa/Nouakchott",flag:"🇲🇷"}, {name:"冈比亚",timezone:"Africa/Banjul",flag:"🇬🇲"}, {name:"新西兰",timezone:"Pacific/Auckland",flag:"🇳🇿"}, {name:"斐济",timezone:"Pacific/Fiji",flag:"🇫🇯"}, {name:"巴布亚新几内亚",timezone:"Pacific/Port_Moresby",flag:"🇵🇬"}, {name:"所罗门群岛",timezone:"Pacific/Guadalcanal",flag:"🇸🇧"}, {name:"瓦努阿图",timezone:"Pacific/Efate",flag:"🇻🇺"}, {name:"新喀里多尼亚",timezone:"Pacific/Noumea",flag:"🇳🇨"}, {name:"法属波利尼西亚",timezone:"Pacific/Tahiti",flag:"🇵🇫"}, {name:"关岛",timezone:"Pacific/Guam",flag:"🇬🇺"}, {name:"萨摩亚",timezone:"Pacific/Apia",flag:"🇼🇸"}, {name:"汤加",timezone:"Pacific/Tongatapu",flag:"🇹🇴"}, {name:"基里巴斯",timezone:"Pacific/Tarawa",flag:"🇰🇮"}, {name:"帕劳",timezone:"Pacific/Palau",flag:"🇵🇼"}, {name:"密克罗尼西亚",timezone:"Pacific/Pohnpei",flag:"🇫🇲"}, {name:"马绍尔群岛",timezone:"Pacific/Majuro",flag:"🇲🇭"}, {name:"瑙鲁",timezone:"Pacific/Nauru",flag:"🇳🇷"}, {name:"图瓦卢",timezone:"Pacific/Funafuti",flag:"🇹🇻"}, {name:"库克群岛",timezone:"Pacific/Rarotonga",flag:"🇨🇰"}, {name:"纽埃",timezone:"Pacific/Niue",flag:"🇳🇺"}, {name:"东萨摩亚",timezone:"Pacific/Pago_Pago",flag:"🇦🇸"}, {name:"智利",timezone:"America/Santiago",flag:"🇨🇱"}, {name:"秘鲁",timezone:"America/Lima",flag:"🇵🇪"}, {name:"哥伦比亚",timezone:"America/Bogota",flag:"🇨🇴"}, {name:"委内瑞拉",timezone:"America/Caracas",flag:"🇻🇪"}, {name:"厄瓜多尔",timezone:"America/Guayaquil",flag:"🇪🇨"}, {name:"玻利维亚",timezone:"America/La_Paz",flag:"🇧🇴"}, {name:"巴拉圭",timezone:"America/Asuncion",flag:"🇵🇾"}, {name:"乌拉圭",timezone:"America/Montevideo",flag:"🇺🇾"}, {name:"圭亚那",timezone:"America/Guyana",flag:"🇬🇾"}, {name:"苏里南",timezone:"America/Paramaribo",flag:"🇸🇷"}, {name:"法属圭亚那",timezone:"America/Cayenne",flag:"🇬🇫"}, {name:"特立尼达和多巴哥",timezone:"America/Port_of_Spain",flag:"🇹🇹"}, {name:"巴巴多斯",timezone:"America/Barbados",flag:"🇧🇧"}, {name:"牙买加",timezone:"America/Jamaica",flag:"🇯🇲"}, {name:"巴哈马",timezone:"America/Nassau",flag:"🇧🇸"}, {name:"古巴",timezone:"America/Havana",flag:"🇨🇺"}, {name:"海地",timezone:"America/Port-au-Prince",flag:"🇭🇹"}, {name:"多米尼加",timezone:"America/Santo_Domingo",flag:"🇩🇴"}, {name:"哥斯达黎加",timezone:"America/Costa_Rica",flag:"🇨🇷"}, {name:"巴拿马",timezone:"America/Panama",flag:"🇵🇦"}, {name:"尼加拉瓜",timezone:"America/Managua",flag:"🇳🇮"}, {name:"洪都拉斯",timezone:"America/Tegucigalpa",flag:"🇭🇳"}, {name:"萨尔瓦多",timezone:"America/El_Salvador",flag:"🇸🇻"}, {name:"危地马拉",timezone:"America/Guatemala",flag:"🇬🇹"}, {name:"伯利兹",timezone:"America/Belize",flag:"🇧🇿"}];
 
-        let worldClock;
-        document.addEventListener('DOMContentLoaded',()=>{
-            try{ worldClock=new WorldClock(); }
-            catch(e){
-                document.getElementById('loading').style.display='none';
-                document.getElementById('error').style.display='block';
-                document.getElementById('error').textContent='加载失败，请刷新页面重试';
-            }
-        });
-        window.addEventListener('beforeunload',()=>worldClock&&worldClock.destroy());
-        document.addEventListener('visibilitychange',()=>{
-            if(worldClock) document.hidden?worldClock.destroy():worldClock.startClock();
-        });
-    </script>
+/* --------------  业务逻辑  -------------- */
+const $ = q => document.querySelector(q);
+const $$ = q => document.querySelectorAll(q);
+let timer = null;
+
+function fmtTZ(tz) {
+  return tz.split('/').pop().replace(/_/g, ' ');
+}
+
+function renderCard(c, i) {
+  const card = document.createElement('div');
+  card.className = 'time-card';
+  card.innerHTML = `
+    <div class="country-name">${c.name}<span class="country-flag">${c.flag}</span></div>
+    <div class="timezone">${fmtTZ(c.timezone)}</div>
+    <div class="current-time" id="tm-${i}">--:--:--.---</div>
+    <div class="date-info" id="dt-${i}">--</div>`;
+  $('#timeGrid').appendChild(card);
+}
+
+function updateTimes() {
+  const now = new Date();
+  COUNTRIES.forEach((c, i) => {
+    try {
+      const ms = now.getMilliseconds().toString().padStart(3, '0');
+      const time = now.toLocaleTimeString('zh-CN', { timeZone: c.timezone, hour12: false });
+      const date = now.toLocaleDateString('zh-CN', { timeZone: c.timezone, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+      $(`#tm-${i}`).textContent = `${time}.${ms}`;
+      $(`#dt-${i}`).textContent = date;
+    } catch (e) {
+      $(`#tm-${i}`).innerHTML = '<span style="color:#ff6b6b">获取失败</span>';
+    }
+  });
+}
+
+function init() {
+  // 渲染卡片
+  COUNTRIES.forEach(renderCard);
+  $('#countryCount').textContent = COUNTRIES.length;
+  // 首次更新
+  updateTimes();
+  // 启动 100 ms 定时器
+  timer = setInterval(updateTimes, 100);
+  // 1 s 后隐藏加载提示
+  setTimeout(() => $('#loading').style.display = 'none', 1000);
+}
+
+// 页面可见性变化时暂停/恢复，节省电量
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(timer);
+  } else {
+    updateTimes();
+    timer = setInterval(updateTimes, 100);
+  }
+});
+
+// DOM 就绪后启动
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
 </body>
 </html>
