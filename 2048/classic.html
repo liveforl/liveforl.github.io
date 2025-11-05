@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>赛博2048</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --neon-green: #00ff41;
+            --dark-bg: #0a0a0a;
+            --grid-bg: #111;
+            --tile-bg: #1a1a1a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: var(--dark-bg);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 255, 255, 0.03) 0px,
+                    transparent 1px,
+                    transparent 2px,
+                    rgba(0, 255, 255, 0.03) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(17, 17, 17, 0.95);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.5),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-magenta), var(--neon-green));
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.7;
+            animation: borderGlow 3s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: clamp(28px, 6vw, 42px);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score-box, .best-box {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: clamp(14px, 3vw, 18px);
+            flex: 1;
+            text-align: center;
+            min-width: 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-box::before, .best-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+            animation: scan 3s infinite;
+        }
+
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .score-label {
+            color: var(--neon-cyan);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.8;
+        }
+
+        .score-value {
+            color: #fff;
+            font-weight: bold;
+            font-size: 24px;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .undo-btn {
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .undo-btn:hover {
+            background: var(--neon-magenta);
+            color: #000;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .undo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .new-game-btn {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .new-game-btn:hover {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .game-container {
+            position: relative;
+            background: var(--grid-bg);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 10px;
+            padding: 10px;
+            touch-action: none;
+            user-select: none;
+            box-shadow: 
+                inset 0 0 20px rgba(0, 255, 255, 0.2),
+                0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .grid-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%;
+        }
+
+        .grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .tile {
+            background: var(--tile-bg);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(20px, 5vw, 35px);
+            font-weight: bold;
+            transition: all 0.15s ease-in-out;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tile::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .tile:hover::before {
+            transform: translateX(100%);
+        }
+
+        .tile-2 { 
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+        .tile-4 { 
+            background: linear-gradient(135deg, #2a2a2a, #3a3a3a);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+        .tile-8 { 
+            background: linear-gradient(135deg, #3a1a1a, #4a2a2a);
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px var(--neon-magenta);
+        }
+        .tile-16 { 
+            background: linear-gradient(135deg, #4a1a1a, #5a2a2a);
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px var(--neon-magenta);
+        }
+        .tile-32 { 
+            background: linear-gradient(135deg, #5a1a1a, #6a2a2a);
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px var(--neon-magenta);
+        }
+        .tile-64 { 
+            background: linear-gradient(135deg, #6a1a1a, #7a2a2a);
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px var(--neon-magenta);
+        }
+        .tile-128 { 
+            background: linear-gradient(135deg, #1a3a1a, #2a4a2a);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            font-size: clamp(18px, 4vw, 30px);
+        }
+        .tile-256 { 
+            background: linear-gradient(135deg, #1a4a1a, #2a5a2a);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            font-size: clamp(18px, 4vw, 30px);
+        }
+        .tile-512 { 
+            background: linear-gradient(135deg, #1a5a1a, #2a6a2a);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            font-size: clamp(18px, 4vw, 30px);
+        }
+        .tile-1024 { 
+            background: linear-gradient(135deg, #1a6a1a, #2a7a2a);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            font-size: clamp(16px, 3.5vw, 25px);
+        }
+        .tile-2048 { 
+            background: linear-gradient(135deg, #1a7a1a, #2a8a2a);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            text-shadow: 0 0 15px var(--neon-green);
+            font-size: clamp(16px, 3.5vw, 25px);
+            animation: tileGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes tileGlow {
+            0%, 100% { box-shadow: 0 0 20px var(--neon-green); }
+            50% { box-shadow: 0 0 40px var(--neon-green); }
+        }
+        
+        .tile-super {
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #00ff41);
+            background-size: 300% 300%;
+            animation: superTile 2s ease infinite;
+            color: #000;
+            font-weight: 900;
+            font-size: clamp(14px, 3vw, 20px);
+            border: 2px solid #fff;
+        }
+
+        @keyframes superTile {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: linear-gradient(135deg, #111, #222);
+            border: 2px solid var(--neon-cyan);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal h2 {
+            font-size: clamp(24px, 5vw, 32px);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .modal p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .modal button {
+            background: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            width: 100%;
+        }
+        
+        .modal button:hover {
+            background: var(--neon-cyan);
+            color: #000;
+        }
+        
+        .win { 
+            color: var(--neon-green);
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+        .lose { 
+            color: var(--neon-magenta);
+            text-shadow: 0 0 20px var(--neon-magenta);
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>赛博2048</h1>
+        </div>
+        
+        <div class="info">
+            <div class="score-box">
+                <div class="score-label">得分</div>
+                <div class="score-value" id="score">0</div>
+            </div>
+            <div class="best-box">
+                <div class="score-label">最高分</div>
+                <div class="score-value" id="best">0</div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="undo-btn" id="undoBtn" onclick="undo()">撤销</button>
+            <button class="new-game-btn" onclick="newGame()">新游戏</button>
+        </div>
+        
+        <div class="game-container">
+            <div class="grid-container">
+                <div class="grid" id="grid"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay">
+        <div class="modal" id="modal">
+            <h2 id="modalTitle"></h2>
+            <p id="modalMessage"></p>
+            <button onclick="closeModal()">继续</button>
+        </div>
+    </div>
+    
+    <script>
+        let board = [];
+        let score = 0;
+        let best = localStorage.getItem('cyber2048best') || 0;
+        let history = [];
+        let hasWon = false;
+        
+        const grid = document.getElementById('grid');
+        const scoreEl = document.getElementById('score');
+        const bestEl = document.getElementById('best');
+        const undoBtn = document.getElementById('undoBtn');
+        
+        bestEl.textContent = best;
+        
+        function initBoard() {
+            board = Array(4).fill().map(() => Array(4).fill(0));
+            score = 0;
+            hasWon = false;
+            history = [];
+            updateScore();
+            addRandomTile();
+            addRandomTile();
+            updateDisplay();
+        }
+        
+        function addRandomTile() {
+            const empty = [];
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (board[i][j] === 0) {
+                        empty.push({i, j});
+                    }
+                }
+            }
+            if (empty.length > 0) {
+                const {i, j} = empty[Math.floor(Math.random() * empty.length)];
+                board[i][j] = Math.random() < 0.9 ? 2 : 4;
+            }
+        }
+        
+        function updateDisplay() {
+            grid.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    const value = board[i][j];
+                    if (value > 0) {
+                        tile.textContent = value;
+                        tile.classList.add(`tile-${value}`);
+                        if (value > 2048) {
+                            tile.classList.add('tile-super');
+                        }
+                    }
+                    grid.appendChild(tile);
+                }
+            }
+        }
+        
+        function updateScore() {
+            scoreEl.textContent = score;
+            if (score > best) {
+                best = score;
+                bestEl.textContent = best;
+                localStorage.setItem('cyber2048best', best);
+            }
+        }
+        
+        function saveState() {
+            history.push({
+                board: board.map(row => [...row]),
+                score: score,
+                hasWon: hasWon
+            });
+            if (history.length > 10) history.shift();
+            undoBtn.disabled = history.length === 0;
+        }
+        
+        function undo() {
+            if (history.length > 0) {
+                const state = history.pop();
+                board = state.board;
+                score = state.score;
+                hasWon = state.hasWon;
+                updateScore();
+                updateDisplay();
+                undoBtn.disabled = history.length === 0;
+            }
+        }
+        
+        function move(direction) {
+            saveState();
+            let moved = false;
+            const newBoard = board.map(row => [...row]);
+            
+            if (direction === 'left' || direction === 'right') {
+                for (let i = 0; i < 4; i++) {
+                    let row = newBoard[i];
+                    if (direction === 'right') row = row.reverse();
+                    
+                    const filtered = row.filter(val => val !== 0);
+                    const merged = [];
+                    
+                    for (let j = 0; j < filtered.length; j++) {
+                        if (filtered[j] === filtered[j + 1]) {
+                            merged.push(filtered[j] * 2);
+                            score += filtered[j] * 2;
+                            j++;
+                        } else {
+                            merged.push(filtered[j]);
+                        }
+                    }
+                    
+                    while (merged.length < 4) merged.push(0);
+                    if (direction === 'right') merged.reverse();
+                    
+                    for (let j = 0; j < 4; j++) {
+                        if (newBoard[i][j] !== merged[j]) moved = true;
+                        newBoard[i][j] = merged[j];
+                    }
+                }
+            } else {
+                for (let j = 0; j < 4; j++) {
+                    let col = [];
+                    for (let i = 0; i < 4; i++) col.push(newBoard[i][j]);
+                    if (direction === 'down') col = col.reverse();
+                    
+                    const filtered = col.filter(val => val !== 0);
+                    const merged = [];
+                    
+                    for (let i = 0; i < filtered.length; i++) {
+                        if (filtered[i] === filtered[i + 1]) {
+                            merged.push(filtered[i] * 2);
+                            score += filtered[i] * 2;
+                            i++;
+                        } else {
+                            merged.push(filtered[i]);
+                        }
+                    }
+                    
+                    while (merged.length < 4) merged.push(0);
+                    if (direction === 'down') merged.reverse();
+                    
+                    for (let i = 0; i < 4; i++) {
+                        if (newBoard[i][j] !== merged[i]) moved = true;
+                        newBoard[i][j] = merged[i];
+                    }
+                }
+            }
+            
+            if (moved) {
+                board = newBoard;
+                addRandomTile();
+                updateScore();
+                updateDisplay();
+                
+                if (!hasWon && board.flat().includes(2048)) {
+                    hasWon = true;
+                    showModal('win', '系统突破！', '你已达到2048！继续向更高维度进化...');
+                }
+                
+                if (isGameOver()) {
+                    setTimeout(() => {
+                        showModal('lose', '系统崩溃！', `最终得分：${score}`);
+                    }, 300);
+                }
+            }
+        }
+        
+        function isGameOver() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (board[i][j] === 0) return false;
+                    if (j < 3 && board[i][j] === board[i][j + 1]) return false;
+                    if (i < 3 && board[i][j] === board[i + 1][j]) return false;
+                }
+            }
+            return true;
+        }
+        
+        function showModal(type, title, message) {
+            const overlay = document.getElementById('overlay');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            
+            modalTitle.textContent = title;
+            modalTitle.className = type;
+            modalMessage.textContent = message;
+            overlay.style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('overlay').style.display = 'none';
+        }
+        
+        function newGame() {
+            if (confirm('确定要重启系统吗？')) {
+                initBoard();
+            }
+        }
+        
+        // 键盘控制
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') move('left');
+            else if (e.key === 'ArrowRight') move('right');
+            else if (e.key === 'ArrowUp') move('up');
+            else if (e.key === 'ArrowDown') move('down');
+        });
+        
+        // 触摸控制
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        grid.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        
+        grid.addEventListener('touchend', e => {
+            if (!touchStartX || !touchStartY) return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 30) move('right');
+                else if (dx < -30) move('left');
+            } else {
+                if (dy > 30) move('down');
+                else if (dy < -30) move('up');
+            }
+            
+            touchStartX = 0;
+            touchStartY = 0;
+        });
+        
+        // 初始化游戏
+        initBoard();
+    </script>
+</body>
+</html>
