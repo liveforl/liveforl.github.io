@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>XP 4:3 模拟器·彩虹猫两层副本版</title>
+<style>
+html,body{margin:0;height:100%;background:#000;font:12px/1.4 Tahoma, sans-serif;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box}
+#wrap{position:relative;width:100%;max-width:133.33vh;height:100%;max-height:75vw;background:#000;box-shadow:0 0 30px #000}
+#screen{position:absolute;inset:0;background:#2c71c3 url(https://i.imgur.com/JpAhPfh.jpg) center/cover no-repeat;display:flex;flex-direction:column;user-select:none}
+#taskbar{height:36px;background:linear-gradient(to bottom,#3d95d4,#1557a3);border-top:1px solid #5ba3d9;display:flex;align-items:center;padding:0 6px;position:relative;z-index:1000}
+#startBtn{height:28px;border:1px solid #0e3a7a;border-radius:4px;background:linear-gradient(to bottom,#2e7fd1,#1551a0);color:#fff;padding:0 12px;font-weight:bold;font-size:13px;cursor:pointer}
+#time{margin-left:auto;color:#fff;font-size:11px}
+#startMenu{position:absolute;left:0;bottom:36px;width:320px;background:#ece9d8;border:1px solid #0055e3;border-bottom:0;border-radius:6px 6px 0 0;display:none;box-shadow:0 -4px 14px rgba(0,0,0,.35);z-index:1001;max-height:calc(100% - 36px);overflow-y:auto}
+#startMenu hr{margin:4px 8px;border:0;border-top:1px solid #a0a0a0}
+.userBar{height:58px;background:linear-gradient(to right,#0055e3,#3d95d4);border-radius:6px 6px 0 0;display:flex;align-items:center;padding:0 12px;color:#fff;font-size:14px;font-weight:bold}
+.userBar .face{font-size:40px;margin-right:8px}
+.progList{display:flex;padding:4px 0}
+.progList ul{list-style:none;margin:0;padding:0;width:50%}
+.progList li{display:flex;align-items:center;padding:4px 12px;cursor:pointer}
+.progList li:hover{background:#2e7fd1;color:#fff}
+.progList img{width:32px;height:32px;margin-right:8px}
+.progList .txtIco{font-size:32px;margin-right:8px}
+.bottomBar{padding:6px 8px;display:flex;justify-content:space-between}
+.bottomBar button{padding:4px 8px;font-size:11px}
+#desktop{flex:1;position:relative;padding:8px}
+.icon{position:absolute;width:52px;text-align:center;color:#fff;font-size:11px;text-shadow:1px 1px 3px #000;cursor:pointer;padding:4px;border:1px solid transparent;-webkit-user-select:none;user-select:none}
+.icon img{display:block;width:32px;margin:0 auto 2px}
+.icon .txtIco{font-size:32px;line-height:1}
+.icon.active{background:rgba(0,60,180,.7);border:1px dotted #fff}
+.win{position:absolute;background:#ece9d8;border:1px solid #0055e3;border-radius:6px;display:none;flex-direction:column;box-shadow:0 6px 20px rgba(0,0,0,.35);min-width:240px;min-height:180px;max-width:94%;max-height:94%}
+.winHead{height:26px;background:linear-gradient(to right,#0055e3,#3d95d4);color:#fff;display:flex;align-items:center;padding:0 6px;font-size:12px;border-radius:4px 4px 0 0}
+.winHead span{flex:1}
+.winHead .close{width:16px;height:16px;background:#d00;border:1px solid #fff;border-radius:2px;color:#fff;font-size:12px;text-align:center;line-height:14px;cursor:pointer}
+.winBody{flex:1;padding:6px;overflow:auto;-webkit-overflow-scrolling:touch}
+#browserAddr{display:flex;margin-bottom:4px}
+#browserAddr input{flex:1;height:24px;font-size:12px;padding:0 4px;border:1px solid #7f9db9}
+#browserAddr button{width:40px;height:24px;margin-left:4px;font-size:12px}
+#browserFrame{width:100%;height:calc(100% - 28px);border:0;background:#fff}
+#calcBody{display:flex;flex-wrap:wrap}
+#calcBody input{width:100%;height:32px;font-size:16px;margin-bottom:6px;text-align:right;padding:0 4px}
+#calcBody button{width:23%;margin:1%;height:32px;font-size:14px}
+#mouse{position:fixed;width:32px;height:32px;background:url(https://i.imgur.com/3pM7d7G.png) center/contain no-repeat;pointer-events:none;z-index:9999;display:none}
+
+/* ====== 新增：窗口控制按钮统一美化 ====== */
+.winCtrl{display:flex;align-items:center;gap:4px}
+.winBtn{
+  width:18px;height:18px;border:1px solid #0e3a7a;border-radius:3px;
+  background:linear-gradient(to bottom,#2e7fd1,#1551a0);
+  color:#fff;font-size:10px;font-weight:bold;text-align:center;line-height:16px;
+  cursor:pointer;user-select:none;
+}
+.winBtn:hover{background:linear-gradient(to bottom,#3d95d4,#2e7fd1)}
+.winBtn:active{background:#1551a0}
+
+/* ====== 任务栏窗口按钮样式 ====== */
+#taskbarWin{
+  display:flex;
+  align-items:center;
+  height:28px;
+  margin-left:6px;
+  gap:2px;
+  overflow:hidden;
+}
+.taskBtn{
+  display:flex;
+  align-items:center;
+  height:24px;
+  padding:0 6px 0 4px;
+  background:linear-gradient(to bottom,#fffce8,#f1efe2);
+  border:1px solid;
+  border-color:#fff #aca899 #aca899 #fff;
+  border-radius:3px;
+  font-size:11px;
+  color:#000;
+  cursor:pointer;
+  white-space:nowrap;
+  max-width:160px;
+  min-width:60px;
+}
+.taskBtn.active{
+  background:linear-gradient(to bottom,#2e7fd1,#1551a0);
+  color:#fff;
+  border-color:#0055e3 #3d95d4 #3d95d4 #0055e3;
+}
+.taskBtn img{
+  width:16px;height:16px;margin-right:4px;
+}
+.taskBtn .txtIco{
+  font-size:16px;margin-right:4px;
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="screen">
+    <div id="desktop">
+      <!-- 第一行 -->
+      <div class="icon" id="calcIco" style="top:12px;left:12px"><span class="txtIco">计</span><span>计算器</span></div>
+      <div class="icon" id="ieIco"   style="top:12px;left:80px"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f310.png" alt=""><span>Internet</span></div>
+      <div class="icon" id="nyanIco" style="top:12px;left:148px;cursor:pointer" title="彩虹猫"><span class="txtIco">🌈</span><span>彩虹猫</span></div>
+      <div class="icon" id="virusIco" style="top:12px;left:216px;cursor:pointer" title="12af？"><span class="txtIco">💀</span><span>12af？</span></div>
+      <div class="icon" id="popIco"   style="top:12px;left:284px;cursor:pointer" title="疯狂弹窗"><span class="txtIco">📛</span><span>疯狂弹窗</span></div>
+
+      <!-- 第二行 -->
+      <div class="icon" id="wannaIco" style="top:80px;left:12px;cursor:pointer" title="勒索病毒"><span class="txtIco">🔒</span><span>勒索病毒</span></div>
+      <div class="icon" id="virus2828Ico" style="top:80px;left:80px;cursor:pointer" title="2828病毒"><span class="txtIco">28</span><span>2828</span></div>
+
+      <div class="win" id="calcWin" style="top:20%;left:10%;width:260px;height:240px">
+        <div class="winHead"><span>计算器</span>
+          <div class="winCtrl">
+            <span class="winBtn" onclick="minimizeWin('calcWin')" title="最小化">_</span>
+            <span class="winBtn" onclick="fullscreenWin('calcWin')" title="最大化">□</span>
+            <span class="close" onclick="closeWin('calcWin')">×</span>
+          </div>
+        </div>
+        <div class="winBody">
+          <input id="calcDisplay" readonly value="0">
+          <div id="calcBody"><button>7</button><button>8</button><button>9</button><button>÷</button><button>4</button><button>5</button><button>6</button><button>×</button><button>1</button><button>2</button><button>3</button><button>-</button><button>0</button><button>C</button><button>=</button><button>+</button></div>
+        </div>
+      </div>
+
+      <div class="win" id="browserWin" style="top:10%;left:5%;width:90%;height:76%">
+        <div class="winHead"><span>Internet Explorer</span>
+          <div class="winCtrl">
+            <span class="winBtn" onclick="minimizeWin('browserWin')" title="最小化">_</span>
+            <span class="winBtn" onclick="fullscreenWin('browserWin')" title="最大化">□</span>
+            <span class="close" onclick="closeWin('browserWin')">×</span>
+          </div>
+        </div>
+        <div class="winBody">
+          <div id="browserAddr"><input id="urlInput" type="text" value="https://www.bing.com"><button onclick="goUrl()">前往</button></div>
+          <iframe id="browserFrame" src="https://www.bing.com"></iframe>
+        </div>
+      </div>
+
+      <div class="win" id="nyanNotepad" style="top:25%;left:45%;width:300px;height:200px;display:none">
+        <div class="winHead"><span>记事本</span>
+          <div class="winCtrl">
+            <span class="winBtn" onclick="minimizeWin('nyanNotepad')" title="最小化">_</span>
+            <span class="winBtn" onclick="fullscreenWin('nyanNotepad')" title="最大化">□</span>
+            <span class="close" onclick="closeWin('nyanNotepad')">×</span>
+          </div>
+        </div>
+        <div class="winBody"><textarea style="width:100%;height:100%;resize:none;border:0">运行成功！</textarea></div>
+      </div>
+    </div>
+
+    <div id="taskbar">
+      <button id="startBtn">开始</button>
+      <div id="taskbarWin"></div>
+      <div id="time"></div>
+    </div>
+
+    <div id="startMenu">
+      <div class="userBar"><span class="face">😀</span> XP User</div>
+      <div class="progList">
+        <ul>
+          <li onclick="openWin('browserWin');closeStart()"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f310.png" alt="">Internet</li>
+          <li onclick="openWin('calcWin');closeStart()"><span class="txtIco">计</span>计算器</li>
+          <li onclick="openNotepad();closeStart()"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4cb.png" alt="">记事本</li>
+          <li onclick="openPaint();closeStart()"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f58c.png" alt="">画图</li>
+        </ul>
+        <ul>
+          <li onclick="openWmp();closeStart()"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3a7.png" alt="">Windows Media Player</li>
+          <li onclick="openPics();closeStart()"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4f7.png" alt="">图片收藏</li>
+          <li onclick="openMusic();closeStart()"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3b5.png" alt="">我的音乐</li>
+          <li onclick="openMyComputer();closeStart()"><span class="txtIco">🖥️</span>我的电脑</li>
+        </ul>
+      </div>
+      <hr>
+      <div class="bottomBar"><button onclick="openAllProg();closeStart()">所有程序</button><span><button onclick="logOff()">注销</button><button onclick="shutDown()">关闭计算机</button></span></div>
+    </div>
+  </div>
+</div>
+<div id="mouse"></div>
+
+<!-- 2828病毒确认窗口 -->
+<div class="win" id="virus2828Confirm" style="top:30%;left:50%;transform:translateX(-50%);width:260px;height:140px;display:none">
+  <div class="winHead"><span>2828</span><div class="close" onclick="closeWin('virus2828Confirm')">×</div></div>
+  <div class="winBody" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="margin-bottom:10px">确定运行？</div>
+    <button onclick="runVirus2828()">确定</button>
+  </div>
+</div>
+
+<script>
+/*==================== 原有 JS（一字未动） ====================*/
+function tick(){const d=new Date();document.getElementById('time').textContent=d.toLocaleTimeString('zh-CN');}
+tick();setInterval(tick,1000);
+function openWin(id){const w=document.getElementById(id);w.style.display='flex';w.style.zIndex=150+ ++zIndexCounter;}
+function closeWin(id){document.getElementById(id).style.display='none';}
+let zIndexCounter=0;
+const startMenu=document.getElementById('startMenu'),startBtn=document.getElementById('startBtn');
+startBtn.onclick=()=>startMenu.style.display=startMenu.style.display==='block'?'none':'block';
+function closeStart(){startMenu.style.display='none';}
+document.addEventListener('click',e=>{if(!startBtn.contains(e.target)&&!startMenu.contains(e.target))closeStart();});
+document.querySelectorAll('.icon').forEach(el=>{let clicks=0;el.addEventListener('click',function(){
+  clicks++;document.querySelectorAll('.icon').forEach(i=>i.classList.remove('active'));this.classList.add('active');
+  setTimeout(()=>clicks=0,300);if(clicks===2){if(this.id==='calcIco')openWin('calcWin');if(this.id==='ieIco')openWin('browserWin');}
+});});
+function goUrl(){const u=document.getElementById('urlInput').value.trim();if(!u)return;document.getElementById('browserFrame').src=u.startsWith('http')?u:'https://'+u;}
+document.getElementById('urlInput').addEventListener('keydown',e=>{if(e.key==='Enter')goUrl()});
+const disp=document.getElementById('calcDisplay');
+document.getElementById('calcBody').addEventListener('click',e=>{const v=e.target.textContent;if(!v)return;if(v==='C'){disp.value='0';return}if(v==='='){try{disp.value=Function('"use strict";return ('+disp.value.replace(/×/g,'*').replace(/÷/g,'/')+')')()}catch{disp.value='Error'}return}disp.value=disp.value==='0'?v:disp.value+v;});
+document.querySelectorAll('.winHead').forEach(head=>{let mv=false,sx=0,sy=0,rx=0,ry=0;const win=head.parentElement;
+head.addEventListener('mousedown',start);head.addEventListener('touchstart',e=>start(e.touches[0]));
+function start(e){mv=true;sx=e.clientX;sy=e.clientY;rx=win.offsetLeft;ry=win.offsetTop;
+document.addEventListener('mousemove',move);document.addEventListener('mouseup',end);
+document.addEventListener('touchmove',e=>move(e.touches[0]));document.addEventListener('touchend',end);}
+function move(e){if(!mv)return;let nx=rx+e.clientX-sx,ny=ry+e.clientY-sy;const p=win.parentElement.getBoundingClientRect();
+nx=Math.max(0,Math.min(nx,p.width-win.offsetWidth));ny=Math.max(0,Math.min(ny,p.height-win.offsetHeight));
+win.style.left=nx+'px';win.style.top=ny+'px';}
+function end(){mv=false;document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',end);
+document.removeEventListener('touchmove',move);document.removeEventListener('touchend',end);}});
+const mouse=document.getElementById('mouse');let down=false,timer=0;
+function showMouse(){mouse.style.display='block';clearTimeout(timer);timer=setTimeout(()=>mouse.style.display='none',2000);}
+if('ontouchstart' in window){document.addEventListener('touchstart',e=>{down=true;showMouse();move(e.touches[0]);});
+document.addEventListener('touchmove',e=>{if(down)move(e.touches[0]);});document.addEventListener('touchend',()=>down=false);}
+else{mouse.style.display='none';}
+function move(t){mouse.style.left=t.clientX-16+'px';mouse.style.top=t.clientY-16+'px';}
+
+/* ---------- 新增：最小化与真正全屏 ---------- */
+function minimizeWin(id){
+  const w=document.getElementById(id);
+  w.style.display='none';
+}
+function fullscreenWin(id){
+  const w=document.getElementById(id);
+  const scr=document.getElementById('screen');
+  w.dataset.oldLeft   = w.style.left;
+  w.dataset.oldTop    = w.style.top;
+  w.dataset.oldWidth  = w.style.width;
+  w.dataset.oldHeight = w.style.height;
+  w.dataset.oldMaxW   = w.style.maxWidth;
+  w.dataset.oldMaxH   = w.style.maxHeight;
+  w.dataset.oldPad    = w.style.padding;
+
+  w.style.left        = '0';
+  w.style.top         = '0';
+  w.style.width       = '100%';
+  w.style.height      = '100%';
+  w.style.maxWidth    = 'none';
+  w.style.maxHeight   = 'none';
+  w.style.padding     = '0';
+  w.style.borderRadius= '0';
+  w.style.zIndex      = '999';
+
+  const maxBtn=w.querySelector('.winBtn[onclick*="fullscreenWin"]');
+  if(maxBtn){
+    maxBtn.textContent='❐';
+    maxBtn.title='还原';
+    maxBtn.setAttribute('onclick',`exitFullscreenWin('${id}')`);
+  }
+}
+function exitFullscreenWin(id){
+  const w=document.getElementById(id);
+  w.style.left        = w.dataset.oldLeft   || '10%';
+  w.style.top         = w.dataset.oldTop    || '20%';
+  w.style.width       = w.dataset.oldWidth  || '260px';
+  w.style.height      = w.dataset.oldHeight || '240px';
+  w.style.maxWidth    = w.dataset.oldMaxW   || '94%';
+  w.style.maxHeight   = w.dataset.oldMaxH   || '94%';
+  w.style.padding     = w.dataset.oldPad    || '';
+  w.style.borderRadius= '6px';
+  w.style.zIndex      = '';
+
+  const maxBtn=w.querySelector('.winBtn[onclick*="exitFullscreenWin"]');
+  if(maxBtn){
+    maxBtn.textContent='□';
+    maxBtn.title='最大化';
+    maxBtn.setAttribute('onclick',`fullscreenWin('${id}')`);
+  }
+}
+
+/* ==================== 任务栏窗口管理器 ==================== */
+const taskbarWin=document.getElementById('taskbarWin');
+const taskMap=new Map();
+
+function createTaskBtn(winId,title,icon){
+  const btn=document.createElement('div');
+  btn.className='taskBtn';
+  btn.id='task_'+winId;
+  btn.innerHTML=icon+'<span>'+title+'</span>';
+  btn.onclick=()=>toggleWin(winId);
+  taskbarWin.appendChild(btn);
+  return btn;
+}
+
+function toggleWin(winId){
+  const w=document.getElementById(winId);
+  if(!w) return;
+  if(w.style.display==='flex'){
+    minimizeWin(winId);
+  }else{
+    w.style.display='flex';
+    updateTaskBtn(winId,true);
+  }
+}
+
+function updateTaskBtn(winId,active){
+  const btn=document.getElementById('task_'+winId);
+  if(btn){
+    btn.classList.toggle('active',active);
+  }
+}
+
+function removeTaskBtn(winId){
+  const btn=document.getElementById('task_'+winId);
+  if(btn) btn.remove();
+}
+
+const _openWin=openWin;
+openWin=function(winId){
+  _openWin(winId);
+  if(taskMap.has(winId)) return;
+  const w=document.getElementById(winId);
+  const head=w.querySelector('.winHead span').textContent;
+  let icon='';
+  if(winId==='calcWin') icon='<span class="txtIco">计</span>';
+  else if(winId==='browserWin') icon='<img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f310.png">';
+  else if(winId==='nyanNotepad') icon='<img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4cb.png">';
+  else icon='<span class="txtIco">📝</span>';
+  
+  const btn=createTaskBtn(winId,head,icon);
+  taskMap.set(winId,btn);
+  updateTaskBtn(winId,true);
+}
+
+const _closeWin=closeWin;
+closeWin=function(winId){
+  _closeWin(winId);
+  if(taskMap.has(winId)){
+    removeTaskBtn(winId);
+    taskMap.delete(winId);
+  }
+}
+
+const _minimizeWin=minimizeWin;
+minimizeWin=function(winId){
+  _minimizeWin(winId);
+  updateTaskBtn(winId,false);
+}
+
+document.addEventListener('mousedown',e=>{
+  const win=e.target.closest('.win');
+  if(win){
+    const winId=win.id;
+    document.querySelectorAll('.taskBtn').forEach(b=>b.classList.remove('active'));
+    updateTaskBtn(winId,true);
+  }
+});
+</script>
+
+<!--==================== 彩虹猫病毒（仅追加） ====================-->
+<div class="win" id="nyanConfirm" style="top:30%;left:50%;transform:translateX(-50%);width:260px;height:140px;display:none">
+  <div class="winHead"><span>彩虹猫</span><div class="close" onclick="closeWin('nyanConfirm')">×</div></div>
+  <div class="winBody" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="margin-bottom:10px">确定运行？</div>
+    <button onclick="runNyan()">确定</button>
+  </div>
+</div>
+
+<script>
+let nyanTimer={};
+const MS=(m)=>m*60*1000;
+
+document.getElementById('nyanIco').addEventListener('click',function(){
+  openWin('nyanConfirm');
+});
+
+function runNyan(){
+  closeWin('nyanConfirm');
+  openWin('nyanNotepad');
+
+  nyanTimer.browser=setInterval(()=>openWin('browserWin'),15000);
+
+  nyanTimer.invert=setTimeout(()=>{
+    nyanTimer.invertLoop=setInterval(()=>{
+      const s=document.getElementById('screen');
+      s.style.filter=s.style.filter==='invert(1)'?'none':'invert(1)';
+    },1000);
+  },MS(3));
+
+  nyanTimer.clone=setTimeout(()=>{
+    const scr=document.getElementById('screen');
+    const clones=[];
+    let idx=0, scale=0.95, dir=1;
+    nyanTimer.cloneLoop=setInterval(()=>{
+      if(clones[idx]) clones[idx].remove();
+      const layer=scr.cloneNode(true);
+      layer.style.cssText=`position:absolute;inset:0;pointer-events:none;transform:scale(${scale}) translate(${dir*3}px,${dir*3}px);opacity=${1-idx*0.4};transition:none`;
+      scr.appendChild(layer);
+      clones[idx]=layer;
+      idx=(idx+1)%2;
+      scale=Math.max(0.7,scale-0.01);
+      dir=-dir;
+    },1000);
+  },MS(5));
+
+  nyanTimer.bsod=setTimeout(()=>{
+    Object.values(nyanTimer).forEach(t=>{clearInterval(t);clearTimeout(t)});
+    document.querySelectorAll('#screen > #screen').forEach(c=>c.remove());
+    document.body.innerHTML=`<div style="width:100%;height:100%;background:#00f;color:#fff;font-family:monospace;font-size:18px;display:flex;align-items:center;justify-content:center">
+      <div><div style="font-size:48px">:(</div><div>你的设备遇到问题，需要重启。</div><div style="margin-top:10px">我们只是收集某些错误信息，然后为你重新启动。</div><div style="margin-top:20px">0% 完成</div></div></div>`;
+    setTimeout(()=>location.reload(),30000);
+  },MS(10));
+}
+</script>
+
+<!-- ==================== 12af？病毒（仅追加） ==================== -->
+<div class="win" id="virusConfirm" style="top:30%;left:50%;transform:translateX(-50%);width:260px;height:140px;display:none">
+  <div class="winHead"><span>12af？</span><div class="close" onclick="closeWin('virusConfirm')">×</div></div>
+  <div class="winBody" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="margin-bottom:10px">确定运行？</div>
+    <button onclick="runVirus()">确定</button>
+  </div>
+</div>
+
+<script>
+let virusTimer={};
+const VMS=(m)=>m*60*1000;
+
+document.getElementById('virusIco').addEventListener('click',function(){
+  openWin('virusConfirm');
+});
+
+function runVirus(){
+  closeWin('virusConfirm');
+
+  virusTimer.float=setTimeout(()=>{
+    const wins=document.querySelectorAll('#desktop .win');
+    const data=[];
+    wins.forEach((w, i)=>{
+      if(w.style.display==='none') return;
+      data[i]={x:w.offsetLeft, y:w.offsetTop, dx: (Math.random()*4-2), dy: (Math.random()*4-2)};
+    });
+    virusTimer.floatLoop=setInterval(()=>{
+      wins.forEach((w, i)=>{
+        if(w.style.display==='none') return;
+        let {x, y, dx, dy}=data[i];
+        const p=document.getElementById('desktop');
+        x+=dx; y+=dy;
+        if(x<=0){x=0; dx=-dx;}
+        if(y<=0){y=0; dy=-dy;}
+        if(x>=p.clientWidth-w.offsetWidth){x=p.clientWidth-w.offsetWidth; dx=-dx;}
+        if(y>=p.clientHeight-w.offsetHeight){y=p.clientHeight-w.offsetHeight; dy=-dy;}
+        w.style.left=x+'px';
+        w.style.top=y+'px';
+        data[i]={x, y, dx, dy};
+      });
+    },50);
+  },5000);
+
+  virusTimer.wave=setTimeout(()=>{
+    const s=document.getElementById('screen');
+    let count=0;
+    virusTimer.waveLoop=setInterval(()=>{
+      const angle=count*0.6;
+      const wave=Math.sin(angle)*6;
+      s.style.transform=`translateX(${wave}px)`;
+      count++;
+      if(count>=100){
+        clearInterval(virusTimer.waveLoop);
+        s.style.transform='none';
+      }
+    },100);
+  },VMS(2));
+
+  virusTimer.text=setTimeout(()=>{
+    function randText(){return Math.random().toString(36).substring(2,6);}
+    function walk(node){
+      if(node.nodeType===3){
+        node.textContent=randText();
+      }else if(node.tagName!=='SCRIPT' && node.tagName!=='STYLE'){
+        for(let i=0;i<node.childNodes.length;i++){
+          walk(node.childNodes[i]);
+        }
+      }
+    }
+    walk(document.getElementById('screen'));
+  },VMS(2)+10000);
+
+  virusTimer.flip=setTimeout(()=>{
+    virusTimer.flipLoop=setInterval(()=>{
+      const s=document.getElementById('screen');
+      s.style.transform=s.style.transform==='scaleY(-1)'?'scaleY(1)':'scaleY(-1)';
+    },1000);
+  },VMS(4)+10000);
+
+  virusTimer.bsod=setTimeout(()=>{
+    Object.values(virusTimer).forEach(t=>{clearInterval(t);clearTimeout(t)});
+    document.body.innerHTML=`<div style="width:100%;height:100%;background:#00f;color:#fff;font-family:monospace;font-size:18px;display:flex;align-items:center;justify-content:center">
+      <div><div style="font-size:48px">:(</div><div>你的设备遇到问题，需要重启。</div><div style="margin-top:10px">我们只是收集某些错误信息，然后为你重新启动。</div><div style="margin-top:20px">0% 完成</div></div></div>`;
+    setTimeout(()=>location.reload(),30000);
+  },VMS(7)+10000);
+}
+</script>
+
+<!-- ==================== 疯狂弹窗病毒（仅追加） ==================== -->
+<script>
+let popTimer={};
+let popCount=0;
+
+document.getElementById('popIco').addEventListener('click',function(){
+  startPop();
+});
+
+function startPop(){
+  popTimer.main=setInterval(()=>{
+    createPop();
+  },150);
+}
+
+function createPop(){
+  const desk=document.getElementById('desktop');
+  const maxX=desk.clientWidth-200;
+  const maxY=desk.clientHeight-120-36;
+  const x=Math.floor(Math.random()*Math.max(1,maxX));
+  const y=Math.floor(Math.random()*Math.max(1,maxY));
+
+  const pop=document.createElement('div');
+  pop.className='win';
+  pop.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:200px;height:120px;display:flex;flex-direction:column;z-index=${150+ ++zIndexCounter}`;
+  pop.innerHTML=
+    '<div class="winHead"><span>错误！</span><div class="close" onclick="this.parentElement.parentElement.remove()">×</div></div>'+
+    '<div class="winBody" style="display:flex;align-items:center;justify-content:center;font-size:14px;">错误！</div>';
+
+  desk.appendChild(pop);
+
+  setTimeout(()=>{if(pop.parentElement) pop.remove();},3000);
+}
+</script>
+
+<!-- ==================== 勒索病毒（仅追加） ==================== -->
+<script>
+let wannaKey='';
+let wannaUnlocked=false;
+
+document.getElementById('wannaIco').addEventListener('click',function(){
+  if(wannaUnlocked) return;
+  lockAll();
+  showWannaScreen();
+});
+
+function lockAll(){
+  wannaKey=Math.random().toString(36).slice(-6).toUpperCase();
+  console.log('[WannaKey]', wannaKey);
+
+  document.querySelectorAll('#desktop .icon').forEach(ic=>{
+    const oldImg=ic.querySelector('img');
+    const oldTxt=ic.querySelector('.txtIco');
+    if(oldImg) oldImg.src='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4c4.png';
+    if(oldTxt) oldTxt.textContent='📄';
+    ic.replaceWith(ic.cloneNode(true));
+  });
+  document.querySelectorAll('#desktop .icon').forEach(ic=>{
+    ic.addEventListener('click',function(){
+      askPassword(this);
+    });
+  });
+
+  document.querySelectorAll('#desktop .win').forEach(w=>{
+    if(w.id==='wannaScreen') return;
+    const bar=document.createElement('div');
+    bar.style.cssText='height:28px;background:#fc0;border-bottom:1px solid #0055e3;display:flex;align-items:center;padding:0 6px;font-size:12px;color:#000;';
+    bar.innerHTML=`<span style="flex:1">文件已被加密，请输入密码解锁</span>
+                   <input type="text" placeholder="密码" style="width:90px;height:18px;font-size:12px;padding:0 4px;border:1px solid #7f9db9">
+                   <button style="margin-left:4px;height:20px;font-size:12px;" onclick="checkPasswordInBar(this)">解锁</button>`;
+    w.insertBefore(bar,w.firstChild);
+    w.style.paddingTop='0';
+  });
+}
+
+function askPassword(icon){
+  const pw=prompt('文件已被加密，请输入密码解锁：', '');
+  if(pw&&pw.toUpperCase()===wannaKey){ unlockIcon(icon); }
+  else{ alert('密码错误！'); }
+}
+
+function checkPasswordInBar(btn){
+  const input=btn.previousElementSibling;
+  if(input.value.toUpperCase()===wannaKey){
+    unlockWin(btn.closest('.win'));
+  }else{
+    alert('密码错误！');
+  }
+}
+
+function unlockIcon(icon){
+  icon.classList.remove('active');
+  const id=icon.id;
+  const oldImg=icon.querySelector('img');
+  const oldTxt=icon.querySelector('.txtIco');
+  if(id==='calcIco'){
+    if(oldImg) oldImg.src='';
+    if(oldTxt) oldTxt.textContent='计';
+  }else if(id==='ieIco'){
+    if(oldImg) oldImg.src='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f310.png';
+  }else if(id==='nyanIco'){
+    if(oldTxt) oldTxt.textContent='🌈';
+  }else if(id==='virusIco'){
+    if(oldTxt) oldTxt.textContent='💀';
+  }else if(id==='popIco'){
+    if(oldTxt) oldTxt.textContent='📛';
+  }else if(id==='wannaIco'){
+    if(oldTxt) oldTxt.textContent='🔒';
+  }
+  icon.replaceWith(icon.cloneNode(true));
+  document.getElementById(id).addEventListener('click',function(){
+    if(this.id==='calcIco') openWin('calcWin');
+    if(this.id==='ieIco')   openWin('browserWin');
+    if(this.id==='nyanIco') openWin('nyanConfirm');
+    if(this.id==='virusIco') openWin('virusConfirm');
+    if(this.id==='popIco')   startPop();
+    if(this.id==='wannaIco') alert('勒索病毒已解除！');
+  });
+}
+
+function unlockWin(win){
+  const bar=win.querySelector('div[style*="background:#fc0"]');
+  if(bar) bar.remove();
+  win.style.paddingTop='';
+}
+
+function showWannaScreen(){
+  const desk=document.getElementById('desktop');
+  const h=desk.clientHeight-36;
+  const w=desk.clientWidth;
+
+  const div=document.createElement('div');
+  div.id='wannaScreen';
+  div.className='win';
+  div.style.cssText=`position:absolute;left:0;top:0;width:${w}px;height:${h}px;display:flex;flex-direction:column;background:#012456;color:#fff;font-family: monospace;z-index=${180+ ++zIndexCounter}`;
+  div.innerHTML=
+    `<div class="winHead" style="background:#012456;border-bottom:1px solid #fff;font-size:14px;">
+       <span>永恒之蓝 - WannaCry</span>
+       <div class="close" style="display:none">×</div>
+     </div>
+     <div class="winBody" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+       <div style="font-size:32px;margin-bottom:10px;">Ooops, your files have been encrypted!</div>
+       <div style="font-size:14px;margin-bottom:20px;">What's happened to your files?</div>
+       <div style="font-size:12px;margin-bottom:10px;">All your files have been encrypted with strong encryption.</div>
+       <div style="font-size:12px;margin-bottom:20px;">To recover your files, send $300 worth of Bitcoin to the address below and email your ID to us.</div>
+       <div style="font-size:11px;margin-bottom:10px;">Bitcoin Address: <b>1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2</b></div>
+       <div style="font-size:11px;margin-bottom:20px;">Your ID: <b>${wannaKey}</b></div>
+       <div style="font-size:12px;">Time remaining: <span id="wannaCount">72:00:00</span></div>
+     </div>`;
+  desk.appendChild(div);
+
+  let rem=72*3600;
+  const cd=setInterval(()=>{
+    if(rem<=0){ clearInterval(cd); alert('时间到！'); return; }
+    rem--;
+    const h=String(Math.floor(rem/3600)).padStart(2,'0');
+    const m=String(Math.floor((rem%3600)/60)).padStart(2,'0');
+    const s=String(rem%60).padStart(2,'0');
+    if(div.querySelector('#wannaCount')) div.querySelector('#wannaCount').textContent=`${h}:${m}:${s}`;
+  },1000);
+}
+</script>
+
+<!-- ===== 开始菜单缺失功能补完 ===== -->
+<script>
+/* ---------- 记事本 ---------- */
+function openNotepad(){
+  const id='np_'+Date.now();
+  const box=document.createElement('div');
+  box.className='win'; box.id=id;
+  box.style.cssText='top:15%;left:20%;width:420px;height:320px;display:flex';
+  box.innerHTML=
+  '<div class="winHead"><span>无标题 - 记事本</span>'+
+  '<div class="winCtrl">'+
+  '<span class="winBtn" onclick="minimizeWin(\''+id+'\')" title="最小化">_</span>'+
+  '<span class="winBtn" onclick="fullscreenWin(\''+id+'\')" title="最大化">□</span>'+
+  '<span class="close" onclick="closeWin(\''+id+'\')">×</span></div></div>'+
+  '<div class="winBody"><textarea style="width:100%;height:100%;resize:none;border:0;font:12px/1.4 monospace;padding:4px"></textarea></div>';
+  desktop.appendChild(box);
+  openWin(id);
+  makeWinDragable(box);
+}
+
+/* ---------- 画图 ---------- */
+function openPaint(){
+  const id='pt_'+Date.now();
+  const box=document.createElement('div');
+  box.className='win'; box.id=id;
+  box.style.cssText='top:10%;left:15%;width:500px;height:380px;display:flex';
+  box.innerHTML=
+  '<div class="winHead"><span>画图</span>'+
+  '<div class="winCtrl">'+
+  '<span class="winBtn" onclick="minimizeWin(\''+id+'\')">_</span>'+
+  '<span class="winBtn" onclick="fullscreenWin(\''+id+'\')">□</span>'+
+  '<span class="close" onclick="closeWin(\''+id+'\')">×</span></div></div>'+
+  '<div class="winBody" style="padding:0;background:#fff">'+
+  '<canvas width="480" height="320" style="border:1px solid #7f9db9;cursor:crosshair"></canvas></div>';
+  desktop.appendChild(box);
+  openWin(id);
+  makeWinDragable(box);
+  const cv=box.querySelector('canvas'),ctx=cv.getContext('2d');
+  ctx.lineWidth=2; ctx.strokeStyle='#000';
+  let dr=false;
+  cv.onmousedown=e=>{dr=true;ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)};
+  cv.onmousemove=e=>{if(dr){ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke()}};
+  cv.onmouseup=()=>dr=false;
+}
+
+/* ---------- Windows Media Player ---------- */
+function openWmp(){
+  const id='wmp_'+Date.now();
+  const box=document.createElement('div');
+  box.className='win'; box.id=id;
+  box.style.cssText='top:20%;left:25%;width:360px;height:200px;display:flex';
+  box.innerHTML=
+  '<div class="winHead"><span>Windows Media Player</span>'+
+  '<div class="winCtrl">'+
+  '<span class="winBtn" onclick="minimizeWin(\''+id+'\')">_</span>'+
+  '<span class="winBtn" onclick="fullscreenWin(\''+id+'\')">□</span>'+
+  '<span class="close" onclick="closeWin(\''+id+'\')">×</span></div></div>'+
+  '<div class="winBody" style="display:flex;flex-direction:column;align-items:center;justify-content:center">'+
+  '<div>🎵 暂无播放列表</div>'+
+  '<button onclick="alert(\'功能开发中~\')">播放</button></div>';
+  desktop.appendChild(box);
+  openWin(id);
+  makeWinDragable(box);
+}
+
+/* ---------- 图片收藏 ---------- */
+function openPics(){
+  const id='pic_'+Date.now();
+  const box=document.createElement('div');
+  box.className='win'; box.id=id;
+  box.style.cssText='top:12%;left:18%;width:400px;height:300px;display:flex';
+  box.innerHTML=
+  '<div class="winHead"><span>图片收藏</span>'+
+  '<div class="winCtrl">'+
+  '<span class="winBtn" onclick="minimizeWin(\''+id+'\')">_</span>'+
+  '<span class="winBtn" onclick="fullscreenWin(\''+id+'\')">□</span>'+
+  '<span class="close" onclick="closeWin(\''+id+'\')">×</span></div></div>'+
+  '<div class="winBody" style="display:flex;gap:8px;flex-wrap:wrap;align-content:flex-start">'+
+  '<img src="https://i.imgur.com/JpAhPfh.jpg" style="width:80px;height:60px;object-fit:cover;border:1px solid #ccc">'+
+  '<img src="https://i.imgur.com/3pM7d7G.png" style="width:80px;height:60px;object-fit:cover;border:1px solid #ccc">'+
+  '<div style="width:80px;height:60px;border:2px dashed #999;display:flex;align-items:center;justify-content:center;color:#666">空</div></div>';
+  desktop.appendChild(box);
+  openWin(id);
+  makeWinDragable(box);
+}
+
+/* ---------- 我的音乐 ---------- */
+function openMusic(){
+  const id='mus_'+Date.now();
+  const box=document.createElement('div');
+  box.className='win'; box.id=id;
+  box.style.cssText='top:22%;left:30%;width:320px;height:240px;display:flex';
+  box.innerHTML=
+  '<div class="winHead"><span>我的音乐</span>'+
+  '<div class="winCtrl">'+
+  '<span class="winBtn" onclick="minimizeWin(\''+id+'\')">_</span>'+
+  '<span class="winBtn" onclick="fullscreenWin(\''+id+'\')">□</span>'+
+  '<span class="close" onclick="closeWin(\''+id+'\')">×</span></div></div>'+
+  '<div class="winBody"><ul style="margin:0;padding-left:20px"><li>sample.mp3</li><li>track_02.mp3</li></ul></div>';
+  desktop.appendChild(box);
+  openWin(id);
+  makeWinDragable(box);
+}
+
+/* ---------- 我的电脑 ---------- */
+function openMyComputer(){
+  const id='pc_'+Date.now();
+  const box=document.createElement('div');
+  box.className='win'; box.id=id;
+  box.style.cssText='top:8%;left:12%;width:460px;height:340px;display:flex';
+  box.innerHTML=
+  '<div class="winHead"><span>我的电脑</span>'+
+  '<div class="winCtrl">'+
+  '<span class="winBtn" onclick="minimizeWin(\''+id+'\')">_</span>'+
+  '<span class="winBtn" onclick="fullscreenWin(\''+id+'\')">□</span>'+
+  '<span class="close" onclick="closeWin(\''+id+'\')">×</span></div></div>'+
+  '<div class="winBody" style="display:flex;gap:12px;flex-wrap:wrap;align-content:flex-start">'+
+  '<div style="width:64px;text-align:center"><div class="txtIco" style="font-size:32px">💾</div><div>本地磁盘 (C:)</div></div>'+
+  '<div style="width:64px;text-align:center"><div class="txtIco" style="font-size:32px">📀</div><div>DVD 驱动器 (D:)</div></div>'+
+  '<div style="width:64px;text-align:center"><div class="txtIco" style="font-size:32px">🖧</div><div>控制面板</div></div></div>';
+  desktop.appendChild(box);
+  openWin(id);
+  makeWinDragable(box);
+}
+
+/* ---------- 所有程序 ---------- */
+function openAllProg(){
+  alert('这里可以再放一个程序列表～\n先占位');
+}
+
+/* ---------- 注销 ---------- */
+function logOff(){
+  if(confirm('确定要注销吗？')) location.reload();
+}
+
+/* ---------- 关闭计算机 ---------- */
+function shutDown(){
+  document.body.innerHTML=
+  '<div style="width:100%;height:100%;background:#00f;color:#fff;font-family:monospace;font-size:18px;display:flex;align-items:center;justify-content:center">'+
+  '<div><div style="font-size:48px">:(</div><div>你的设备遇到问题，需要重启。</div><div style="margin-top:10px">我们只是收集某些错误信息，然后为你重新启动。</div><div style="margin-top:20px">0% 完成</div></div></div>';
+  setTimeout(()=>location.reload(),30000);
+}
+
+/* ---------- 让任意窗口可拖拽的通用函数 ---------- */
+function makeWinDragable(win){
+  const head=win.querySelector('.winHead');
+  if(!head) return;
+  let mv=false, sx=0, sy=0, rx=0, ry=0;
+  head.addEventListener('mousedown', start);
+  head.addEventListener('touchstart', e=>start(e.touches[0]));
+
+  function start(e){
+    mv=true;
+    sx=e.clientX; sy=e.clientY;
+    rx=win.offsetLeft; ry=win.offsetTop;
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', end);
+    document.addEventListener('touchmove', e=>move(e.touches[0]));
+    document.addEventListener('touchend', end);
+  }
+  function move(e){
+    if(!mv) return;
+    let nx=rx+e.clientX-sx, ny=ry+e.clientY-sy;
+    const p=win.parentElement.getBoundingClientRect();
+    nx=Math.max(0,Math.min(nx,p.width-win.offsetWidth));
+    ny=Math.max(0,Math.min(ny,p.height-win.offsetHeight));
+    win.style.left=nx+'px';
+    win.style.top=ny+'px';
+  }
+  function end(){
+    mv=false;
+    document.removeEventListener('mousemove',move);
+    document.removeEventListener('mouseup',end);
+    document.removeEventListener('touchmove',move);
+    document.removeEventListener('touchend',end);
+  }
+}
+</script>
+
+<!-- ==================== 2828病毒（新增） ==================== -->
+<script>
+let virus2828Timer = {};
+const V2828MS = (m) => m * 60 * 1000;
+
+document.getElementById('virus2828Ico').addEventListener('click', function(){
+  openWin('virus2828Confirm');
+});
+
+function runVirus2828() {
+  closeWin('virus2828Confirm');
+  
+  // 5秒后打开计算器并疯狂输入28
+  virus2828Timer.calc = setTimeout(() => {
+    openWin('calcWin');
+    // 疯狂输入28
+    virus2828Timer.input28 = setInterval(() => {
+      const display = document.getElementById('calcDisplay');
+      if (display) {
+        display.value = display.value === '0' ? '28' : display.value + '28';
+      }
+    }, 100); // 每0.1秒输入一次
+  }, 5000);
+  
+  // 随机1秒弹出"28"窗口
+  virus2828Timer.pop28 = setInterval(() => {
+    const randomTime = Math.random() * 2000 + 500; // 0.5-2.5秒随机
+    const popTimeout = setTimeout(() => {
+      create28Pop();
+    }, randomTime);
+    // 存储以便清理
+    if (!virus2828Timer.popTimeouts) virus2828Timer.popTimeouts = [];
+    virus2828Timer.popTimeouts.push(popTimeout);
+  }, 1000);
+  
+  // 随机打开程序
+  virus2828Timer.openRandom = setInterval(() => {
+    const programs = ['calcWin', 'browserWin', 'nyanNotepad', 'nyanConfirm', 'virusConfirm', 'popIco'];
+    const randomProgram = programs[Math.floor(Math.random() * programs.length)];
+    if (randomProgram === 'popIco') {
+      startPop();
+    } else {
+      openWin(randomProgram);
+    }
+  }, 3000); // 每3秒打开一个随机程序
+  
+  // 6分钟后删除所有程序
+  virus2828Timer.destroy = setTimeout(() => {
+    // 停止计算器输入
+    clearInterval(virus2828Timer.input28);
+    
+    // 停止弹窗
+    clearInterval(virus2828Timer.pop28);
+    if (virus2828Timer.popTimeouts) {
+      virus2828Timer.popTimeouts.forEach(t => clearTimeout(t));
+    }
+    
+    // 停止随机打开程序
+    clearInterval(virus2828Timer.openRandom);
+    
+    // 删除任务栏所有按钮（保留病毒本身的）
+    taskbarWin.innerHTML = '';
+    taskMap.clear();
+    
+    // 禁用开始菜单
+    startBtn.onclick = null;
+    startBtn.style.opacity = '0.5';
+    startBtn.style.cursor = 'not-allowed';
+    document.getElementById('startMenu').style.display = 'none';
+    
+    // 删除桌面所有图标（除了病毒图标本身）
+    document.querySelectorAll('#desktop .icon').forEach(ic => {
+      if (ic.id !== 'virus2828Ico') {
+        ic.remove();
+      }
+    });
+    
+    // 关闭并删除所有窗口
+    document.querySelectorAll('#desktop .win').forEach(w => {
+      w.remove();
+    });
+    
+    // 显示销毁提示
+    const destroyAlert = document.createElement('div');
+    destroyAlert.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f00;color:#fff;padding:20px;border:2px solid #fff;z-index:99999;font-size:24px;font-weight:bold;';
+    destroyAlert.textContent = '系统已被2828病毒完全摧毁！';
+    document.getElementById('desktop').appendChild(destroyAlert);
+    
+    // 1分钟后蓝屏
+    virus2828Timer.bsod = setTimeout(() => {
+      document.body.innerHTML = `<div style="width:100%;height:100%;background:#00f;color:#fff;font-family:monospace;font-size:18px;display:flex;align-items:center;justify-content:center">
+        <div><div style="font-size:48px">:(</div><div>你的设备遇到问题，需要重启。</div><div style="margin-top:10px">我们只是收集某些错误信息，然后为你重新启动。</div><div style="margin-top:20px">0% 完成</div></div></div>`;
+      setTimeout(() => location.reload(), 30000);
+    }, V2828MS(1));
+    
+  }, V2828MS(6));
+}
+
+// 创建28弹出窗口
+function create28Pop() {
+  const desk = document.getElementById('desktop');
+  const maxX = desk.clientWidth - 160;
+  const maxY = desk.clientHeight - 100 - 36;
+  const x = Math.floor(Math.random() * Math.max(1, maxX));
+  const y = Math.floor(Math.random() * Math.max(1, maxY));
+  
+  const pop = document.createElement('div');
+  pop.className = 'win';
+  pop.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:160px;height:100px;display:flex;flex-direction:column;z-index=${150 + ++zIndexCounter}`;
+  pop.innerHTML = 
+    '<div class="winHead"><span>28</span><div class="close" onclick="this.parentElement.parentElement.remove()">×</div></div>' +
+    '<div class="winBody" style="display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:bold;">28</div>';
+  
+  desk.appendChild(pop);
+  
+  // 1秒后自动关闭
+  setTimeout(() => {
+    if (pop.parentElement) pop.remove();
+  }, 1000);
+}
+</script>
+
+</body>
+</html>
