@@ -1338,7 +1338,7 @@
             showBanNotice();
         }
 
-        // 显示封禁通知（每秒掉50粉丝）
+        // 显示封禁通知（每秒掉50粉丝）- 修复：解封时清空警告次数
         function showBanNotice() {
             if (!gameState.isBanned) return;
             
@@ -1358,12 +1358,14 @@
                 
                 if (timeLeft <= 0) {
                     gameState.isBanned = false;
+                    // 修复：账号解封后清空警告次数
+                    gameState.warnings = 0;
                     banNotice.style.display = 'none';
                     clearInterval(gameState.banInterval);
                     clearInterval(gameState.banDropInterval);
                     gameState.banInterval = null;
                     gameState.banDropInterval = null;
-                    showNotification('封禁结束', '恭喜你，账号已恢复正常使用');
+                    showNotification('封禁结束', '恭喜你，账号已恢复正常使用，警告次数已清空');
                     updateDisplay();
                 }
             };
