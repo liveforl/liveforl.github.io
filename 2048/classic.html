@@ -282,6 +282,8 @@
             color: #fff;
             position: relative;
             overflow: hidden;
+            /* 动画优化 */
+            will-change: transform, box-shadow;
         }
 
         .tile::before {
@@ -299,6 +301,85 @@
         .tile:hover::before {
             transform: translateX(100%);
         }
+
+        /* 新方块出现动画 */
+        @keyframes tileAppear {
+            0% {
+                transform: scale(0) rotate(180deg);
+                opacity: 0;
+                box-shadow: 0 0 0 currentColor;
+            }
+            50% {
+                transform: scale(1.15) rotate(0deg);
+                box-shadow: 0 0 40px currentColor;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .tile-new {
+            animation: tileAppear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* 方块合并动画 - 脉冲效果 */
+        @keyframes tileMerge {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+            25% {
+                transform: scale(1.3);
+                filter: brightness(2);
+                box-shadow: 0 0 50px currentColor;
+            }
+            50% {
+                transform: scale(0.95);
+                filter: brightness(1.2);
+            }
+            75% {
+                transform: scale(1.05);
+                filter: brightness(1.5);
+            }
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        .tile-merging {
+            animation: tileMerge 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 滑动动画基础 */
+        .tile-sliding {
+            z-index: 10;
+            transition: transform 0.12s cubic-bezier(0.5, 0, 0.5, 1);
+        }
+
+        /* 方向滑动动画 */
+        @keyframes slideFromLeft {
+            from { transform: translateX(-120%); }
+            to { transform: translateX(0); }
+        }
+        @keyframes slideFromRight {
+            from { transform: translateX(120%); }
+            to { transform: translateX(0); }
+        }
+        @keyframes slideFromTop {
+            from { transform: translateY(-120%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes slideFromBottom {
+            from { transform: translateY(120%); }
+            to { transform: translateY(0); }
+        }
+
+        .tile-slide-left { animation: slideFromLeft 0.12s ease-out; }
+        .tile-slide-right { animation: slideFromRight 0.12s ease-out; }
+        .tile-slide-up { animation: slideFromTop 0.12s ease-out; }
+        .tile-slide-down { animation: slideFromBottom 0.12s ease-out; }
 
         .tile-2 { 
             background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
@@ -528,6 +609,15 @@
         let best = localStorage.getItem('cyber2048best') || 0;
         let history = [];
         let hasWon = false;
+        let previousBoard = [];
+        
+        // 动画标记
+        const animationQueue = {
+            new: new Set(),
+            merged: new Set(),
+            moved: new Set(),
+            direction: null
+        };
         
         const grid = document.getElementById('grid');
         const scoreEl = document.getElementById('score');
@@ -538,9 +628,12 @@
         
         function initBoard() {
             board = Array(4).fill().map(() => Array(4).fill(0));
+            previousBoard = board.map(row => [...row]);
             score = 0;
             hasWon = false;
             history = [];
+            animationQueue.new.clear();
+            animationQueue.merged.clear();
             updateScore();
             addRandomTile();
             addRandomTile();
@@ -559,6 +652,8 @@
             if (empty.length > 0) {
                 const {i, j} = empty[Math.floor(Math.random() * empty.length)];
                 board[i][j] = Math.random() < 0.9 ? 2 : 4;
+                // 标记新方块位置
+                animationQueue.new.add(`${i},${j}`);
             }
         }
         
@@ -568,17 +663,47 @@
                 for (let j = 0; j < 4; j++) {
                     const tile = document.createElement('div');
                     tile.className = 'tile';
+                    tile.dataset.i = i;
+                    tile.dataset.j = j;
+                    
                     const value = board[i][j];
+                    const posKey = `${i},${j}`;
+                    const prevValue = previousBoard[i]?.[j] || 0;
+                    
                     if (value > 0) {
                         tile.textContent = value;
                         tile.classList.add(`tile-${value}`);
                         if (value > 2048) {
                             tile.classList.add('tile-super');
                         }
+                        
+                        // 添加动画class
+                        if (animationQueue.new.has(posKey)) {
+                            tile.classList.add('tile-new');
+                        } else if (animationQueue.merged.has(posKey)) {
+                            tile.classList.add('tile-merging');
+                        } else if (prevValue !== value && prevValue !== 0) {
+                            // 移动的方块（值改变但不是新方块或合并）
+                            const dir = animationQueue.direction;
+                            if (dir) {
+                                tile.classList.add(`tile-slide-${dir}`);
+                            }
+                        }
                     }
+                    
                     grid.appendChild(tile);
                 }
             }
+            
+            // 清空动画队列
+            setTimeout(() => {
+                animationQueue.new.clear();
+                animationQueue.merged.clear();
+                animationQueue.moved.clear();
+                animationQueue.direction = null;
+                // 保存当前board作为下次的previousBoard
+                previousBoard = board.map(row => [...row]);
+            }, 50);
         }
         
         function updateScore() {
@@ -616,6 +741,7 @@
             saveState();
             let moved = false;
             const newBoard = board.map(row => [...row]);
+            const mergedPositions = new Set();
             
             if (direction === 'left' || direction === 'right') {
                 for (let i = 0; i < 4; i++) {
@@ -627,8 +753,14 @@
                     
                     for (let j = 0; j < filtered.length; j++) {
                         if (filtered[j] === filtered[j + 1]) {
-                            merged.push(filtered[j] * 2);
-                            score += filtered[j] * 2;
+                            const mergedValue = filtered[j] * 2;
+                            merged.push(mergedValue);
+                            score += mergedValue;
+                            // 记录合并位置
+                            const pos = direction === 'right' ? 
+                                `${i},${3 - (merged.length - 1)}` : 
+                                `${i},${merged.length - 1}`;
+                            mergedPositions.add(pos);
                             j++;
                         } else {
                             merged.push(filtered[j]);
@@ -654,8 +786,14 @@
                     
                     for (let i = 0; i < filtered.length; i++) {
                         if (filtered[i] === filtered[i + 1]) {
-                            merged.push(filtered[i] * 2);
-                            score += filtered[i] * 2;
+                            const mergedValue = filtered[i] * 2;
+                            merged.push(mergedValue);
+                            score += mergedValue;
+                            // 记录合并位置
+                            const pos = direction === 'down' ? 
+                                `${3 - (merged.length - 1)},${j}` : 
+                                `${merged.length - 1},${j}`;
+                            mergedPositions.add(pos);
                             i++;
                         } else {
                             merged.push(filtered[i]);
@@ -673,6 +811,8 @@
             }
             
             if (moved) {
+                animationQueue.direction = direction;
+                animationQueue.merged = mergedPositions;
                 board = newBoard;
                 addRandomTile();
                 updateScore();
