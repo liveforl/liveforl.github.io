@@ -45,15 +45,20 @@ function initGame() {
   const saved = localStorage.getItem('streamerGameState');
   if (saved) {
     gameState = JSON.parse(saved);
+    // 重置定时器引用（关键！）
     gameState.liveInterval = null; 
     gameState.workUpdateIntervals = []; 
     gameState.banInterval = null; 
     gameState.banDropInterval = null; 
     gameState.hotSearchInterval = null;
-    if (!gameState.trafficWorks) gameState.trafficWorks = {};
-    if (!gameState.adOrders) gameState.adOrders = [];
-    if (!gameState.rejectedAdOrders) gameState.rejectedAdOrders = 0;
-    if (!gameState.currentAdOrder) gameState.currentAdOrder = null;
+    gameState.publicOpinionInterval = null; // 新增舆情定时器重置
+    
+    // 恢复缺失的状态
+    if (gameState.trafficWorks === undefined) gameState.trafficWorks = {};
+    if (gameState.adOrders === undefined) gameState.adOrders = [];
+    if (gameState.rejectedAdOrders === undefined) gameState.rejectedAdOrders = 0;
+    if (gameState.currentAdOrder === undefined) gameState.currentAdOrder = null;
+    
     // 新增状态初始化
     if (gameState.appealAvailable === undefined) gameState.appealAvailable = true;
     if (gameState.adOrdersCount === undefined) gameState.adOrdersCount = 0;
@@ -63,16 +68,59 @@ function initGame() {
     if (gameState.publicOpinionInterval === undefined) gameState.publicOpinionInterval = null;
     if (gameState.publicOpinionTitle === undefined) gameState.publicOpinionTitle = '';
     
+    // 恢复UI状态
     if (gameState.isBanned && gameState.banStartTime) showBanNotice();
-    if (gameState.isHotSearch && gameState.hotSearchStartTime) showHotSearchNotice();
-    if (gameState.isPublicOpinionCrisis && gameState.publicOpinionStartTime) showPublicOpinionNotice();
-    Object.keys(gameState.trafficWorks).forEach(workId => {
-      const trafficData = gameState.trafficWorks[workId];
-      if (trafficData && trafficData.isActive) restartTraffic(workId, trafficData);
+    if (gameState.isHotSearch && gameState.hotSearchStartTime) {
+      showHotSearchNotice();
+      // 修复：重启热搜定时器
+      if (!gameState.hotSearchInterval) {
+        gameState.hotSearchInterval = setInterval(() => {
+          if (gameState.isHotSearch) {
+            const fanGrowth = Math.floor(Math.random() * 100) + 50;
+            gameState.fans += fanGrowth;
+            showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝`);
+            updateDisplay();
+          }
+        }, 1000);
+      }
+    }
+    if (gameState.isPublicOpinionCrisis && gameState.publicOpinionStartTime) {
+      showPublicOpinionNotice();
+      // 重启舆情定时器
+      if (!gameState.publicOpinionInterval) {
+        gameState.publicOpinionInterval = setInterval(() => {
+          if (gameState.isPublicOpinionCrisis && gameState.fans > 0) {
+            const fanLoss = Math.floor(Math.random() * 50) + 10;
+            gameState.fans = Math.max(0, gameState.fans - fanLoss);
+            showNotification('舆论风波', `舆论风波中，粉丝流失：${fanLoss}`);
+            updateDisplay();
+          }
+        }, 1000);
+      }
+    }
+    
+    // 修复：恢复流量推广定时器（核心修复）
+    // 关键修改：将字符串键转换为数字键
+    Object.keys(gameState.trafficWorks).forEach(workIdStr => {
+      const workId = Number(workIdStr); // 强制转换为数字
+      const trafficData = gameState.trafficWorks[workIdStr];
+      if (trafficData && trafficData.isActive) {
+        // 清除旧的interval ID（页面刷新后已失效），直接重启
+        trafficData.interval = null;
+        startTrafficProcess(workId);
+      }
     });
   }
+  
   if (!gameState.userId) gameState.userId = 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase();
-  if (gameState.chartData.fans.length === 0) for (let i = 0; i < 20; i++) { gameState.chartData.fans.push(0); gameState.chartData.likes.push(0); gameState.chartData.views.push(0); }
+  if (gameState.chartData.fans.length === 0) {
+    for (let i = 0; i < 20; i++) { 
+      gameState.chartData.fans.push(0); 
+      gameState.chartData.likes.push(0); 
+      gameState.chartData.views.push(0); 
+    }
+  }
+  
   const liveBtn = document.getElementById('liveControlBtn');
   liveBtn.style.display = 'block';
   liveBtn.classList.toggle('active', gameState.liveStatus);
@@ -80,6 +128,9 @@ function initGame() {
   updateDisplay();
   startWorkUpdates();
   startGameLoop();
+  
+  // 确保所有状态都保存一次
+  saveGame();
 }
 
 // 开始游戏
@@ -236,37 +287,49 @@ function createPost() {
   closeModal(); updateDisplay(); showNotification('动态发布成功！', `获得${views.toLocaleString()}浏览，${newFans}新粉丝`);
 }
 
-// 购买流量功能
+// 购买流量功能 - 修改为多选版本
 function showBuyTraffic() {
   const availableWorks = gameState.worksList.filter(w => w.type === 'video' || w.type === 'post');
   if (availableWorks.length === 0) { showWarning('暂无作品可推广，请先发布作品'); return; }
-  let selectedDays = 1;
-  const price = selectedDays * 1000;
+  
+  // 初始化多选数组
+  window.selectedWorkIds = [];
+  window.selectedTrafficDays = 1;
+  
+  // 生成作品列表HTML，支持多选
   const worksHtml = availableWorks.map(work => {
     const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
     const statusText = isTrafficActive ? '（推广中）' : '';
+    
     return `
-      <div class="work-item" onclick="selectVideoForTraffic(${work.id})" style="cursor: pointer;">
-        <div class="work-header">
-          <span class="work-type">${work.type === 'video' ? '🎬 视频' : '📝 动态'}</span>
-          <span class="work-time">${formatTime(work.time)}</span>
-        </div>
-        <div class="work-content" style="font-size: 14px;">${work.content.substring(0, 30)}${work.content.length > 30 ? '...' : ''} ${statusText}</div>
-        <div class="work-stats" style="font-size: 11px;">
-          <span>▶️ ${work.views.toLocaleString()}</span>
-          <span>❤️ ${work.likes.toLocaleString()}</span>
-          <span>💬 ${work.comments.toLocaleString()}</span>
+      <div class="work-item traffic-select-item" onclick="toggleTrafficSelection(${work.id})" data-work-id="${work.id}">
+        <div style="display: flex; align-items: flex-start; gap: 10px;">
+          <div class="traffic-checkbox" id="checkbox-${work.id}" style="width: 20px; height: 20px; border: 2px solid #667eea; border-radius: 5px; flex-shrink: 0; margin-top: 2px;"></div>
+          <div style="flex: 1;">
+            <div class="work-header">
+              <span class="work-type">${work.type === 'video' ? '🎬 视频' : '📝 动态'}</span>
+              <span class="work-time">${formatTime(work.time)}</span>
+            </div>
+            <div class="work-content" style="font-size: 14px;">${work.content.substring(0, 50)}${work.content.length > 50 ? '...' : ''} ${statusText}</div>
+            <div class="work-stats" style="font-size: 11px;">
+              <span>▶️ ${work.views.toLocaleString()}</span>
+              <span>❤️ ${work.likes.toLocaleString()}</span>
+              <span>💬 ${work.comments.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </div>
     `;
   }).join('');
+  
   const daysOptions = Array.from({length: 30}, (_, i) => {
     const day = i + 1;
     return `<div class="day-option ${day === 1 ? 'selected' : ''}" onclick="selectTrafficDays(this, ${day})">${day}天<br><small>${day * 1000}元</small></div>`;
   }).join('');
+  
   showModal(`
     <div class="modal-header">
-      <div class="modal-title">购买推送流量</div>
+      <div class="modal-title">批量购买推送流量</div>
       <div class="close-btn" onclick="closeModal()">✕</div>
     </div>
     <div style="margin-bottom: 15px;">
@@ -274,47 +337,113 @@ function showBuyTraffic() {
       <div class="days-selector">${daysOptions}</div>
     </div>
     <div style="margin-bottom: 15px;">
-      <div class="input-label">选择要推广的作品（点击选择）</div>
-      <div style="max-height: 40vh; overflow-y: auto;">${worksHtml}</div>
+      <div class="input-label">选择要推广的作品（可多选）</div>
+      <div style="max-height: 40vh; overflow-y: auto; border-radius: 10px; background: #161823; padding: 10px;">
+        ${worksHtml}
+      </div>
+      <div id="selectedCount" style="margin-top: 10px; font-size: 14px; color: #667eea;">已选择：0个作品</div>
     </div>
     <div style="text-align: center; margin: 15px 0; font-size: 18px; color: #667eea;">
-      总价：<span id="trafficTotalPrice">${price}</span>元
+      总价：<span id="trafficTotalPrice">0</span>元
     </div>
     <div style="font-size: 12px; color: #999; margin-bottom: 15px; text-align: center;">
       推广期间：播放量疯狂增长，每秒随机涨粉
     </div>
-    <button class="btn" id="confirmTrafficBtn" onclick="confirmBuyTraffic()">确认购买并启动推广</button>
+    <button class="btn" id="confirmTrafficBtn" onclick="confirmBuyTraffic()">批量购买并启动推广</button>
   `);
-  window.selectedTrafficDays = selectedDays;
-  window.selectedWorkId = null;
+  
+  updateTrafficTotalPrice();
 }
 
+// 切换作品选择状态
+function toggleTrafficSelection(workId) {
+  const index = window.selectedWorkIds.indexOf(workId);
+  const checkbox = document.getElementById(`checkbox-${workId}`);
+  const item = document.querySelector(`[data-work-id="${workId}"]`);
+  
+  if (index > -1) {
+    // 取消选择
+    window.selectedWorkIds.splice(index, 1);
+    checkbox.style.background = '';
+    item.style.border = '';
+    item.style.background = '#161823';
+  } else {
+    // 添加选择
+    window.selectedWorkIds.push(workId);
+    checkbox.style.background = '#667eea';
+    item.style.border = '2px solid #667eea';
+    item.style.background = '#222';
+  }
+  
+  updateTrafficTotalPrice();
+  updateSelectedCount();
+}
+
+// 更新总价
+function updateTrafficTotalPrice() {
+  const days = window.selectedTrafficDays || 1;
+  const selectedCount = window.selectedWorkIds.length;
+  const totalPrice = selectedCount * days * 1000;
+  
+  const priceEl = document.getElementById('trafficTotalPrice');
+  if (priceEl) {
+    priceEl.textContent = totalPrice.toLocaleString();
+  }
+}
+
+// 更新已选数量
+function updateSelectedCount() {
+  const countEl = document.getElementById('selectedCount');
+  if (countEl) {
+    countEl.textContent = `已选择：${window.selectedWorkIds.length}个作品`;
+  }
+}
+
+// 选择天数
 function selectTrafficDays(element, days) {
   document.querySelectorAll('.day-option').forEach(opt => opt.classList.remove('selected'));
   element.classList.add('selected');
   window.selectedTrafficDays = days;
-  document.getElementById('trafficTotalPrice').textContent = days * 1000;
+  updateTrafficTotalPrice();
 }
 
-function selectVideoForTraffic(workId) {
-  window.selectedWorkId = workId;
-  document.querySelectorAll('.work-item').forEach(item => item.style.background = '#161823');
-  event.target.closest('.work-item').style.background = '#333';
-}
-
+// 确认购买流量 - 批量版本
 function confirmBuyTraffic() {
-  if (!window.selectedWorkId) { showWarning('请先选择要推广的作品'); return; }
-  if (gameState.trafficWorks[window.selectedWorkId] && gameState.trafficWorks[window.selectedWorkId].isActive) {
-    showWarning('该作品已在推广中！');
+  if (!window.selectedWorkIds || window.selectedWorkIds.length === 0) { 
+    showWarning('请先选择要推广的作品'); 
+    return; 
+  }
+  
+  const days = window.selectedTrafficDays || 1;
+  const selectedCount = window.selectedWorkIds.length;
+  const totalPrice = selectedCount * days * 1000;
+  
+  // 检查余额
+  if (gameState.money < totalPrice) { 
+    showWarning(`零钱不足！需要${totalPrice.toLocaleString()}元`); 
+    return; 
+  }
+  
+  // 检查是否有已在推广中的作品
+  const activeWorks = window.selectedWorkIds.filter(id => 
+    gameState.trafficWorks[id] && gameState.trafficWorks[id].isActive
+  );
+  
+  if (activeWorks.length > 0) {
+    showWarning(`有${activeWorks.length}个作品已在推广中！`);
     return;
   }
-  const days = window.selectedTrafficDays;
-  const price = days * 1000;
-  if (gameState.money < price) { showWarning('零钱不足！需要' + price + '元'); return; }
-  gameState.money -= price;
+  
+  // 扣除费用
+  gameState.money -= totalPrice;
+  
+  // 批量启动流量推广
+  window.selectedWorkIds.forEach(workId => {
+    startNewTraffic(workId, days);
+  });
+  
   closeModal();
-  startNewTraffic(window.selectedWorkId, days);
-  showNotification('购买成功', `已为作品购买${days}天流量推送！`);
+  showNotification('购买成功', `已为${selectedCount}个作品购买${days}天流量推送！`);
   updateDisplay();
 }
 
@@ -333,37 +462,53 @@ function startNewTraffic(workId, days) {
 }
 
 // 流量推广核心逻辑
+// 关键修复：添加类型转换确保workId为数字
 function startTrafficProcess(workId) {
+  workId = Number(workId); // 确保workId是数字类型
+  
   const trafficData = gameState.trafficWorks[workId];
   if (!trafficData || !trafficData.isActive) return;
+  
+  // 清除可能存在的旧定时器（保险措施）
+  if (trafficData.interval) {
+    clearInterval(trafficData.interval);
+  }
+  
   trafficData.interval = setInterval(() => {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work) return;
+    
     const timePassed = getVirtualDaysPassed(trafficData.startTime);
     if (timePassed >= trafficData.days) {
       stopTrafficForWork(workId);
       return;
     }
+    
     const viewsBoost = Math.floor(Math.random() * 4000) + 1000;
     const fanBoost = Math.floor(Math.random() * 40) + 10;
-    const oldViews = work.views;
+    
     work.views += viewsBoost;
     gameState.views += viewsBoost;
     gameState.fans += fanBoost;
+    
     const oldRevenue = work.revenue || 0;
     const newRevenue = Math.floor(work.views / 1000);
     const revenueBoost = newRevenue - oldRevenue;
+    
     if (revenueBoost > 0) {
       work.revenue = newRevenue;
       gameState.money += revenueBoost;
     }
+    
     const viewsEl = document.getElementById(`work-views-${work.id}`);
     if (viewsEl) {
       viewsEl.textContent = work.views.toLocaleString();
       animateNumberUpdate(viewsEl);
     }
+    
     updateDisplay();
   }, 1000);
+  
   updateDisplay();
 }
 
@@ -372,7 +517,10 @@ function restartTraffic(workId, trafficData) {
   startTrafficProcess(workId);
 }
 
+// 关键修复：添加类型转换确保workId为数字
 function stopTrafficForWork(workId) {
+  workId = Number(workId); // 确保workId是数字类型
+  
   const trafficData = gameState.trafficWorks[workId];
   if (!trafficData) return;
   if (trafficData.interval) {
@@ -507,9 +655,17 @@ function showBanNotice() {
 
 // 申诉功能
 function showAppeal() {
-  if (!gameState.isBanned || !gameState.appealAvailable) return;
+  if (!gameState.isBanned || !gameState.appealAvailable) {
+    showWarning('当前无法申诉');
+    return;
+  }
   
   const daysLeft = Math.ceil(gameState.banDaysCount - getVirtualDaysPassed(gameState.banStartTime));
+  if (daysLeft <= 0) {
+    showWarning('账号已解封，无需申诉');
+    return;
+  }
+  
   let successRate = 0;
   if (daysLeft <= 7) successRate = 30;
   else if (daysLeft <= 15) successRate = 10;
@@ -518,28 +674,49 @@ function showAppeal() {
     return;
   }
   
-  if (confirm(`是否进行申诉？\n当前封禁天数：${daysLeft}天\n申诉成功率：${successRate}%\n注意：申诉失败将失去再次申诉的机会`)) {
-    // 执行申诉
+  if (confirm(`是否进行申诉？
+当前剩余封禁：${daysLeft}天
+申诉成功率：${successRate}%
+注意：申诉失败将失去再次申诉的机会`)) {
+    
     const success = Math.random() * 100 < successRate;
     if (success) {
       // 申诉成功
       gameState.isBanned = false;
-      gameState.warnings = Math.max(0, gameState.warnings - 5); // 减少警告次数
+      gameState.warnings = Math.max(0, gameState.warnings - 5);
       gameState.appealAvailable = true;
-      gameState.achievements.push(14); // 解锁"逆风翻盘"成就
+      
+      // 解锁成就
       const achievement = achievements.find(a => a.id === 14);
-      if (achievement) achievement.unlocked = true;
-      showNotification('申诉成功', '账号已解封，警告次数减少5次');
-      // 隐藏申诉按钮
-      document.getElementById('appealBtn').style.display = 'none';
+      if (achievement && !achievement.unlocked) {
+        achievement.unlocked = true;
+        gameState.achievements.push(14);
+        showNotification('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
+      }
+      
+      // 清除封禁相关定时器
+      if (gameState.banInterval) {
+        clearInterval(gameState.banInterval);
+        gameState.banInterval = null;
+      }
+      if (gameState.banDropInterval) {
+        clearInterval(gameState.banDropInterval);
+        gameState.banDropInterval = null;
+      }
+      
+      showNotification('✅ 申诉成功', '账号已解封，警告次数减少5次');
     } else {
       // 申诉失败
       gameState.appealAvailable = false;
       showWarning('申诉失败，无法再次申诉');
-      // 隐藏申诉按钮
-      document.getElementById('appealBtn').style.display = 'none';
     }
+    
+    // 隐藏申诉按钮
+    document.getElementById('appealBtn').style.display = 'none';
+    
+    // 立即保存状态
     saveGame();
+    updateDisplay();
   }
 }
 
@@ -735,7 +912,7 @@ function showAllWorks() {
 function showWorkDetail(work) {
   const trafficData = gameState.trafficWorks[work.id];
   const isTrafficActive = trafficData && trafficData.isActive;
-  const trafficStatus = isTrafficActive ? `<div style="background: linear-gradient(135deg,#ff6b00 0%,#ff0050 100%); color: white; padding: 8px; border-radius: 5px; text-align: center; font-weight: bold; margin-bottom: 15px; animation: pulse 1s infinite;">🔥 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - getVirtualDaysPassed(trafficData.startTime)))}天）</div>` : '';
+  const trafficStatus = isTrafficActive ? `<div style="background: linear-gradient(135deg,#ff6b00 0%,#ff0050 100%); color: #fff; padding: 8px; border-radius: 5px; text-align: center; font-weight: bold; margin-bottom: 15px; animation: pulse 1s infinite;">🔥 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - getVirtualDaysPassed(trafficData.startTime)))}天）</div>` : '';
   const adBadge = work.isAd ? '<div style="background:#ff0050;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🎯 商单合作</div>' : '';
   const comments = generateComments(work.comments);
   showModal(`<div class="modal-header"><div class="modal-title">${work.type === 'video' ? '视频详情' : work.type === 'live' ? '直播详情' : '动态详情'}</div><div class="close-btn" onclick="closeModal()">✕</div></div>
@@ -997,3 +1174,18 @@ window.onload = function() {
   document.getElementById('modal').onclick = function(e) { if (e.target === this) closeModal(); }; 
   setTimeout(() => { if (gameState.username) updateDisplay(); }, 100);
 };
+
+// 全局函数绑定（修复刷新后onclick失效问题）
+window.showAppeal = showAppeal;
+window.showNotifications = showNotifications;
+window.showSettings = showSettings;
+window.showProfile = showProfile;
+window.showAllWorks = showAllWorks;
+window.clearData = clearData;
+window.showCreateVideo = showCreateVideo;
+window.showCreatePost = showCreatePost;
+window.showCharts = showCharts;
+window.showBuyTraffic = showBuyTraffic;
+window.showAdOrders = showAdOrders;
+window.toggleLive = toggleLive;
+window.switchTab = switchTab;
