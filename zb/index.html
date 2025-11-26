@@ -96,6 +96,37 @@
             <div id="worksList"></div>
         </div>
     </div>
+
+    <!-- 全屏作品页 -->
+    <div id="worksPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('works')">‹</div>
+            <div class="fullscreen-title">我的作品</div>
+            <div class="fullscreen-action" onclick="showCreateVideo()">+发布</div>
+        </div>
+        <div id="worksPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏成就页 -->
+    <div id="achievementsPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('achievements')">‹</div>
+            <div class="fullscreen-title">成就系统</div>
+            <div class="fullscreen-action" onclick="showAchievementsHelp()">?</div>
+        </div>
+        <div id="achievementsPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏消息页 -->
+    <div id="messagesPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('messages')">‹</div>
+            <div class="fullscreen-title">消息中心</div>
+            <div class="fullscreen-action" onclick="markAllRead()">全部已读</div>
+        </div>
+        <div id="messagesPageContent" class="fullscreen-content"></div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('home')">
             <div class="nav-icon">🏠</div>

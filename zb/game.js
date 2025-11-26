@@ -20,7 +20,7 @@ let gameState = {
 
 // 成就列表
 const achievements = [
-  { id: 1, name: '初入江湖', desc: '获得第一个粉丝', icon: '🌱', unlocked: false }, { id: 2, name: '小有名气', desc: '粉丝达到1000', icon: '🌟', unlocked: false }, { id: 3, name: '网红达人', desc: '粉丝达到10万', icon: '⭐', unlocked: false }, { id: 4, name: '顶级流量', desc: '粉丝达到1000万', icon: '🌟', unlocked: false }, { id: 5, name: '爆款制造机', desc: '单条视频播放量破百万', icon: '🔥', unlocked: false }, { id: 6, name: '点赞狂魔', desc: '累计获得10万个赞', icon: '👍', unlocked: false }, { id: 7, name: '高产创作者', desc: '发布100个作品', icon: '📹', unlocked: false }, { id: 8, name: '直播新星', desc: '首次直播获得1000观看', icon: '📱', unlocked: false }, { id: 9, name: '收益第一桶金', desc: '获得首次收益', icon: '💰', unlocked: false }, { id: 10, name: '百万富翁', desc: '累计收益达到100万', icon: '💎', unlocked: false }, { id: 11, name: '话题之王', desc: '单条动态获得1万转发', icon: '🔁', unlocked: false }, { id: 12, name: '评论互动达人', desc: '单条作品获得5000评论', icon: '💬', unlocked: false }, { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false }, { id: 14, name: '逆风翻盘', desc: '从封号中申诉成功', icon: '🔄', unlocked: false }, { id: 15, name: '幸运儿', desc: '触发50次随机事件', icon: '🍀', unlocked: false }, { id: 16, name: '社交达人', desc: '关注1000个用户', icon: '👥', unlocked: false }, { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false }, { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false }, { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💝', unlocked: false }, { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false }, { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false }, { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false }, { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💎', unlocked: false }, { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👁️', unlocked: false }, { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '👑', unlocked: false }
+  { id: 1, name: '初入江湖', desc: '获得第一个粉丝', icon: '🌱', unlocked: false }, { id: 2, name: '小有名气', desc: '粉丝达到1000', icon: '🌟', unlocked: false }, { id: 3, name: '网红达人', desc: '粉丝达到10万', icon: '⭐', unlocked: false }, { id: 4, name: '顶级流量', desc: '粉丝达到1000万', icon: '⭐', unlocked: false }, { id: 5, name: '爆款制造机', desc: '单条视频播放量破百万', icon: '🔥', unlocked: false }, { id: 6, name: '点赞狂魔', desc: '累计获得10万个赞', icon: '👍', unlocked: false }, { id: 7, name: '高产创作者', desc: '发布100个作品', icon: '📹', unlocked: false }, { id: 8, name: '直播新星', desc: '首次直播获得1000观看', icon: '📱', unlocked: false }, { id: 9, name: '收益第一桶金', desc: '获得首次收益', icon: '💰', unlocked: false }, { id: 10, name: '百万富翁', desc: '累计收益达到100万', icon: '💎', unlocked: false }, { id: 11, name: '话题之王', desc: '单条动态获得1万转发', icon: '🔁', unlocked: false }, { id: 12, name: '评论互动达人', desc: '单条作品获得5000评论', icon: '💬', unlocked: false }, { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false }, { id: 14, name: '逆风翻盘', desc: '从封号中申诉成功', icon: '🔄', unlocked: false }, { id: 15, name: '幸运儿', desc: '触发50次随机事件', icon: '🍀', unlocked: false }, { id: 16, name: '社交达人', desc: '关注1000个用户', icon: '👥', unlocked: false }, { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false }, { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false }, { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💝', unlocked: false }, { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false }, { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false }, { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false }, { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💎', unlocked: false }, { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👁️', unlocked: false }, { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '👑', unlocked: false }
 ];
 
 // 商单数据库（隐蔽的负面商单设计）
@@ -997,7 +997,7 @@ function updateNotificationBadge() {
   } else badge.style.display = 'none';
 }
 
-// 显示通知列表
+// 显示通知列表（顶部按钮的模态窗口，保持不变）
 function showNotifications() {
   gameState.notifications.forEach(n => n.read = true);
   updateNotificationBadge();
@@ -1049,16 +1049,186 @@ function publishAd() {
   closeModal(); updateDisplay();
 }
 
-// 切换标签
+// 切换标签（修改为全屏页面切换）
 function switchTab(tab) {
+  // 更新导航栏状态
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
   event.target.closest('.nav-item').classList.add('active');
+  
+  // 隐藏主内容区和所有全屏页面
+  document.getElementById('mainContent').style.display = 'none';
+  document.querySelectorAll('.fullscreen-page').forEach(page => page.classList.remove('active'));
+  
   switch (tab) {
-    case 'home': location.reload(); break;
-    case 'works': showAllWorks(); break;
-    case 'messages': showNotifications(); break;
-    case 'achievements': showAchievements(); break;
+    case 'home':
+      document.getElementById('mainContent').style.display = 'block';
+      break;
+    case 'works':
+      showWorksFullscreen();
+      break;
+    case 'messages':
+      showMessagesFullscreen();
+      break;
+    case 'achievements':
+      showAchievementsFullscreen();
+      break;
   }
+}
+
+// 关闭全屏页面，返回首页
+function closeFullscreenPage(pageName) {
+  document.getElementById(pageName + 'Page').classList.remove('active');
+  document.getElementById('mainContent').style.display = 'block';
+  
+  // 重置导航栏状态到首页
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+}
+
+// 全屏显示作品列表
+function showWorksFullscreen() {
+  const worksPage = document.getElementById('worksPage');
+  const content = document.getElementById('worksPageContent');
+  
+  // 生成作品列表HTML
+  const worksHtml = gameState.worksList.map(work => {
+    const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
+    const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
+    const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
+    
+    return `
+      <div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
+        <div class="work-header">
+          <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'}</span>
+          <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
+        </div>
+        <div class="work-content">${work.content}</div>
+        <div class="work-stats">
+          <span>▶️ ${work.views.toLocaleString()}</span>
+          <span>❤️ ${work.likes.toLocaleString()}</span>
+          <span>💬 ${work.comments.toLocaleString()}</span>
+          <span>🔄 ${work.shares.toLocaleString()}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  content.innerHTML = worksHtml.length === 0 ? 
+    '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>' : worksHtml;
+  
+  worksPage.classList.add('active');
+}
+
+// 全屏显示消息列表
+function showMessagesFullscreen() {
+  const messagesPage = document.getElementById('messagesPage');
+  const content = document.getElementById('messagesPageContent');
+  
+  // 标记所有为已读
+  gameState.notifications.forEach(n => n.read = true);
+  updateNotificationBadge();
+  
+  const notificationHtml = gameState.notifications.slice(-50).reverse().map(notification => `
+    <div class="comment-item" style="${!notification.read ? 'border-left: 3px solid #667eea;' : ''}">
+      <div class="comment-header">
+        <span class="comment-user">${notification.title}</span>
+        <span class="comment-time">${formatTime(notification.time)}</span>
+      </div>
+      <div class="comment-content">${notification.content}</div>
+    </div>
+  `).join('');
+  
+  content.innerHTML = gameState.notifications.length === 0 ? 
+    '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml;
+  
+  messagesPage.classList.add('active');
+}
+
+// 全屏显示成就系统（带进度条）
+function showAchievementsFullscreen() {
+  const achievementsPage = document.getElementById('achievementsPage');
+  const content = document.getElementById('achievementsPageContent');
+  
+  // 成就进度计算逻辑
+  const progressMap = {
+    1: { current: () => gameState.fans, target: 1 },
+    2: { current: () => gameState.fans, target: 1000 },
+    3: { current: () => gameState.fans, target: 100000 },
+    4: { current: () => gameState.fans, target: 10000000 },
+    5: { current: () => Math.max(...gameState.worksList.map(w => w.views), 0), target: 1000000 },
+    6: { current: () => gameState.likes, target: 100000 },
+    7: { current: () => gameState.works, target: 100 },
+    8: { current: () => Math.max(...gameState.worksList.filter(w => w.type === 'live').map(w => w.views), 0), target: 1000 },
+    9: { current: () => gameState.money, target: 1 },
+    10: { current: () => gameState.money, target: 1000000 },
+    11: { current: () => Math.max(...gameState.worksList.map(w => w.shares), 0), target: 10000 },
+    12: { current: () => Math.max(...gameState.worksList.map(w => w.comments), 0), target: 5000 },
+    13: { current: () => Math.floor((Date.now() - gameState.gameStartTime) / (24 * 60 * 60 * 1000)), target: 30 },
+    21: { current: () => gameState.worksList.filter(w => w.isAd).length, target: 1 },
+    22: { current: () => gameState.worksList.filter(w => w.isAd).length, target: 10 },
+    23: { current: () => Math.max(...gameState.worksList.filter(w => w.isAd).map(w => w.revenue), 0), target: 50000 },
+    24: { current: () => gameState.rejectedAdOrders, target: 5 },
+    25: { current: () => gameState.worksList.filter(w => w.isAd).length, target: 50 }
+  };
+  
+  const achievementHtml = achievements.map(achievement => {
+    const progress = progressMap[achievement.id];
+    let progressHtml = '';
+    
+    if (progress && !achievement.unlocked) {
+      const current = progress.current();
+      const percentage = Math.min(100, Math.floor((current / progress.target) * 100));
+      progressHtml = `
+        <div class="achievement-progress">
+          <div class="achievement-progress-bar" style="width: ${percentage}%"></div>
+        </div>
+        <div class="achievement-progress-text">
+          ${current.toLocaleString()} / ${progress.target.toLocaleString()} (${percentage}%)
+        </div>
+      `;
+    } else if (achievement.unlocked) {
+      progressHtml = '<div style="color: #667eea; font-size: 12px; margin-top: 5px;">✅ 已完成</div>';
+    } else {
+      progressHtml = '<div style="color: #999; font-size: 12px; margin-top: 5px;">🔒 未解锁</div>';
+    }
+    
+    return `
+      <div class="achievement-item">
+        <div class="achievement-icon ${achievement.unlocked ? 'unlocked' : ''}">${achievement.icon}</div>
+        <div class="achievement-info">
+          <div class="achievement-name">${achievement.name}</div>
+          <div class="achievement-desc">${achievement.desc}</div>
+          ${progressHtml}
+        </div>
+        <div style="color:${achievement.unlocked ? '#667eea' : '#999'};font-size:12px">
+          ${achievement.unlocked ? '已解锁' : '未解锁'}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  content.innerHTML = achievementHtml;
+  achievementsPage.classList.add('active');
+}
+
+// 新增：消息页全部已读功能
+function markAllRead() {
+  gameState.notifications.forEach(n => n.read = true);
+  updateNotificationBadge();
+  showMessagesFullscreen(); // 刷新页面
+  showNotification('操作成功', '所有消息已标记为已读');
+}
+
+// 新增：成就帮助
+function showAchievementsHelp() {
+  showModal(`<div class="modal-header"><div class="modal-title">成就说明</div><div class="close-btn" onclick="closeModal()">✕</div></div>
+    <div style="padding: 20px; line-height: 1.6;">
+      <p style="margin-bottom: 15px;">🏆 完成成就可以获得游戏内的荣誉标识</p>
+      <p style="margin-bottom: 15px;">📊 每个成就都有对应的进度条，完成目标即可解锁</p>
+      <p style="margin-bottom: 15px;">💡 部分成就需要特定条件才能解锁，请多尝试不同玩法</p>
+      <p style="color: #667eea;">🎯 努力成为传奇主播吧！</p>
+    </div>
+  `);
 }
 
 // 游戏循环
@@ -1189,3 +1359,9 @@ window.showBuyTraffic = showBuyTraffic;
 window.showAdOrders = showAdOrders;
 window.toggleLive = toggleLive;
 window.switchTab = switchTab;
+window.closeFullscreenPage = closeFullscreenPage;
+window.showWorksFullscreen = showWorksFullscreen;
+window.showMessagesFullscreen = showMessagesFullscreen;
+window.showAchievementsFullscreen = showAchievementsFullscreen;
+window.markAllRead = markAllRead;
+window.showAchievementsHelp = showAchievementsHelp;
