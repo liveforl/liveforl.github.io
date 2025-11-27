@@ -1,0 +1,365 @@
+// ==================== 热搜系统 ====================
+function startHotSearch(title) {
+  if (gameState.isHotSearch) return;
+  gameState.isHotSearch = true;
+  gameState.hotSearchDaysCount = Math.floor(Math.random() * 3) + 1;
+  gameState.hotSearchStartTime = Date.now();
+  gameState.hotSearchTitle = title || '🔥 话题热议中';
+  if (!gameState.hotSearchInterval) gameState.hotSearchInterval = setInterval(() => {
+    if (gameState.isHotSearch) {
+      const fanGrowth = Math.floor(Math.random() * 100) + 50;
+      gameState.fans += fanGrowth;
+      showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝`);
+      updateDisplay();
+    }
+  }, 1000);
+  showNotification('🎉 热搜上榜', `恭喜！${title}，将持续${gameState.hotSearchDaysCount}虚拟天！`);
+  updateDisplay();
+}
+
+function showHotSearchNotice() {
+  if (!gameState.isHotSearch) return;
+  const hotSearchNotice = document.getElementById('hotSearchNotice');
+  if (!hotSearchNotice) return;
+  const timeLeft = Math.max(0, gameState.hotSearchDaysCount - getVirtualDaysPassed(gameState.hotSearchStartTime));
+  hotSearchNotice.innerHTML = `<div style="font-size:14px;font-weight:bold">${gameState.hotSearchTitle}</div><div style="font-size:12px;">热搜剩余：${Math.ceil(timeLeft)}天</div>`;
+  if (timeLeft <= 0) endHotSearch();
+}
+
+function endHotSearch() {
+  gameState.isHotSearch = false;
+  gameState.hotSearchTitle = '';
+  if (gameState.hotSearchInterval) {
+    clearInterval(gameState.hotSearchInterval);
+    gameState.hotSearchInterval = null;
+  }
+  showNotification('📉 热搜结束', '热搜期已结束，期待下次上榜！');
+  updateDisplay();
+}
+
+// ==================== 账号封禁 ====================
+function banAccount(reason) {
+  if (gameState.isBanned) return;
+  gameState.isBanned = true;
+  gameState.banReason = reason;
+  gameState.banDaysCount = Math.floor(Math.random() * 30) + 1;
+  gameState.banStartTime = Date.now();
+  gameState.appealAvailable = true;
+  if (gameState.liveStatus) {
+    endLiveStream();
+    showNotification('直播中断', '账号被封禁，直播已强制结束');
+  }
+  Object.keys(gameState.trafficWorks).forEach(workId => {
+    if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
+  });
+  saveGame();
+  if (typeof showBanNotice === 'function') showBanNotice();
+  updateDisplay();
+}
+
+function showBanNotice() {
+  if (!gameState.isBanned) return;
+  const banDays = document.getElementById('banDays');
+  const banNotice = document.getElementById('banNotice');
+  const appealBtn = document.getElementById('appealBtn');
+  if (!banDays || !banNotice) return;
+  
+  const timeLeft = Math.max(0, gameState.banDaysCount - getVirtualDaysPassed(gameState.banStartTime));
+  banDays.textContent = Math.ceil(timeLeft);
+  
+  if (timeLeft > 0 && gameState.appealAvailable) {
+    appealBtn.style.display = 'block';
+  } else {
+    appealBtn.style.display = 'none';
+  }
+  
+  if (timeLeft <= 0) {
+    gameState.isBanned = false;
+    gameState.warnings = 0;
+    gameState.appealAvailable = true;
+    if (gameState.banInterval) {
+      clearInterval(gameState.banInterval);
+      gameState.banInterval = null;
+    }
+    if (gameState.banDropInterval) {
+      clearInterval(gameState.banDropInterval);
+      gameState.banDropInterval = null;
+    }
+    showNotification('封禁结束', '恭喜你，账号已恢复正常使用，警告次数已清空');
+    updateDisplay();
+  }
+  if (!gameState.banInterval) gameState.banInterval = setInterval(() => showBanNotice(), VIRTUAL_DAY_MS);
+  if (!gameState.banDropInterval) gameState.banDropInterval = setInterval(() => {
+    if (gameState.isBanned && gameState.fans > 0) {
+      const fanLoss = Math.floor(Math.random() * 90) + 10;
+      gameState.fans = Math.max(0, gameState.fans - fanLoss);
+      showNotification('粉丝流失', `封禁期间粉丝流失：${fanLoss}`);
+      updateDisplay();
+    }
+  }, 1000);
+}
+
+// ==================== 随机事件处理 ====================
+function handleRandomEvent(event) {
+  if (event.effect.fans) gameState.fans = Math.max(0, gameState.fans + event.effect.fans);
+  if (event.effect.likes) gameState.likes = Math.max(0, gameState.likes + event.effect.likes);
+  if (event.effect.views) gameState.views = Math.max(0, gameState.views + event.effect.views);
+  if (event.effect.money) gameState.money = Math.max(0, gameState.money + event.effect.money);
+  if (event.effect.warnings) gameState.warnings = Math.min(10, gameState.warnings + event.effect.warnings);
+  if (event.effect.hotSearch) startHotSearch(event.title);
+  if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
+  showNotification(event.title, event.desc);
+  if (!gameState.isBanned && gameState.warnings >= 10) banAccount('多次违反社区规定');
+}
+
+// ==================== 舆论风波系统 ====================
+function startPublicOpinionCrisis(title) {
+  if (gameState.isPublicOpinionCrisis) return;
+  gameState.isPublicOpinionCrisis = true;
+  gameState.publicOpinionDaysCount = Math.floor(Math.random() * 3) + 1;
+  gameState.publicOpinionStartTime = Date.now();
+  gameState.publicOpinionTitle = title || '⚠️ 舆论风波中';
+  if (!gameState.publicOpinionInterval) {
+    gameState.publicOpinionInterval = setInterval(() => {
+      if (gameState.isPublicOpinionCrisis && gameState.fans > 0) {
+        const fanLoss = Math.floor(Math.random() * 50) + 10;
+        gameState.fans = Math.max(0, gameState.fans - fanLoss);
+        showNotification('舆论风波', `舆论风波中，粉丝流失：${fanLoss}`);
+        updateDisplay();
+      }
+    }, 1000);
+  }
+  showNotification('⚠️ 舆论风波', `你被卷入舆论风波，将持续${gameState.publicOpinionDaysCount}虚拟天！`);
+  updateDisplay();
+}
+
+function showPublicOpinionNotice() {
+  if (!gameState.isPublicOpinionCrisis) return;
+  const publicOpinionNotice = document.getElementById('publicOpinionNotice');
+  if (!publicOpinionNotice) return;
+  const timeLeft = Math.max(0, gameState.publicOpinionDaysCount - getVirtualDaysPassed(gameState.publicOpinionStartTime));
+  publicOpinionNotice.innerHTML = `<div style="font-size:14px;font-weight:bold">${gameState.publicOpinionTitle}</div><div style="font-size:12px;">剩余：${Math.ceil(timeLeft)}天</div>`;
+  if (timeLeft <= 0) endPublicOpinionCrisis();
+}
+
+function endPublicOpinionCrisis() {
+  gameState.isPublicOpinionCrisis = false;
+  gameState.publicOpinionTitle = '';
+  if (gameState.publicOpinionInterval) {
+    clearInterval(gameState.publicOpinionInterval);
+    gameState.publicOpinionInterval = null;
+  }
+  showNotification('📉 舆论风波结束', '舆论风波已平息');
+  updateDisplay();
+}
+
+// ==================== 图表更新 ====================
+function updateChartData() {
+  const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
+  const dayIndex = virtualDays % 60;
+  
+  gameState.chartData.fans[dayIndex] = gameState.fans;
+  gameState.chartData.likes[dayIndex] = gameState.likes;
+  gameState.chartData.views[dayIndex] = gameState.views;
+}
+
+// ==================== 游戏主循环 ====================
+function startGameLoop() {
+  setInterval(() => {
+    if (Math.random() < 0.1) updateChartData();
+    if (Math.random() < 0.05) {
+      const change = Math.floor(Math.random() * 100) - 50;
+      gameState.fans = Math.max(0, gameState.fans + change);
+      if (change > 0) showNotification('粉丝变化', `获得了${change}个新粉丝`);
+      else if (change < 0) showNotification('粉丝变化', `失去了${Math.abs(change)}个粉丝`);
+    }
+    updateDisplay();
+  }, 100);
+  
+  setInterval(() => {
+    const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+    handleRandomEvent(event);
+  }, 30000);
+  
+  setInterval(() => {
+    const timeSinceLastUpdate = Date.now() - gameState.lastUpdateTime;
+    if (timeSinceLastUpdate > 10 * 60 * 1000) {
+      const loss = Math.floor(gameState.fans * 0.01);
+      gameState.fans = Math.max(0, gameState.fans - loss);
+      if (loss > 0) showNotification('粉丝流失', `由于长时间未更新，失去了${loss}个粉丝`);
+    }
+  }, 60000);
+  
+  setInterval(() => {
+    Object.keys(gameState.trafficWorks).forEach(workId => {
+      const trafficData = gameState.trafficWorks[workId];
+      if (trafficData && trafficData.isActive) {
+        const timeLeft = Math.max(0, trafficData.days - getVirtualDaysPassed(trafficData.startTime));
+        if (timeLeft <= 0 && typeof stopTrafficForWork === 'function') {
+          stopTrafficForWork(workId);
+        }
+      }
+    });
+    if (gameState.isPublicOpinionCrisis && typeof showPublicOpinionNotice === 'function') {
+      showPublicOpinionNotice();
+    }
+  }, 1000);
+  
+  setInterval(() => {
+    updateChartData();
+  }, VIRTUAL_DAY_MS);
+}
+
+// ==================== 成就检查 ====================
+function checkAchievements() {
+  achievements.forEach(achievement => {
+    if (!achievement.unlocked) {
+      let unlocked = false;
+      switch (achievement.id) {
+        case 1: unlocked = gameState.fans >= 1; break;
+        case 2: unlocked = gameState.fans >= 1000; break;
+        case 3: unlocked = gameState.fans >= 100000; break;
+        case 4: unlocked = gameState.fans >= 10000000; break;
+        case 5: unlocked = gameState.worksList.some(w => w.views >= 1000000); break;
+        case 6: unlocked = gameState.likes >= 100000; break;
+        case 7: unlocked = gameState.works >= 100; break;
+        case 8: unlocked = gameState.worksList.some(w => w.type === 'live' && w.views >= 1000); break;
+        case 9: unlocked = gameState.money >= 1; break;
+        case 10: unlocked = gameState.money >= 1000000; break;
+        case 11: unlocked = gameState.worksList.some(w => w.shares >= 10000); break;
+        case 12: unlocked = gameState.worksList.some(w => w.comments >= 5000); break;
+        case 13: unlocked = (Date.now() - gameState.gameStartTime) >= 30 * 24 * 60 * 60 * 1000; break;
+        case 14: unlocked = achievement.unlocked || false; break;
+        case 15: unlocked = gameState.notifications.length >= 50; break;
+        case 21: unlocked = gameState.worksList.some(w => w.isAd); break;
+        case 22: unlocked = gameState.worksList.filter(w => w.isAd).length >= 10; break;
+        case 23: unlocked = gameState.worksList.some(w => w.isAd && w.revenue >= 50000); break;
+        case 24: unlocked = gameState.rejectedAdOrders >= 5; break;
+        case 25: unlocked = gameState.worksList.filter(w => w.isAd).length >= 50 && gameState.warnings < 5; break;
+      }
+      if (unlocked) {
+        achievement.unlocked = true;
+        gameState.achievements.push(achievement.id);
+        showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
+      }
+    }
+  });
+}
+
+// ==================== Chart.js图表系统 ====================
+let charts = {
+    fans: null,
+    likes: null,
+    views: null
+};
+
+// 绘制Chart.js图表（修改数据格式化）
+function drawChart(canvasId, data, color, label) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
+    
+    // 生成X轴标签（最近60天）
+    const labels = [];
+    for (let i = 59; i >= 0; i--) {
+        const day = virtualDays - i;
+        if (day >= 0) {
+            labels.push(`第${day}天`);
+        } else {
+            labels.push('');
+        }
+    }
+    
+    // 销毁旧图表
+    if (charts[canvasId]) {
+        charts[canvasId].destroy();
+    }
+    
+    // 创建新图表（修改tooltip和y轴刻度显示）
+    charts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: [...data],
+                borderColor: color,
+                backgroundColor: color + '20',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointBackgroundColor: color,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: color,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return label + ': ' + context.parsed.y.toLocaleString(); // 显示完整数字
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#999',
+                        maxTicksLimit: 10
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#999',
+                        callback: function(value) {
+                            return value.toLocaleString(); // 显示完整数字
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+// ==================== 全局函数绑定 ====================
+window.startHotSearch = startHotSearch;
+window.showHotSearchNotice = showHotSearchNotice;
+window.endHotSearch = endHotSearch;
+window.banAccount = banAccount;
+window.showBanNotice = showBanNotice;
+window.handleRandomEvent = handleRandomEvent;
+window.checkAchievements = checkAchievements;
+window.startPublicOpinionCrisis = startPublicOpinionCrisis;
+window.showPublicOpinionNotice = showPublicOpinionNotice;
+window.endPublicOpinionCrisis = endPublicOpinionCrisis;
+window.updateChartData = updateChartData;
+window.startGameLoop = startGameLoop;
+window.drawChart = drawChart;

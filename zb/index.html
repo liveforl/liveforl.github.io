@@ -127,6 +127,16 @@
         <div id="messagesPageContent" class="fullscreen-content"></div>
     </div>
 
+    <!-- 全屏数据分析页 -->
+    <div id="chartsPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('charts')">‹</div>
+            <div class="fullscreen-title">数据分析</div>
+            <div class="fullscreen-action" onclick="showCharts()">刷新</div>
+        </div>
+        <div id="chartsPageContent" class="fullscreen-content"></div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('home')">
             <div class="nav-icon">🏠</div>
@@ -153,6 +163,14 @@
 </div>
 <div class="warning-toast" id="warningToast"></div>
 
-<script src="game.js"></script>
+<!-- Chart.js库 -->
+<script src="chart.js"></script>
+
+<!-- 按顺序加载脚本 -->
+<script src="game_core.js"></script>
+<script src="game_ui.js"></script>
+<script src="game_features.js"></script>
+<script src="game_events.js"></script>
 </body>
 </html>
+
