@@ -2,14 +2,26 @@
 function updateDisplay() {
   document.getElementById('usernameDisplay').textContent = gameState.username;
   document.getElementById('userAvatar').textContent = gameState.avatar;
+  
+  // 只统计非私密作品
+  const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
+  const totalViews = publicWorks.reduce((sum, w) => sum + w.views, 0);
+  const totalLikes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
+  
   document.getElementById('fansCount').textContent = formatNumber(gameState.fans);
-  document.getElementById('likesCount').textContent = formatNumber(gameState.likes);
-  document.getElementById('viewsCount').textContent = formatNumber(gameState.views);
-  document.getElementById('worksCount').textContent = gameState.works;
+  document.getElementById('likesCount').textContent = formatNumber(totalLikes);
+  document.getElementById('viewsCount').textContent = formatNumber(totalViews);
+  document.getElementById('worksCount').textContent = publicWorks.length;
+  
+  // 修改：直接显示累计收益，不重新计算
   document.getElementById('moneyCount').textContent = Math.floor(gameState.money);
-  document.getElementById('warningCount').textContent = `${gameState.warnings}/10`;
+  
+  document.getElementById('warningCount').textContent = `${gameState.warnings}/20`;
   const liveBtn = document.getElementById('liveControlBtn');
-  if (liveBtn) liveBtn.classList.toggle('active', gameState.liveStatus);
+  if (liveBtn) {
+    liveBtn.style.display = 'block';
+    liveBtn.classList.toggle('active', gameState.liveStatus);
+  }
   const hotSearchNotice = document.getElementById('hotSearchNotice');
   const banNotice = document.getElementById('banNotice');
   const publicOpinionNotice = document.getElementById('publicOpinionNotice');
@@ -43,10 +55,11 @@ function updateWorksList() {
   recentWorks.forEach((work) => {
     const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
     const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
+    const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
     const trafficIndicator = isTrafficActive ? '<div class="traffic-indicator">🔥 推送中</div>' : '';
     const workItem = document.createElement('div');
     workItem.className = 'work-item';
-    workItem.innerHTML = `<div class="work-header"><span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'}</span><span class="work-time">${formatTime(work.time)} ${adBadge}</span></div><div class="work-content">${work.content}</div><div class="work-stats"><span>▶️ <span class="stat-number" id="work-views-${work.id}">${work.views.toLocaleString()}</span></span><span>❤️ <span class="stat-number" id="work-likes-${work.id}">${work.likes.toLocaleString()}</span></span><span>💬 <span class="stat-number" id="work-comments-${work.id}">${work.comments.toLocaleString()}</span></span><span>🔄 <span class="stat-number" id="work-shares-${work.id}">${work.shares.toLocaleString()}</span></span></div>${trafficIndicator}`;
+    workItem.innerHTML = `<div class="work-header"><span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span><span class="work-time">${formatTime(work.time)} ${adBadge}</span></div><div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div><div class="work-stats"><span>▶️ <span class="stat-number" id="work-views-${work.id}">${work.views.toLocaleString()}</span></span><span>❤️ <span class="stat-number" id="work-likes-${work.id}">${work.likes.toLocaleString()}</span></span><span>💬 <span class="stat-number" id="work-comments-${work.id}">${work.comments.toLocaleString()}</span></span><span>🔄 <span class="stat-number" id="work-shares-${work.id}">${work.shares.toLocaleString()}</span></span></div>${trafficIndicator}`;
     workItem.onclick = () => showWorkDetail(work);
     worksList.appendChild(workItem);
   });
@@ -58,6 +71,7 @@ function startWorkUpdates() {
   setInterval(() => {
     if (gameState.worksList.length === 0) return;
     gameState.worksList.forEach(work => {
+      if (work.isPrivate) return; // 跳过私密作品的自动更新
       const viewsGrowth = Math.floor(Math.random() * 50);
       const likesGrowth = Math.floor(Math.random() * 20);
       const commentsGrowth = Math.floor(Math.random() * 10);
@@ -94,49 +108,6 @@ function animateNumberUpdate(element) {
   element.classList.add('updating'); 
   setTimeout(() => element.classList.remove('updating'), 300); 
 }
-
-// ==================== 图表显示（已注释旧版） ====================
-// 注意：以下为旧版模态框图表函数，已被 game_features.js 的全屏版本替代
-// function showCharts() {
-//     showModal(`<div class="modal-header"><div class="modal-title">数据分析</div><div class="close-btn" onclick="closeModal()">✕</div></div><div class="chart-container"><div class="chart-item"><div class="chart-header"><div class="chart-title">粉丝增长趋势</div><div class="chart-value">${gameState.fans}</div></div><canvas class="chart-canvas" id="fansChart"></canvas></div><div class="chart-item"><div class="chart-header"><div class="chart-title">点赞增长趋势</div><div class="chart-value">${gameState.likes}</div></div><canvas class="chart-canvas" id="likesChart"></canvas></div><div class="chart-item"><div class="chart-header"><div class="chart-title">播放增长趋势</div><div class="chart-value">${gameState.views}</div></div><canvas class="chart-canvas" id="viewsChart"></canvas></div></div>`);
-//     setTimeout(() => {
-//         drawChart('fansChart', gameState.chartData.fans, '#667eea');
-//         drawChart('likesChart', gameState.chartData.likes, '#ff0050');
-//         drawChart('viewsChart', gameState.chartData.views, '#00f2ea');
-//     }, 100);
-// }
-
-// function drawChart(canvasId, data, color) {
-//   const canvas = document.getElementById(canvasId);
-//   if (!canvas) return;
-//   const ctx = canvas.getContext('2d'), width = canvas.width = canvas.offsetWidth, height = canvas.height = canvas.offsetHeight;
-//   ctx.clearRect(0, 0, width, height);
-//   const maxValue = Math.max(...data, 1), step = width / (data.length - 1);
-//   ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-//   for (let i = 0; i <= 4; i++) {
-//     const y = (height / 4) * i;
-//     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-//   }
-//   const gradient = ctx.createLinearGradient(0, 0, 0, height);
-//   gradient.addColorStop(0, color + '40'); gradient.addColorStop(1, color + '10');
-//   ctx.fillStyle = gradient; ctx.beginPath(); ctx.moveTo(0, height);
-//   data.forEach((value, index) => {
-//     const x = index * step, y = height - (value / maxValue) * height;
-//     ctx.lineTo(x, y);
-//   });
-//   ctx.lineTo(width, height); ctx.closePath(); ctx.fill();
-//   ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath();
-//   data.forEach((value, index) => {
-//     const x = index * step, y = height - (value / maxValue) * height;
-//     if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-//   });
-//   ctx.stroke();
-//   ctx.fillStyle = color;
-//   data.forEach((value, index) => {
-//     const x = index * step, y = height - (value / maxValue) * height;
-//     ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
-//   });
-// }
 
 // ==================== 设置页面 ====================
 function showSettings() {
@@ -187,12 +158,13 @@ function showAllWorks() {
     const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
     const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
     const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
+    const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
     return `<div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
       <div class="work-header">
-        <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'}</span>
+        <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
         <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
       </div>
-      <div class="work-content">${work.content}</div>
+      <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
       <div class="work-stats">
         <span>▶️ ${work.views.toLocaleString()}</span>
         <span>❤️ ${work.likes.toLocaleString()}</span>
@@ -211,12 +183,86 @@ function showWorkDetail(work) {
   const isTrafficActive = trafficData && trafficData.isActive;
   const trafficStatus = isTrafficActive ? `<div style="background: linear-gradient(135deg,#ff6b00 0%,#ff0050 100%); color: #fff; padding: 8px; border-radius: 5px; text-align: center; font-weight: bold; margin-bottom: 15px; animation: pulse 1s infinite;">🔥 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - getVirtualDaysPassed(trafficData.startTime)))}天）</div>` : '';
   const adBadge = work.isAd ? '<div style="background:#ff0050;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🎯 商单合作</div>' : '';
+  const privacyBadge = work.isPrivate ? '<div style="background:#999;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🔒 私密作品</div>' : '';
   const comments = typeof generateComments === 'function' ? generateComments(work.comments) : [];
+  
+  // 创建操作按钮HTML
+  const buttonHtml = `
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn" onclick="togglePrivate(${work.id})" style="background: ${work.isPrivate ? '#667eea' : '#333'}; flex: 1;">
+        ${work.isPrivate ? '🔓 取消私密' : '🔒 设为私密'}
+      </button>
+      <button class="btn btn-danger" onclick="deleteWork(${work.id})" style="flex: 1; background: #ff0050;">
+        🗑️ 删除作品
+      </button>
+    </div>
+  `;
+  
   showModal(`<div class="modal-header"><div class="modal-title">${work.type === 'video' ? '视频详情' : work.type === 'live' ? '直播详情' : '动态详情'}</div><div class="close-btn" onclick="closeModal()">✕</div></div>
-    <div style="margin-bottom:20px">${trafficStatus}${adBadge}<div style="font-size:16px;margin-bottom:10px">${work.content}</div><div style="font-size:12px;color:#999;margin-bottom:15px">${formatTime(work.time)}</div>
+    <div style="margin-bottom:20px">${trafficStatus}${adBadge}${privacyBadge}<div style="font-size:16px;margin-bottom:10px">${work.content}</div><div style="font-size:12px;color:#999;margin-bottom:15px">${formatTime(work.time)}</div>
       <div style="display:flex;justify-content:space-around;padding:15px;background:#161823;border-radius:10px;margin-bottom:20px"><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.views.toLocaleString()}</div><div style="font-size:12px;color:#999">播放/观看</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.likes.toLocaleString()}</div><div style="font-size:12px;color:#999">点赞</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.comments.toLocaleString()}</div><div style="font-size:12px;color:#999">评论</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.shares.toLocaleString()}</div><div style="font-size:12px;color:#999">转发</div></div></div>${work.revenue ? `<div style="font-size:14px;color:#667eea;margin-bottom:15px">💰 收益：${work.revenue}元</div>` : ''}
       <div style="margin-bottom:10px;font-weight:bold">评论区</div><div id="commentsList">${comments.map(comment => `<div class="comment-item"><div class="comment-header"><span class="comment-user">${comment.user}</span><span class="comment-time">${comment.time}</span></div><div class="comment-content">${comment.content}</div><div class="comment-actions"><span class="comment-action">👍 ${comment.likes}</span><span class="comment-action">回复</span></div></div>`).join('')}</div>
+      ${buttonHtml}
     </div>`);
+}
+
+// ==================== 删除作品 ====================
+function deleteWork(workId) {
+  const workIndex = gameState.worksList.findIndex(w => w.id === workId);
+  if (workIndex === -1) return;
+  
+  const work = gameState.worksList[workIndex];
+  
+  if (confirm(`确定要删除这个${work.type === 'video' ? '视频' : work.type === 'live' ? '直播' : '动态'}吗？此操作不可恢复！`)) {
+    // 减去该作品对总数据的贡献
+    gameState.views = Math.max(0, gameState.views - work.views);
+    gameState.likes = Math.max(0, gameState.likes - work.likes);
+    
+    // 从列表中移除
+    gameState.worksList.splice(workIndex, 1);
+    
+    // 停止流量推广
+    if (gameState.trafficWorks[workId]) {
+      if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
+    }
+    
+    // 更新作品数
+    gameState.works = gameState.worksList.filter(w => !w.isPrivate).length;
+    
+    // 更新总互动数据
+    const interactionCount = work.views + work.comments + work.likes + work.shares;
+    gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
+    
+    closeModal();
+    updateDisplay();
+    showNotification('删除成功', '作品已删除');
+  }
+}
+
+// ==================== 切换私密状态 ====================
+function togglePrivate(workId) {
+  const work = gameState.worksList.find(w => w.id === workId);
+  if (!work) return;
+  
+  work.isPrivate = !work.isPrivate;
+  
+  // 重新计算统计数据
+  const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
+  gameState.works = publicWorks.length;
+  gameState.views = publicWorks.reduce((sum, w) => sum + w.views, 0);
+  gameState.likes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
+  
+  // 修改：不要重新计算收益，保持累计值不变
+  // gameState.money = publicWorks.reduce((sum, w) => sum + (w.revenue || 0), 0);
+  
+  // 重新计算总互动数
+  gameState.totalInteractions = publicWorks.reduce((sum, w) => {
+    return sum + w.views + w.comments + w.likes + w.shares;
+  }, 0);
+  
+  showNotification('设置成功', work.isPrivate ? '作品已设为私密' : '作品已取消私密');
+  showWorkDetail(work); // 刷新详情页
+  updateDisplay();
 }
 
 // ==================== 评论生成 ====================
@@ -301,14 +347,15 @@ function showWorksFullscreen() {
     const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
     const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
     const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
+    const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
     
     return `
       <div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
         <div class="work-header">
-          <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'}</span>
+          <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
           <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
         </div>
-        <div class="work-content">${work.content}</div>
+        <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
         <div class="work-stats">
           <span>▶️ ${work.views.toLocaleString()}</span>
           <span>❤️ ${work.likes.toLocaleString()}</span>
@@ -361,20 +408,20 @@ function showAchievementsFullscreen() {
     2: { current: () => gameState.fans, target: 1000 },
     3: { current: () => gameState.fans, target: 100000 },
     4: { current: () => gameState.fans, target: 10000000 },
-    5: { current: () => Math.max(...gameState.worksList.map(w => w.views), 0), target: 1000000 },
+    5: { current: () => Math.max(...gameState.worksList.filter(w => !w.isPrivate).map(w => w.views), 0), target: 1000000 },
     6: { current: () => gameState.likes, target: 100000 },
-    7: { current: () => gameState.works, target: 100 },
-    8: { current: () => Math.max(...gameState.worksList.filter(w => w.type === 'live').map(w => w.views), 0), target: 1000 },
+    7: { current: () => gameState.worksList.filter(w => !w.isPrivate).length, target: 100 },
+    8: { current: () => Math.max(...gameState.worksList.filter(w => w.type === 'live' && !w.isPrivate).map(w => w.views), 0), target: 1000 },
     9: { current: () => gameState.money, target: 1 },
     10: { current: () => gameState.money, target: 1000000 },
-    11: { current: () => Math.max(...gameState.worksList.map(w => w.shares), 0), target: 10000 },
-    12: { current: () => Math.max(...gameState.worksList.map(w => w.comments), 0), target: 5000 },
+    11: { current: () => Math.max(...gameState.worksList.filter(w => !w.isPrivate).map(w => w.shares), 0), target: 10000 },
+    12: { current: () => Math.max(...gameState.worksList.filter(w => !w.isPrivate).map(w => w.comments), 0), target: 5000 },
     13: { current: () => Math.floor((Date.now() - gameState.gameStartTime) / (24 * 60 * 60 * 1000)), target: 30 },
-    21: { current: () => gameState.worksList.filter(w => w.isAd).length, target: 1 },
-    22: { current: () => gameState.worksList.filter(w => w.isAd).length, target: 10 },
-    23: { current: () => Math.max(...gameState.worksList.filter(w => w.isAd).map(w => w.revenue), 0), target: 50000 },
+    21: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 1 },
+    22: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 10 },
+    23: { current: () => Math.max(...gameState.worksList.filter(w => w.isAd && !w.isPrivate).map(w => w.revenue), 0), target: 50000 },
     24: { current: () => gameState.rejectedAdOrders, target: 5 },
-    25: { current: () => gameState.worksList.filter(w => w.isAd).length, target: 50 }
+    25: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 50 }
   };
   
   const achievementHtml = achievements.map(achievement => {
@@ -453,7 +500,6 @@ window.showSettings = showSettings;
 window.showProfile = showProfile;
 window.showAllWorks = showAllWorks;
 window.showWorkDetail = showWorkDetail;
-// window.showCharts = showCharts; // 注释掉旧版本
 window.showAchievements = showAchievements;
 window.showNotifications = showNotifications;
 window.updateNotificationBadge = updateNotificationBadge;
@@ -465,3 +511,5 @@ window.showAchievementsFullscreen = showAchievementsFullscreen;
 window.markAllRead = markAllRead;
 window.showAchievementsHelp = showAchievementsHelp;
 window.showWarning = showWarning;
+window.deleteWork = deleteWork;
+window.togglePrivate = togglePrivate;

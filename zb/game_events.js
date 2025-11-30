@@ -8,8 +8,12 @@ function startHotSearch(title) {
   if (!gameState.hotSearchInterval) gameState.hotSearchInterval = setInterval(() => {
     if (gameState.isHotSearch) {
       const fanGrowth = Math.floor(Math.random() * 100) + 50;
+      // 热搜期间额外产生大量互动
+      const interactionBoost = Math.floor(fanGrowth * 3.5);
       gameState.fans += fanGrowth;
-      showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝`);
+      gameState.totalInteractions += interactionBoost;
+      gameState.activeFans += Math.floor(fanGrowth * 0.3);
+      showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝，${interactionBoost}次互动`);
       updateDisplay();
     }
   }, 1000);
@@ -105,11 +109,11 @@ function handleRandomEvent(event) {
   if (event.effect.likes) gameState.likes = Math.max(0, gameState.likes + event.effect.likes);
   if (event.effect.views) gameState.views = Math.max(0, gameState.views + event.effect.views);
   if (event.effect.money) gameState.money = Math.max(0, gameState.money + event.effect.money);
-  if (event.effect.warnings) gameState.warnings = Math.min(10, gameState.warnings + event.effect.warnings);
+  if (event.effect.warnings) gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
   if (event.effect.hotSearch) startHotSearch(event.title);
   if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
   showNotification(event.title, event.desc);
-  if (!gameState.isBanned && gameState.warnings >= 10) banAccount('多次违反社区规定');
+  if (!gameState.isBanned && gameState.warnings >= 20) banAccount('多次违反社区规定');
 }
 
 // ==================== 舆论风波系统 ====================
@@ -153,34 +157,75 @@ function endPublicOpinionCrisis() {
   updateDisplay();
 }
 
-// ==================== 图表更新 ====================
+// ==================== 图表更新（核心修复） ====================
 function updateChartData() {
   const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
   const dayIndex = virtualDays % 60;
   
-  gameState.chartData.fans[dayIndex] = gameState.fans;
-  gameState.chartData.likes[dayIndex] = gameState.likes;
-  gameState.chartData.views[dayIndex] = gameState.views;
+  // 确保只记录递增的累积值（防止意外下降）
+  const prevFans = gameState.chartData.fans[dayIndex] || 0;
+  const prevLikes = gameState.chartData.likes[dayIndex] || 0;
+  const prevViews = gameState.chartData.views[dayIndex] || 0;
+  
+  gameState.chartData.fans[dayIndex] = Math.max(prevFans, gameState.fans);
+  gameState.chartData.likes[dayIndex] = Math.max(prevLikes, gameState.likes);
+  gameState.chartData.views[dayIndex] = Math.max(prevViews, gameState.views);
+  
+  // 新增互动数据更新
+  const prevInteractions = gameState.chartData.interactions[dayIndex] || 0;
+  gameState.chartData.interactions[dayIndex] = Math.max(prevInteractions, gameState.totalInteractions);
+  
+  // 实时更新已打开的图表
+  updateChartsRealtime();
 }
 
-// ==================== 游戏主循环 ====================
-function startGameLoop() {
-  setInterval(() => {
-    if (Math.random() < 0.1) updateChartData();
-    if (Math.random() < 0.05) {
-      const change = Math.floor(Math.random() * 100) - 50;
-      gameState.fans = Math.max(0, gameState.fans + change);
-      if (change > 0) showNotification('粉丝变化', `获得了${change}个新粉丝`);
-      else if (change < 0) showNotification('粉丝变化', `失去了${Math.abs(change)}个粉丝`);
-    }
-    updateDisplay();
-  }, 100);
+// 新增：实时更新图表右上角的统计数字
+function updateChartStatsRealtime() {
+  const chartsPage = document.getElementById('chartsPage');
+  if (!chartsPage || !chartsPage.classList.contains('active')) return;
   
+  const statElements = {
+    fans: document.getElementById('fansStatValue'),
+    likes: document.getElementById('likesStatValue'),
+    views: document.getElementById('viewsStatValue'),
+    interactions: document.getElementById('interactionsStatValue')
+  };
+  
+  if (statElements.fans) statElements.fans.textContent = gameState.fans.toLocaleString();
+  if (statElements.likes) statElements.likes.textContent = gameState.likes.toLocaleString();
+  if (statElements.views) statElements.views.textContent = gameState.views.toLocaleString();
+  if (statElements.interactions) statElements.interactions.textContent = gameState.totalInteractions.toLocaleString();
+}
+
+// 修改：实时刷新图表数据
+function updateChartsRealtime() {
+  if (!window.charts) return;
+  
+  const chartsPage = document.getElementById('chartsPage');
+  if (chartsPage && chartsPage.classList.contains('active')) {
+    Object.keys(window.charts).forEach(key => {
+      const chart = window.charts[key];
+      if (chart && typeof chart.update === 'function') {
+        chart.update('none');
+      }
+    });
+  }
+}
+
+// ==================== 游戏主循环（已恢复涨粉掉粉） ====================
+function startGameLoop() {
+  // 每虚拟天（1分钟）精确更新一次图表
+  setInterval(() => {
+    updateChartData();
+  }, VIRTUAL_DAY_MS);
+  
+  // 每30秒触发随机事件
   setInterval(() => {
     const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
     handleRandomEvent(event);
   }, 30000);
   
+  // 每分钟检查长时间未更新
   setInterval(() => {
     const timeSinceLastUpdate = Date.now() - gameState.lastUpdateTime;
     if (timeSinceLastUpdate > 10 * 60 * 1000) {
@@ -190,6 +235,7 @@ function startGameLoop() {
     }
   }, 60000);
   
+  // 每秒检查状态（流量推广、舆论风波等）
   setInterval(() => {
     Object.keys(gameState.trafficWorks).forEach(workId => {
       const trafficData = gameState.trafficWorks[workId];
@@ -205,9 +251,64 @@ function startGameLoop() {
     }
   }, 1000);
   
+  // ==================== 核心恢复：自然涨粉/掉粉 ====================
   setInterval(() => {
-    updateChartData();
-  }, VIRTUAL_DAY_MS);
+    // 5%概率触发粉丝自然波动（约每20秒一次）
+    if (Math.random() < 0.05) {
+      const change = Math.floor(Math.random() * 100) - 50; // -50到+50的随机变化
+      gameState.fans = Math.max(0, gameState.fans + change);
+      
+      if (change > 0) {
+        showNotification('粉丝变化', `获得了${change}个新粉丝`);
+      } else if (change < 0) {
+        showNotification('粉丝变化', `失去了${Math.abs(change)}个粉丝`);
+      }
+      
+      // 粉丝变化时同步更新图表
+      updateChartData();
+    }
+    
+    // 每100ms更新主界面显示（保持流畅）
+    updateDisplay();
+  }, 100);
+  
+  // ==================== 新增：自动互动生成系统 ====================
+  setInterval(() => {
+    if (gameState.fans <= 0) return;
+    
+    // 根据活跃粉丝数生成随机互动
+    const baseChance = Math.min(gameState.fans / 1000, 0.3); // 最多30%概率
+    if (Math.random() < baseChance) {
+      const interactionTypes = ['观看', '点赞', '评论', '转发', '访问主页'];
+      const interactionWeights = [0.4, 0.25, 0.15, 0.1, 0.1]; // 权重分布
+      
+      let random = Math.random();
+      let selectedType = '';
+      let accumulatedWeight = 0;
+      
+      for (let i = 0; i < interactionTypes.length; i++) {
+        accumulatedWeight += interactionWeights[i];
+        if (random < accumulatedWeight) {
+          selectedType = interactionTypes[i];
+          break;
+        }
+      }
+      
+      const interactionAmount = Math.floor(Math.random() * 50) + 1;
+      gameState.totalInteractions += interactionAmount;
+      
+      // 小概率显示通知提示（避免刷屏）
+      if (Math.random() < 0.05) {
+        showNotification('粉丝活跃', `${interactionAmount}位粉丝进行了${selectedType}互动`);
+      }
+    }
+    
+    // 活跃粉丝自然波动（5%概率）
+    if (Math.random() < 0.05) {
+      const activeChange = Math.floor(Math.random() * 20) - 10;
+      gameState.activeFans = Math.max(0, gameState.activeFans + activeChange);
+    }
+  }, 5000); // 每5秒检查一次互动
 }
 
 // ==================== 成就检查 ====================
@@ -220,22 +321,22 @@ function checkAchievements() {
         case 2: unlocked = gameState.fans >= 1000; break;
         case 3: unlocked = gameState.fans >= 100000; break;
         case 4: unlocked = gameState.fans >= 10000000; break;
-        case 5: unlocked = gameState.worksList.some(w => w.views >= 1000000); break;
+        case 5: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.views >= 1000000); break;
         case 6: unlocked = gameState.likes >= 100000; break;
-        case 7: unlocked = gameState.works >= 100; break;
-        case 8: unlocked = gameState.worksList.some(w => w.type === 'live' && w.views >= 1000); break;
+        case 7: unlocked = gameState.worksList.filter(w => !w.isPrivate).length >= 100; break;
+        case 8: unlocked = gameState.worksList.filter(w => w.type === 'live' && !w.isPrivate).some(w => w.views >= 1000); break;
         case 9: unlocked = gameState.money >= 1; break;
         case 10: unlocked = gameState.money >= 1000000; break;
-        case 11: unlocked = gameState.worksList.some(w => w.shares >= 10000); break;
-        case 12: unlocked = gameState.worksList.some(w => w.comments >= 5000); break;
+        case 11: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.shares >= 10000); break;
+        case 12: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.comments >= 5000); break;
         case 13: unlocked = (Date.now() - gameState.gameStartTime) >= 30 * 24 * 60 * 60 * 1000; break;
         case 14: unlocked = achievement.unlocked || false; break;
         case 15: unlocked = gameState.notifications.length >= 50; break;
-        case 21: unlocked = gameState.worksList.some(w => w.isAd); break;
-        case 22: unlocked = gameState.worksList.filter(w => w.isAd).length >= 10; break;
-        case 23: unlocked = gameState.worksList.some(w => w.isAd && w.revenue >= 50000); break;
+        case 21: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 1; break;
+        case 22: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 10; break;
+        case 23: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).some(w => w.revenue >= 50000); break;
         case 24: unlocked = gameState.rejectedAdOrders >= 5; break;
-        case 25: unlocked = gameState.worksList.filter(w => w.isAd).length >= 50 && gameState.warnings < 5; break;
+        case 25: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && gameState.warnings < 5; break;
       }
       if (unlocked) {
         achievement.unlocked = true;
@@ -247,106 +348,85 @@ function checkAchievements() {
 }
 
 // ==================== Chart.js图表系统 ====================
-let charts = {
-    fans: null,
-    likes: null,
-    views: null
-};
-
-// 绘制Chart.js图表（修改数据格式化）
 function drawChart(canvasId, data, color, label) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
-    
-    // 生成X轴标签（最近60天）
-    const labels = [];
-    for (let i = 59; i >= 0; i--) {
-        const day = virtualDays - i;
-        if (day >= 0) {
-            labels.push(`第${day}天`);
-        } else {
-            labels.push('');
-        }
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
+  
+  // 生成X轴标签（最近60天）
+  const labels = [];
+  for (let i = 59; i >= 0; i--) {
+    const day = virtualDays - i;
+    if (day >= 0) {
+      labels.push(`第${day}天`);
+    } else {
+      labels.push('');
     }
-    
-    // 销毁旧图表
-    if (charts[canvasId]) {
-        charts[canvasId].destroy();
-    }
-    
-    // 创建新图表（修改tooltip和y轴刻度显示）
-    charts[canvasId] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: label,
-                data: [...data],
-                borderColor: color,
-                backgroundColor: color + '20',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                pointBackgroundColor: color,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: color,
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            return label + ': ' + context.parsed.y.toLocaleString(); // 显示完整数字
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)',
-                        borderColor: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: '#999',
-                        maxTicksLimit: 10
-                    }
-                },
-                y: {
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)',
-                        borderColor: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: '#999',
-                        callback: function(value) {
-                            return value.toLocaleString(); // 显示完整数字
-                        }
-                    }
-                }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
+  }
+  
+  // 销毁旧图表
+  if (window.charts && window.charts[canvasId]) {
+    window.charts[canvasId].destroy();
+  }
+  
+  // 创建新图表（优化性能）
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: [...data],
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointBackgroundColor: color,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: color,
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              return label + ': ' + context.parsed.y.toLocaleString();
             }
+          }
         }
-    });
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.1)' },
+          ticks: { color: '#999', maxTicksLimit: 10 }
+        },
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.1)' },
+          ticks: { color: '#999', callback: function(value) { return value.toLocaleString(); } }
+        }
+      },
+      interaction: { intersect: false, mode: 'index' }
+    }
+  });
+  
+  // 保存图表实例
+  if (!window.charts) window.charts = {};
+  window.charts[canvasId] = chart;
 }
 
 // ==================== 全局函数绑定 ====================
@@ -363,3 +443,5 @@ window.endPublicOpinionCrisis = endPublicOpinionCrisis;
 window.updateChartData = updateChartData;
 window.startGameLoop = startGameLoop;
 window.drawChart = drawChart;
+window.updateChartsRealtime = updateChartsRealtime;
+window.updateChartStatsRealtime = updateChartStatsRealtime;

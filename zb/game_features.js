@@ -8,10 +8,16 @@ function createVideo() {
   const title = document.getElementById('videoTitle').value.trim(), content = document.getElementById('videoContent').value.trim();
   if (!title || !content) { alert('请填写完整信息'); return; }
   if (typeof checkViolation === 'function' && checkViolation(title + content)) return;
-  const views = Math.floor(Math.random() * 10000) + 1000, likes = Math.floor(views * (Math.random() * 0.1 + 0.01)), comments = Math.floor(likes * (Math.random() * 0.3 + 0.1)), shares = Math.floor(likes * (Math.random() * 0.2 + 0.05)), work = { id: Date.now(), type: 'video', title: title, content: content, views: views, likes: likes, comments: comments, shares: shares, time: Date.now(), revenue: Math.floor(views / 1000) };
+  const views = Math.floor(Math.random() * 10000) + 1000, likes = Math.floor(views * (Math.random() * 0.1 + 0.01)), comments = Math.floor(likes * (Math.random() * 0.3 + 0.1)), shares = Math.floor(likes * (Math.random() * 0.2 + 0.05)), work = { id: Date.now(), type: 'video', title: title, content: content, views: views, likes: likes, comments: comments, shares: shares, time: Date.now(), revenue: Math.floor(views / 1000), isPrivate: false };
   gameState.worksList.push(work); gameState.works++; gameState.views += views; gameState.likes += likes; gameState.money += work.revenue;
   const newFans = Math.floor(views / 1000 * (Math.random() * 2 + 0.5)); gameState.fans += newFans;
-  closeModal(); updateDisplay(); showNotification('视频发布成功！', `获得${views.toLocaleString()}播放量，${newFans}新粉丝`);
+  
+  // 更新总互动数据（视频观看+评论+点赞+转发）
+  const interactionBoost = views + comments + likes + shares;
+  gameState.totalInteractions += interactionBoost;
+  gameState.activeFans += Math.floor(newFans * 0.6);
+  
+  closeModal(); updateDisplay(); showNotification('视频发布成功！', `获得${views.toLocaleString()}播放量，${newFans}新粉丝，${interactionBoost}次互动`);
 }
 
 // ==================== 发布动态 ====================
@@ -24,10 +30,16 @@ function createPost() {
   const content = document.getElementById('postContent').value.trim();
   if (!content) { alert('请输入动态内容'); return; }
   if (typeof checkViolation === 'function' && checkViolation(content)) return;
-  const views = Math.floor(Math.random() * 5000) + 500, likes = Math.floor(views * (Math.random() * 0.15 + 0.02)), comments = Math.floor(likes * (Math.random() * 0.4 + 0.15)), shares = Math.floor(likes * (Math.random() * 0.3 + 0.1)), work = { id: Date.now(), type: 'post', content: content, views: views, likes: likes, comments: comments, shares: shares, time: Date.now() };
+  const views = Math.floor(Math.random() * 5000) + 500, likes = Math.floor(views * (Math.random() * 0.15 + 0.02)), comments = Math.floor(likes * (Math.random() * 0.4 + 0.15)), shares = Math.floor(likes * (Math.random() * 0.3 + 0.1)), work = { id: Date.now(), type: 'post', content: content, views: views, likes: likes, comments: comments, shares: shares, time: Date.now(), isPrivate: false };
   gameState.worksList.push(work); gameState.works++; gameState.views += views; gameState.likes += likes;
   const newFans = Math.floor(views / 2000 * (Math.random() * 1.5 + 0.3)); gameState.fans += newFans;
-  closeModal(); updateDisplay(); showNotification('动态发布成功！', `获得${views.toLocaleString()}浏览，${newFans}新粉丝`);
+  
+  // 更新总互动数据（浏览+评论+点赞+转发）
+  const interactionBoost = views + comments + likes + shares;
+  gameState.totalInteractions += interactionBoost;
+  gameState.activeFans += Math.floor(newFans * 0.4);
+  
+  closeModal(); updateDisplay(); showNotification('动态发布成功！', `获得${views.toLocaleString()}浏览，${newFans}新粉丝，${interactionBoost}次互动`);
 }
 
 // ==================== 直播控制 ====================
@@ -46,9 +58,21 @@ function startLiveStream() {
     liveData.duration++;
     const viewerChange = Math.floor(Math.random() * 100) - 50;
     liveData.viewers = Math.max(50, liveData.viewers + viewerChange);
-    if (Math.random() < 0.3) liveData.likes += Math.floor(Math.random() * 50) + 10;
-    if (Math.random() < 0.1) liveData.comments += Math.floor(Math.random() * 10) + 1;
-    if (Math.random() < 0.05) liveData.shares += Math.floor(Math.random() * 5) + 1;
+    if (Math.random() < 0.3) {
+      const likeGain = Math.floor(Math.random() * 50) + 10;
+      liveData.likes += likeGain;
+      gameState.interactions.likesGiven += likeGain;
+    }
+    if (Math.random() < 0.1) {
+      const commentGain = Math.floor(Math.random() * 10) + 1;
+      liveData.comments += commentGain;
+      gameState.interactions.comments += commentGain;
+    }
+    if (Math.random() < 0.05) {
+      const shareGain = Math.floor(Math.random() * 5) + 1;
+      liveData.shares += shareGain;
+      gameState.interactions.shares += shareGain;
+    }
     if (Math.random() < 0.2) {
       const revenue = Math.floor(Math.random() * 100) + 10;
       liveData.revenue += revenue;
@@ -60,7 +84,7 @@ function startLiveStream() {
     }
     const viewersElement = document.querySelector('.live-viewers');
     if (viewersElement) viewersElement.textContent = `👥 ${liveData.viewers.toLocaleString()}`;
-    gameState.currentLive = { id: Date.now(), type: 'live', content: `${gameState.username}的直播间`, views: liveData.viewers, likes: liveData.likes, comments: liveData.comments, shares: liveData.shares, time: Date.now(), liveData: liveData };
+    gameState.currentLive = { id: Date.now(), type: 'live', content: `${gameState.username}的直播间`, views: liveData.viewers, likes: liveData.likes, comments: liveData.comments, shares: liveData.shares, time: Date.now(), liveData: liveData, isPrivate: false };
     if (Math.random() < 0.02) showNotification('直播事件', ['用户「直播达人」赠送了火箭礼物！', '用户「小可爱123」加入了直播间', '直播间登上了热门推荐！', '收到了大量弹幕互动！'][Math.floor(Math.random() * 4)]);
     updateDisplay();
   }, 2000);
@@ -85,6 +109,10 @@ function endLiveStream() {
     gameState.works++;
     gameState.views += totalViews;
     gameState.likes += liveData.likes;
+    
+    // 更新总互动数据（观看+评论+点赞+转发）
+    gameState.totalInteractions += totalViews + liveData.comments + liveData.likes + liveData.shares;
+    
     if (totalViews >= 1000) {
       const achievement = achievements.find(a => a.id === 8);
       if (achievement && !achievement.unlocked) {
@@ -343,15 +371,23 @@ function publishAd() {
   let hasViolation = violationKeywords.some(k => content.includes(k)) || Math.random() < ad.risk;
   if (ad.keyword && content.includes(ad.keyword)) hasViolation = true;
   if (hasViolation) {
-    gameState.warnings = Math.min(10, gameState.warnings + Math.floor(Math.random() * 2) + 1);
-    showWarning(`商单内容违规，警告${gameState.warnings}/10次`);
-    if (gameState.warnings >= 10) typeof banAccount === 'function' && banAccount('商单违规');
+    gameState.warnings = Math.min(20, gameState.warnings + Math.floor(Math.random() * 2) + 1);
+    showWarning(`商单内容违规，警告${gameState.warnings}/20次`);
+    if (gameState.warnings >= 20) typeof banAccount === 'function' && banAccount('商单违规');
     gameState.rejectedAdOrders++;
   } else {
-    const work = { id: Date.now(), type: window.selectedMethod, content: content, views: Math.floor(Math.random() * 15000 + 5000), likes: Math.floor(Math.random() * 1500 + 100), comments: Math.floor(Math.random() * 200 + 20), shares: Math.floor(Math.random() * 100 + 10), time: Date.now(), isAd: true, revenue: Math.floor((Math.random() * 15000 + 5000) / 1000) };
+    const views = Math.floor(Math.random() * 15000 + 5000);
+    const likes = Math.floor(Math.random() * 1500 + 100);
+    const comments = Math.floor(Math.random() * 200 + 20);
+    const shares = Math.floor(Math.random() * 100 + 10);
+    const work = { id: Date.now(), type: window.selectedMethod, content: content, views: views, likes: likes, comments: comments, shares: shares, time: Date.now(), isAd: true, revenue: Math.floor((Math.random() * 15000 + 5000) / 1000), isPrivate: false };
     gameState.worksList.push(work); gameState.works++; gameState.views += work.views; gameState.likes += work.likes; gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
     gameState.money += ad.actualReward;
     gameState.adOrdersCount++;
+    
+    // 更新总互动数据（观看+评论+点赞+转发）
+    gameState.totalInteractions += views + comments + likes + shares;
+    
     if (gameState.adOrdersCount % 10 === 0) {
       const fanLoss = Math.floor(Math.random() * 1000) + 500;
       gameState.fans = Math.max(0, gameState.fans - fanLoss);
@@ -366,9 +402,9 @@ function publishAd() {
 function checkViolation(content) {
   const hasViolation = violationKeywords.some(keyword => content.includes(keyword));
   if (hasViolation) {
-    if (gameState.warnings < 10) gameState.warnings++;
-    showWarning(`内容包含违规信息，警告${gameState.warnings}/10次`);
-    if (!gameState.isBanned && gameState.warnings >= 10) typeof banAccount === 'function' && banAccount('多次违反社区规定');
+    if (gameState.warnings < 20) gameState.warnings++;
+    showWarning(`内容包含违规信息，警告${gameState.warnings}/20次`);
+    if (!gameState.isBanned && gameState.warnings >= 20) typeof banAccount === 'function' && banAccount('多次违反社区规定');
     return true;
   }
   return false;
@@ -392,9 +428,15 @@ function startTrafficProcess(workId) {
     }
     const viewsBoost = Math.floor(Math.random() * 4000) + 1000;
     const fanBoost = Math.floor(Math.random() * 40) + 10;
+    const commentBoost = Math.floor(Math.random() * 50) + 10;
+    const shareBoost = Math.floor(Math.random() * 30) + 5;
+    
     work.views += viewsBoost;
     gameState.views += viewsBoost;
     gameState.fans += fanBoost;
+    work.comments += commentBoost;
+    gameState.totalInteractions += viewsBoost + commentBoost + shareBoost;
+    
     const oldRevenue = work.revenue || 0;
     const newRevenue = Math.floor(work.views / 1000);
     const revenueBoost = newRevenue - oldRevenue;
@@ -426,50 +468,78 @@ function stopTrafficForWork(workId) {
   updateDisplay();
 }
 
-// ==================== 图表显示（修改为核心部分） ====================
+// ==================== 图表显示（修复数字实时更新） ====================
 function showCharts() {
-    // 切换到全屏页面
-    document.getElementById('mainContent').style.display = 'none';
-    document.querySelector('.bottom-nav').style.display = 'none';
-    document.getElementById('chartsPage').classList.add('active');
-    
-    // 渲染图表容器到全屏内容区
-    const content = document.getElementById('chartsPageContent');
-    content.innerHTML = `
-        <div class="chart-container">
-            <div class="chart-item">
-                <div class="chart-header">
-                    <div class="chart-title">粉丝增长趋势</div>
-                    <div class="chart-value">${gameState.fans.toLocaleString()}</div> <!-- 修改为显示完整数字 -->
-                </div>
-                <canvas class="chart-canvas" id="fansChart"></canvas>
-            </div>
-            <div class="chart-item">
-                <div class="chart-header">
-                    <div class="chart-title">点赞增长趋势</div>
-                    <div class="chart-value">${gameState.likes.toLocaleString()}</div> <!-- 修改为显示完整数字 -->
-                </div>
-                <canvas class="chart-canvas" id="likesChart"></canvas>
-            </div>
-            <div class="chart-item">
-                <div class="chart-header">
-                    <div class="chart-title">播放增长趋势</div>
-                    <div class="chart-value">${gameState.views.toLocaleString()}</div> <!-- 修改为显示完整数字 -->
-                </div>
-                <canvas class="chart-canvas" id="viewsChart"></canvas>
-            </div>
+  // 切换到全屏页面
+  document.getElementById('mainContent').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+  document.getElementById('chartsPage').classList.add('active');
+  
+  // 渲染图表容器（添加独立ID用于实时更新）
+  const content = document.getElementById('chartsPageContent');
+  content.innerHTML = `
+    <div class="chart-container">
+      <div class="chart-item">
+        <div class="chart-header">
+          <div class="chart-title">粉丝增长趋势</div>
+          <div class="chart-value" id="fansStatValue">${gameState.fans.toLocaleString()}</div>
         </div>
-    `;
-    
-    // 使用 Chart.js 绘制图表
-    setTimeout(() => {
-        drawChart('fansChart', gameState.chartData.fans, '#667eea', '粉丝数');
-        drawChart('likesChart', gameState.chartData.likes, '#ff0050', '点赞数');
-        drawChart('viewsChart', gameState.chartData.views, '#00f2ea', '播放量');
-    }, 100);
+        <canvas class="chart-canvas" id="fansChart"></canvas>
+      </div>
+      <div class="chart-item">
+        <div class="chart-header">
+          <div class="chart-title">点赞增长趋势</div>
+          <div class="chart-value" id="likesStatValue">${gameState.likes.toLocaleString()}</div>
+        </div>
+        <canvas class="chart-canvas" id="likesChart"></canvas>
+      </div>
+      <div class="chart-item">
+        <div class="chart-header">
+          <div class="chart-title">播放增长趋势</div>
+          <div class="chart-value" id="viewsStatValue">${gameState.views.toLocaleString()}</div>
+        </div>
+        <canvas class="chart-canvas" id="viewsChart"></canvas>
+      </div>
+      <!-- 新增粉丝互动数据分析 -->
+      <div class="chart-item">
+        <div class="chart-header">
+          <div class="chart-title">粉丝互动趋势</div>
+          <div class="chart-value" id="interactionsStatValue">${gameState.totalInteractions.toLocaleString()}</div>
+        </div>
+        <canvas class="chart-canvas" id="interactionsChart"></canvas>
+      </div>
+    </div>
+  `;
+  
+  setTimeout(() => {
+    drawChart('fansChart', gameState.chartData.fans, '#667eea', '粉丝数');
+    drawChart('likesChart', gameState.chartData.likes, '#ff0050', '点赞数');
+    drawChart('viewsChart', gameState.chartData.views, '#00f2ea', '播放量');
+    drawChart('interactionsChart', gameState.chartData.interactions, '#FFD700', '互动次数');
+  }, 100);
+  
+  if (window.chartRefreshInterval) {
+    clearInterval(window.chartRefreshInterval);
+  }
+  
+  window.chartRefreshInterval = setInterval(() => {
+    const chartsPage = document.getElementById('chartsPage');
+    if (chartsPage && chartsPage.classList.contains('active')) {
+      updateChartsRealtime();
+      updateChartStatsRealtime();
+    }
+  }, 5000);
 }
 
-// 备用：原生的canvas绘制函数
+// 修改：清理函数增加停止数字更新
+function stopChartsRefresh() {
+  if (window.chartRefreshInterval) {
+    clearInterval(window.chartRefreshInterval);
+    window.chartRefreshInterval = null;
+  }
+}
+
+// 保留备用绘制函数
 function drawFallbackChart(canvasId, data, color) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
@@ -502,7 +572,7 @@ function drawFallbackChart(canvasId, data, color) {
   });
 }
 
-// ==================== 全局函数绑定 ====================
+// 全局函数绑定
 window.showCreateVideo = showCreateVideo;
 window.showCreatePost = showCreatePost;
 window.startLive = startLive;
@@ -525,3 +595,4 @@ window.generateAdOrder = generateAdOrder;
 window.showAppeal = showAppeal;
 window.checkViolation = checkViolation;
 window.showCharts = showCharts;
+window.stopChartsRefresh = stopChartsRefresh;

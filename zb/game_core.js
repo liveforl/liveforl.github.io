@@ -1,5 +1,14 @@
 // ==================== 虚拟时间机制 ====================
 const VIRTUAL_DAY_MS = 1 * 60 * 1000;
+
+// 增加图表实例管理
+window.charts = {
+    fans: null,
+    likes: null,
+    views: null,
+    interactions: null
+};
+
 function getVirtualDaysPassed(startRealTime) { 
   const realMsPassed = Date.now() - startRealTime; 
   return realMsPassed / VIRTUAL_DAY_MS; 
@@ -7,20 +16,24 @@ function getVirtualDaysPassed(startRealTime) {
 
 // ==================== 游戏状态 ====================
 let gameState = {
-  username: '', userId: '', avatar: '', fans: 0, likes: 0, views: 0, works: 0, money: 0, warnings: 0, adOrders: [], currentAdOrder: null, rejectedAdOrders: 0, isBanned: false, banReason: '', banDaysCount: 0, banStartTime: null, isHotSearch: false, hotSearchDaysCount: 0, hotSearchStartTime: null, hotSearchInterval: null, hotSearchTitle: '', achievements: [], worksList: [], notifications: [], liveStatus: false, lastUpdateTime: Date.now(), gameStartTime: Date.now(), chartData: { fans: [], likes: [], views: [] }, liveInterval: null, workUpdateIntervals: [], banInterval: null, banDropInterval: null, trafficWorks: {}, 
+  username: '', userId: '', avatar: '', fans: 0, likes: 0, views: 0, works: 0, money: 0, warnings: 0, adOrders: [], currentAdOrder: null, rejectedAdOrders: 0, isBanned: false, banReason: '', banDaysCount: 0, banStartTime: null, isHotSearch: false, hotSearchDaysCount: 0, hotSearchStartTime: null, hotSearchInterval: null, hotSearchTitle: '', achievements: [], worksList: [], notifications: [], liveStatus: false, lastUpdateTime: Date.now(), gameStartTime: Date.now(), chartData: { fans: [], likes: [], views: [], interactions: [] }, liveInterval: null, workUpdateIntervals: [], banInterval: null, banDropInterval: null, trafficWorks: {}, 
+  // 新增总互动数据
+  totalInteractions: 0,
+  // 新增活跃粉丝指标
+  activeFans: 0,
   // 新增状态
-  appealAvailable: true, // 是否可以申诉
-  adOrdersCount: 0, // 累计完成商单数
-  isPublicOpinionCrisis: false, // 是否处于舆论风波
-  publicOpinionDaysCount: 0, // 舆论风波持续天数
-  publicOpinionStartTime: null, // 舆论风波开始时间
-  publicOpinionInterval: null, // 舆论风波定时器
-  publicOpinionTitle: '' // 舆论风波标题
+  appealAvailable: true, 
+  adOrdersCount: 0, 
+  isPublicOpinionCrisis: false, 
+  publicOpinionDaysCount: 0, 
+  publicOpinionStartTime: null, 
+  publicOpinionInterval: null, 
+  publicOpinionTitle: '' 
 };
 
 // ==================== 成就列表 ====================
 const achievements = [
-  { id: 1, name: '初入江湖', desc: '获得第一个粉丝', icon: '🌱', unlocked: false }, { id: 2, name: '小有名气', desc: '粉丝达到1000', icon: '🌟', unlocked: false }, { id: 3, name: '网红达人', desc: '粉丝达到10万', icon: '⭐', unlocked: false }, { id: 4, name: '顶级流量', desc: '粉丝达到1000万', icon: '⭐', unlocked: false }, { id: 5, name: '爆款制造机', desc: '单条视频播放量破百万', icon: '🔥', unlocked: false }, { id: 6, name: '点赞狂魔', desc: '累计获得10万个赞', icon: '👍', unlocked: false }, { id: 7, name: '高产创作者', desc: '发布100个作品', icon: '📹', unlocked: false }, { id: 8, name: '直播新星', desc: '首次直播获得1000观看', icon: '📱', unlocked: false }, { id: 9, name: '收益第一桶金', desc: '获得首次收益', icon: '💰', unlocked: false }, { id: 10, name: '百万富翁', desc: '累计收益达到100万', icon: '💎', unlocked: false }, { id: 11, name: '话题之王', desc: '单条动态获得1万转发', icon: '🔁', unlocked: false }, { id: 12, name: '评论互动达人', desc: '单条作品获得5000评论', icon: '💬', unlocked: false }, { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false }, { id: 14, name: '逆风翻盘', desc: '从封号中申诉成功', icon: '🔄', unlocked: false }, { id: 15, name: '幸运儿', desc: '触发50次随机事件', icon: '🍀', unlocked: false }, { id: 16, name: '社交达人', desc: '关注1000个用户', icon: '👥', unlocked: false }, { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false }, { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false }, { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💝', unlocked: false }, { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false }, { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false }, { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false }, { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💎', unlocked: false }, { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👁️', unlocked: false }, { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '👑', unlocked: false }
+  { id: 1, name: '初入江湖', desc: '获得第一个粉丝', icon: '🌱', unlocked: false }, { id: 2, name: '小有名气', desc: '粉丝达到1000', icon: '🌟', unlocked: false }, { id: 3, name: '网红达人', desc: '粉丝达到10万', icon: '⭐', unlocked: false }, { id: 4, name: '顶级流量', desc: '粉丝达到1000万', icon: '⭐', unlocked: false }, { id: 5, name: '爆款制造机', desc: '单条视频播放量破百万', icon: '🔥', unlocked: false }, { id: 6, name: '点赞狂魔', desc: '累计获得10万个赞', icon: '👍', unlocked: false }, { id: 7, name: '高产创作者', desc: '发布100个作品', icon: '📹', unlocked: false }, { id: 8, name: '直播新星', desc: '首次直播获得1000观看', icon: '📱', unlocked: false }, { id: 9, name: '收益第一桶金', desc: '获得首次收益', icon: '💰', unlocked: false }, { id: 10, name: '百万富翁', desc: '累计收益达到100万', icon: '💎', unlocked: false }, { id: 11, name: '话题之王', desc: '单条动态获得1万转发', icon: '🔁', unlocked: false }, { id: 12, name: '评论互动达人', desc: '单条作品获得5000评论', icon: '💬', unlocked: false }, { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false }, { id: 14, name: '逆风翻盘', desc: '从封号中申诉成功', icon: '🔄', unlocked: false }, { id: 15, name: '幸运儿', desc: '触发50次随机事件', icon: '🍀', unlocked: false }, { id: 16, name: '社交达人', desc: '关注1000个用户', icon: '👥', unlocked: false }, { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false }, { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false }, { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💖', unlocked: false }, { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false }, { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false }, { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false }, { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💎', unlocked: false }, { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👁️', unlocked: false }, { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '👑', unlocked: false }
 ];
 
 // ==================== 商单数据库 ====================
@@ -76,6 +89,8 @@ function initGame() {
     if (gameState.currentAdOrder === undefined) gameState.currentAdOrder = null;
     
     // 新增状态初始化
+    if (gameState.totalInteractions === undefined) gameState.totalInteractions = 0;
+    if (gameState.activeFans === undefined) gameState.activeFans = 0;
     if (gameState.appealAvailable === undefined) gameState.appealAvailable = true;
     if (gameState.adOrdersCount === undefined) gameState.adOrdersCount = 0;
     if (gameState.isPublicOpinionCrisis === undefined) gameState.isPublicOpinionCrisis = false;
@@ -92,17 +107,31 @@ function initGame() {
           gameState.chartData.fans.push(0);
           gameState.chartData.likes.push(0);
           gameState.chartData.views.push(0);
+          gameState.chartData.interactions.push(0);
         }
-      } else if (gameState.chartData.fans.length < 60) {
+      } else {
         // 如果是旧存档，扩展数组
-        const oldLength = gameState.chartData.fans.length;
-        for (let i = oldLength; i < 60; i++) {
-          gameState.chartData.fans.unshift(0);
-          gameState.chartData.likes.unshift(0);
-          gameState.chartData.views.unshift(0);
+        if (gameState.chartData.fans.length < 60) {
+          const oldLength = gameState.chartData.fans.length;
+          for (let i = oldLength; i < 60; i++) {
+            gameState.chartData.fans.unshift(0);
+            gameState.chartData.likes.unshift(0);
+            gameState.chartData.views.unshift(0);
+            gameState.chartData.interactions.unshift(0);
+          }
+        }
+        // 确保互动数据数组存在
+        if (!gameState.chartData.interactions || gameState.chartData.interactions.length < 60) {
+          gameState.chartData.interactions = [];
+          for (let i = 0; i < 60; i++) {
+            gameState.chartData.interactions.push(0);
+          }
         }
       }
     }
+    
+    // 恢复图表实例
+    window.charts = { fans: null, likes: null, views: null, interactions: null };
     
     // 恢复UI状态
     if (gameState.isBanned && gameState.banStartTime) {
@@ -150,6 +179,7 @@ function initGame() {
       gameState.chartData.fans.push(0);
       gameState.chartData.likes.push(0);
       gameState.chartData.views.push(0);
+      gameState.chartData.interactions.push(0);
     }
   }
   
@@ -192,4 +222,3 @@ window.adOrdersDB = adOrdersDB;
 window.randomEvents = randomEvents;
 window.violationKeywords = violationKeywords;
 window.startGame = startGame;
-
