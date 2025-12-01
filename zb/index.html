@@ -36,7 +36,7 @@
         <div class="ban-notice" id="banNotice">账号已被封禁，剩余封禁天数：<span id="banDays">0</span></div>
     </div>
     <div class="content" id="mainContent">
-        <div class="stats-card">
+        <div class="stats-card main-content-section">
             <div class="stat-item">
                 <div class="stat-value" id="fansCount">0</div>
                 <div class="stat-label">粉丝</div>
@@ -62,7 +62,7 @@
                 <div class="stat-label">警告</div>
             </div>
         </div>
-        <div class="action-buttons">
+        <div class="action-buttons main-content-section">
             <div class="action-btn" onclick="showCreateVideo()">
                 <div class="action-icon">🎬</div>
                 <div class="action-text">发布视频</div>
@@ -88,43 +88,40 @@
                 <div class="action-text">接单中心</div>
             </div>
         </div>
-        <div class="works-section">
+        <div class="works-section main-content-section">
             <div class="section-title">
                 <span>我的作品</span>
                 <span style="font-size:12px;color:#999" id="updateTime">刚刚更新</span>
             </div>
             <div id="worksList"></div>
         </div>
-    </div>
 
-    <!-- 全屏作品页 -->
-    <div id="worksPage" class="fullscreen-page">
-        <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('works')">‹</div>
-            <div class="fullscreen-title">我的作品</div>
-            <div class="fullscreen-action" onclick="showCreateVideo()">+发布</div>
+        <!-- 新增：作品列表标签页 -->
+        <div id="worksContent" class="tab-content">
+            <div class="section-title" style="margin: 10px; margin-top: 20px;">
+                <span>我的作品</span>
+                <span style="font-size: 12px; color: #999;" id="worksTotalCount">共0个作品</span>
+            </div>
+            <div id="worksListTab"></div>
         </div>
-        <div id="worksPageContent" class="fullscreen-content"></div>
-    </div>
 
-    <!-- 全屏成就页 -->
-    <div id="achievementsPage" class="fullscreen-page">
-        <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('achievements')">‹</div>
-            <div class="fullscreen-title">成就系统</div>
-            <div class="fullscreen-action" onclick="showAchievementsHelp()">?</div>
+        <!-- 新增：消息中心标签页 -->
+        <div id="messagesContent" class="tab-content">
+            <div class="section-title" style="margin: 10px; margin-top: 20px;">
+                <span>消息中心</span>
+                <span class="fullscreen-action" onclick="markAllRead()" style="font-size: 12px; padding: 5px 10px;">全部已读</span>
+            </div>
+            <div id="messagesListTab"></div>
         </div>
-        <div id="achievementsPageContent" class="fullscreen-content"></div>
-    </div>
 
-    <!-- 全屏消息页 -->
-    <div id="messagesPage" class="fullscreen-page">
-        <div class="fullscreen-header">
-            <div class="back-btn" onclick="closeFullscreenPage('messages')">‹</div>
-            <div class="fullscreen-title">消息中心</div>
-            <div class="fullscreen-action" onclick="markAllRead()">全部已读</div>
+        <!-- 新增：成就系统标签页 -->
+        <div id="achievementsContent" class="tab-content">
+            <div class="section-title" style="margin: 10px; margin-top: 20px;">
+                <span>成就系统</span>
+                <span class="fullscreen-action" onclick="showAchievementsHelp()" style="font-size: 12px; padding: 5px 10px;">?</span>
+            </div>
+            <div id="achievementsListTab"></div>
         </div>
-        <div id="messagesPageContent" class="fullscreen-content"></div>
     </div>
 
     <!-- 全屏数据分析页 -->
@@ -135,6 +132,77 @@
             <div class="fullscreen-action" onclick="showCharts()">刷新</div>
         </div>
         <div id="chartsPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏发布视频页 -->
+    <div id="createVideoPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('createVideo')">‹</div>
+            <div class="fullscreen-title">发布视频</div>
+            <div class="fullscreen-action" onclick="createVideo()">发布</div>
+        </div>
+        <div id="createVideoPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏发布动态页 -->
+    <div id="createPostPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('createPost')">‹</div>
+            <div class="fullscreen-title">发布动态</div>
+            <div class="fullscreen-action" onclick="createPost()">发布</div>
+        </div>
+        <div id="createPostPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏购买流量页 -->
+    <div id="buyTrafficPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('buyTraffic')">‹</div>
+            <div class="fullscreen-title">购买流量推送</div>
+            <div class="fullscreen-action" id="trafficPriceDisplay">0元</div>
+        </div>
+        <div id="buyTrafficPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏接单中心页 -->
+    <div id="adOrdersPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('adOrders')">‹</div>
+            <div class="fullscreen-title">商单中心</div>
+            <div class="fullscreen-action" onclick="showAdOrders()">刷新</div>
+        </div>
+        <div id="adOrdersPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏作品详情页 -->
+    <div id="workDetailPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('workDetail')">‹</div>
+            <div class="fullscreen-title" id="workDetailTitle">作品详情</div>
+            <div class="fullscreen-action" onclick="toggleWorkPrivacy()">🔒</div>
+        </div>
+        <div id="workDetailPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏账号设置页 -->
+    <div id="settingsPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('settings')">‹</div>
+            <!-- 关键修改：添加ID和可点击样式 -->
+            <div class="fullscreen-title" id="settingsHeaderTitle" style="cursor: pointer;" title="点击这里15次解锁开发者模式">账号设置</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="settingsPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏个人主页 -->
+    <div id="profilePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('profile')">‹</div>
+            <div class="fullscreen-title">个人主页</div>
+            <div class="fullscreen-action" onclick="showSettings()">⚙️</div>
+        </div>
+        <div id="profilePageContent" class="fullscreen-content"></div>
     </div>
 
     <div class="bottom-nav">
@@ -156,6 +224,31 @@
         </div>
     </div>
     <button class="live-control-btn" id="liveControlBtn" onclick="toggleLive()">📱</button>
+    
+    <!-- 开发者悬浮按钮 -->
+    <button class="dev-float-button" id="devFloatButton" onclick="showDevOptions()" style="display: none;">⚙️</button>
+    
+    <!-- 开发者密码输入模态框 -->
+    <div class="modal" id="devModal" style="display: none;">
+        <div class="modal-content" style="max-height: 80vh;">
+            <div class="modal-header">
+                <div class="modal-title">开发者选项</div>
+                <div class="close-btn" onclick="closeDevOptions()">✕</div>
+            </div>
+            <div style="display: grid; gap: 10px; padding: 20px;">
+                <button class="btn btn-secondary" onclick="devTestHotSearch()">测试热搜</button>
+                <button class="btn btn-secondary" onclick="devTestPublicOpinion()">测试舆论风波</button>
+                <button class="btn btn-secondary" onclick="devTestBan()">测试封禁</button>
+                <button class="btn btn-secondary" onclick="devAddFans()">增加粉丝</button>
+                <button class="btn btn-secondary" onclick="devAddMoney()">增加零钱</button>
+                <button class="btn btn-secondary" onclick="devResetWarnings()">重置警告</button>
+                <button class="btn btn-secondary" onclick="devClearBans()">清除封禁</button>
+                <button class="btn btn-secondary" onclick="devUnlockAllAchievements()">解锁全部成就</button>
+                <button class="btn btn-secondary" onclick="devAddRandomWork()">添加随机作品</button>
+                <button class="btn btn-danger" onclick="devClearDevMode()">清除开发者模式</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal" id="modal">
@@ -171,5 +264,6 @@
 <script src="game_ui.js"></script>
 <script src="game_features.js"></script>
 <script src="game_events.js"></script>
+<script src="game_dev.js"></script>
 </body>
 </html>

@@ -16,19 +16,54 @@ function getVirtualDaysPassed(startRealTime) {
 
 // ==================== 游戏状态 ====================
 let gameState = {
-  username: '', userId: '', avatar: '', fans: 0, likes: 0, views: 0, works: 0, money: 0, warnings: 0, adOrders: [], currentAdOrder: null, rejectedAdOrders: 0, isBanned: false, banReason: '', banDaysCount: 0, banStartTime: null, isHotSearch: false, hotSearchDaysCount: 0, hotSearchStartTime: null, hotSearchInterval: null, hotSearchTitle: '', achievements: [], worksList: [], notifications: [], liveStatus: false, lastUpdateTime: Date.now(), gameStartTime: Date.now(), chartData: { fans: [], likes: [], views: [], interactions: [] }, liveInterval: null, workUpdateIntervals: [], banInterval: null, banDropInterval: null, trafficWorks: {}, 
-  // 新增总互动数据
+  username: '', 
+  userId: '', 
+  avatar: '', 
+  fans: 0, 
+  likes: 0, 
+  views: 0, 
+  works: 0, 
+  money: 0, 
+  warnings: 0, 
+  adOrders: [], 
+  currentAdOrder: null, 
+  rejectedAdOrders: 0, 
+  isBanned: false, 
+  banReason: '', 
+  banDaysCount: 0, 
+  banStartTime: null, 
+  isHotSearch: false, 
+  hotSearchDaysCount: 0, 
+  hotSearchStartTime: null, 
+  hotSearchInterval: null, 
+  hotSearchTitle: '', 
+  achievements: [], 
+  worksList: [], 
+  notifications: [], 
+  liveStatus: false, 
+  lastUpdateTime: Date.now(), 
+  gameStartTime: Date.now(), 
+  chartData: { 
+    fans: [], 
+    likes: [], 
+    views: [], 
+    interactions: [] 
+  }, 
+  liveInterval: null, 
+  workUpdateIntervals: [], 
+  banInterval: null, 
+  banDropInterval: null, 
+  trafficWorks: {}, 
   totalInteractions: 0,
-  // 新增活跃粉丝指标
   activeFans: 0,
-  // 新增状态
   appealAvailable: true, 
   adOrdersCount: 0, 
   isPublicOpinionCrisis: false, 
   publicOpinionDaysCount: 0, 
   publicOpinionStartTime: null, 
   publicOpinionInterval: null, 
-  publicOpinionTitle: '' 
+  publicOpinionTitle: '',
+  devMode: false // 新增：开发者模式状态
 };
 
 // ==================== 成就列表 ====================
@@ -74,6 +109,7 @@ function initGame() {
   const saved = localStorage.getItem('streamerGameState');
   if (saved) {
     gameState = JSON.parse(saved);
+    
     // 重置定时器引用（关键！）
     gameState.liveInterval = null; 
     gameState.workUpdateIntervals = []; 
@@ -98,6 +134,9 @@ function initGame() {
     if (gameState.publicOpinionStartTime === undefined) gameState.publicOpinionStartTime = null;
     if (gameState.publicOpinionInterval === undefined) gameState.publicOpinionInterval = null;
     if (gameState.publicOpinionTitle === undefined) gameState.publicOpinionTitle = '';
+    
+    // 新增：恢复开发者模式状态
+    if (gameState.devMode === undefined) gameState.devMode = false;
     
     // 扩展图表数据到60天
     if (gameState.chartData) {
@@ -173,6 +212,11 @@ function initGame() {
         if (typeof startTrafficProcess === 'function') startTrafficProcess(workId);
       }
     });
+    
+    // 恢复开发者模式UI
+    if (gameState.devMode) {
+      document.getElementById('devFloatButton').style.display = 'block';
+    }
   } else {
     // 新游戏初始化60天数据
     for (let i = 0; i < 60; i++) {
@@ -181,6 +225,9 @@ function initGame() {
       gameState.chartData.views.push(0);
       gameState.chartData.interactions.push(0);
     }
+    
+    // 初始化开发者模式为关闭
+    gameState.devMode = false;
   }
   
   if (!gameState.userId) gameState.userId = 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -211,8 +258,22 @@ function startGame() {
 
 // ==================== 页面加载 ====================
 window.onload = function() { 
-  document.getElementById('modal').onclick = function(e) { if (e.target === this) closeModal(); }; 
-  setTimeout(() => { if (gameState.username && typeof updateDisplay === 'function') updateDisplay(); }, 100);
+  // 检查是否有存档，如果有则直接进入游戏
+  const saved = localStorage.getItem('streamerGameState');
+  if (saved) {
+    // 有存档，自动登录
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainPage').style.display = 'flex';
+    initGame();
+  }
+  
+  document.getElementById('modal').onclick = function(e) { 
+    if (e.target === this) closeModal(); 
+  }; 
+  
+  setTimeout(() => { 
+    if (gameState.username && typeof updateDisplay === 'function') updateDisplay(); 
+  }, 100);
 };
 
 // ==================== 全局函数绑定 ====================
@@ -222,3 +283,4 @@ window.adOrdersDB = adOrdersDB;
 window.randomEvents = randomEvents;
 window.violationKeywords = violationKeywords;
 window.startGame = startGame;
+window.initGame = initGame;

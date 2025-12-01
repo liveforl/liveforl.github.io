@@ -34,6 +34,13 @@ function updateDisplay() {
   updateWorksList();
   if (typeof checkAchievements === 'function') checkAchievements();
   saveGame();
+  
+  // 恢复开发者模式状态
+  if (gameState.devMode) {
+    document.getElementById('devFloatButton').style.display = 'block';
+  } else {
+    document.getElementById('devFloatButton').style.display = 'none';
+  }
 }
 
 // ==================== 模态框 ====================
@@ -109,9 +116,92 @@ function animateNumberUpdate(element) {
   setTimeout(() => element.classList.remove('updating'), 300); 
 }
 
-// ==================== 设置页面 ====================
+// ==================== 账号设置 ====================
+let settingsClickCount = 0;
+let lastSettingsClickTime = 0;
+
+// ==================== 修改后的showSettings函数（已移除提示项） ====================
 function showSettings() {
-  showModal(`<div class="modal-header"><div class="modal-title">账号设置</div><div class="close-btn" onclick="closeModal()">✕</div></div><div class="settings-item" onclick="changeUsername()"><div><div class="settings-label">修改昵称</div><div class="settings-value">${gameState.username}</div></div><div>></div></div><div class="settings-item" onclick="changeUserId()"><div><div class="settings-label">用户ID</div><div class="settings-value">${gameState.userId}</div></div><div>></div></div><div class="settings-item" onclick="changeAvatar()"><div><div class="settings-label">修改头像</div><div class="settings-value">点击修改</div></div><div>></div></div><div class="settings-item" onclick="showProfile()"><div><div class="settings-label">个人主页</div><div class="settings-value">查看主页</div></div><div>></div></div><div class="settings-item" onclick="clearData()" style="background:#ff0050"><div class="settings-label">清除数据</div><div class="settings-value">谨慎操作</div></div>`);
+  const content = document.getElementById('settingsPageContent');
+  content.innerHTML = `
+    <div class="settings-item" onclick="changeUsername()">
+      <div><div class="settings-label">修改昵称</div><div class="settings-value">${gameState.username}</div></div>
+      <div>></div>
+    </div>
+    <div class="settings-item" onclick="changeUserId()">
+      <div><div class="settings-label">用户ID</div><div class="settings-value">${gameState.userId}</div></div>
+      <div>></div>
+    </div>
+    <div class="settings-item" onclick="changeAvatar()">
+      <div><div class="settings-label">修改头像</div><div class="settings-value">点击修改</div></div>
+      <div>></div>
+    </div>
+    <div class="settings-item" onclick="showProfile()">
+      <div><div class="settings-label">个人主页</div><div class="settings-value">查看主页</div></div>
+      <div>></div>
+    </div>
+    <div class="settings-item" onclick="clearData()" style="background:#ff0050">
+      <div><div class="settings-label">清除数据</div><div class="settings-value">谨慎操作</div></div>
+    </div>
+  `;
+  
+  // 给顶部标题绑定点击事件
+  const headerTitle = document.getElementById('settingsHeaderTitle');
+  if (headerTitle) {
+    headerTitle.onclick = handleDevSettingsClick;
+  }
+  
+  document.getElementById('settingsPage').classList.add('active');
+  document.getElementById('mainContent').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+// ==================== 处理开发者设置点击 ====================
+function handleDevSettingsClick() {
+  const now = Date.now();
+  // 如果超过3秒，重置计数
+  if (now - lastSettingsClickTime > 3000) {
+    settingsClickCount = 0;
+  }
+  lastSettingsClickTime = now;
+  
+  settingsClickCount++;
+  
+  // 当达到15次时自动弹出密码框
+  if (settingsClickCount >= 15) {
+    showDevPasswordModal();
+  }
+}
+
+// ==================== 显示密码输入框 ====================
+function showDevPasswordModal() {
+  const modalContent = `
+    <div class="modal-header">
+      <div class="modal-title">开发者模式</div>
+      <div class="close-btn" onclick="closeDevPasswordModal()">✕</div>
+    </div>
+    <div style="padding: 20px;">
+      <div style="margin-bottom: 15px; font-size: 14px; color: #999;">
+        请输入开发者密码
+      </div>
+      <input type="password" class="text-input" id="devPasswordInput" placeholder="输入密码" maxlength="20" 
+             style="margin-bottom: 15px; background: #222; border: 1px solid #333; color: #fff;">
+      <button class="btn" onclick="devVerifyPassword()">确定</button>
+    </div>
+  `;
+  showModal(modalContent);
+  
+  // 聚焦输入框
+  setTimeout(() => {
+    const input = document.getElementById('devPasswordInput');
+    if (input) input.focus();
+  }, 100);
+}
+
+// ==================== 关闭密码输入框 ====================
+function closeDevPasswordModal() {
+  closeModal();
+  settingsClickCount = 0;
 }
 
 function changeUsername() {
@@ -150,7 +240,24 @@ function clearData() {
 
 // ==================== 个人主页 ====================
 function showProfile() {
-  showModal(`<div class="modal-header"><div class="modal-title">个人主页</div><div class="close-btn" onclick="closeModal()">✕</div></div><div style="text-align:center;padding:20px"><div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px">${gameState.avatar}</div><div style="font-size:20px;font-weight:bold;margin-bottom:5px">${gameState.username}</div><div style="font-size:14px;color:#999;margin-bottom:20px">${gameState.userId}</div><div style="display:flex;justify-content:space-around;margin-bottom:20px"><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.fans}</div><div style="font-size:12px;color:#999">粉丝</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.works}</div><div style="font-size:12px;color:#999">作品</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.likes}</div><div style="font-size:12px;color:#999">获赞</div></div></div><button class="btn" onclick="showAllWorks()">查看所有作品</button></div>`);
+  const content = document.getElementById('profilePageContent');
+  content.innerHTML = `
+    <div style="text-align:center;padding:20px">
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px">${gameState.avatar}</div>
+      <div style="font-size:20px;font-weight:bold;margin-bottom:5px">${gameState.username}</div>
+      <div style="font-size:14px;color:#999;margin-bottom:20px">${gameState.userId}</div>
+      <div style="display:flex;justify-content:space-around;margin-bottom:20px">
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.fans}</div><div style="font-size:12px;color:#999">粉丝</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.works}</div><div style="font-size:12px;color:#999">作品</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.likes}</div><div style="font-size:12px;color:#999">获赞</div></div>
+      </div>
+      <button class="btn" onclick="showAllWorks()">查看所有作品</button>
+    </div>
+  `;
+  
+  document.getElementById('profilePage').classList.add('active');
+  document.getElementById('mainContent').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
 }
 
 function showAllWorks() {
@@ -159,51 +266,90 @@ function showAllWorks() {
     const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
     const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
     const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
-    return `<div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
-      <div class="work-header">
-        <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
-        <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
+    return `
+      <div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
+        <div class="work-header">
+          <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
+          <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
+        </div>
+        <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
+        <div class="work-stats">
+          <span>▶️ ${work.views.toLocaleString()}</span>
+          <span>❤️ ${work.likes.toLocaleString()}</span>
+          <span>💬 ${work.comments.toLocaleString()}</span>
+          <span>🔄 ${work.shares.toLocaleString()}</span>
+        </div>
       </div>
-      <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
-      <div class="work-stats">
-        <span>▶️ ${work.views.toLocaleString()}</span>
-        <span>❤️ ${work.likes.toLocaleString()}</span>
-        <span>💬 ${work.comments.toLocaleString()}</span>
-        <span>🔄 ${work.shares.toLocaleString()}</span>
-      </div>
-    </div>`;
+    `;
   }).join('');
-  showModal(`<div class="modal-header"><div class="modal-title">所有作品</div><div class="close-btn" onclick="closeModal()">✕</div></div>
-    <div style="max-height:60vh;overflow-y:auto">${worksHtml.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">还没有作品</div>' : worksHtml}</div>`);
+  
+  // 在全屏页面内显示所有作品
+  const content = document.getElementById('worksPageContent');
+  content.innerHTML = worksHtml.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>' : worksHtml;
+  
+  // 切换到作品全屏页
+  document.getElementById('worksPage').classList.add('active');
+  document.getElementById('profilePage').classList.remove('active');
 }
 
 // ==================== 作品详情 ====================
+let currentDetailWork = null;
+
 function showWorkDetail(work) {
+  currentDetailWork = work;
   const trafficData = gameState.trafficWorks[work.id];
   const isTrafficActive = trafficData && trafficData.isActive;
-  const trafficStatus = isTrafficActive ? `<div style="background: linear-gradient(135deg,#ff6b00 0%,#ff0050 100%); color: #fff; padding: 8px; border-radius: 5px; text-align: center; font-weight: bold; margin-bottom: 15px; animation: pulse 1s infinite;">🔥 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - getVirtualDaysPassed(trafficData.startTime)))}天）</div>` : '';
+  const trafficStatus = isTrafficActive ? `
+    <div style="background: linear-gradient(135deg,#ff6b00 0%,#ff0050 100%); color: #fff; padding: 8px; border-radius: 5px; text-align: center; font-weight: bold; margin-bottom: 15px; animation: pulse 1s infinite;">
+      🔥 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - getVirtualDaysPassed(trafficData.startTime)))}天）
+    </div>
+  ` : '';
   const adBadge = work.isAd ? '<div style="background:#ff0050;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🎯 商单合作</div>' : '';
   const privacyBadge = work.isPrivate ? '<div style="background:#999;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🔒 私密作品</div>' : '';
   const comments = typeof generateComments === 'function' ? generateComments(work.comments) : [];
   
-  // 创建操作按钮HTML
-  const buttonHtml = `
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
-      <button class="btn" onclick="togglePrivate(${work.id})" style="background: ${work.isPrivate ? '#667eea' : '#333'}; flex: 1;">
-        ${work.isPrivate ? '🔓 取消私密' : '🔒 设为私密'}
-      </button>
-      <button class="btn btn-danger" onclick="deleteWork(${work.id})" style="flex: 1; background: #ff0050;">
-        🗑️ 删除作品
-      </button>
+  const content = document.getElementById('workDetailPageContent');
+  content.innerHTML = `
+    <div style="margin-bottom:20px">
+      ${trafficStatus}${adBadge}${privacyBadge}
+      <div style="font-size:16px;margin-bottom:10px">${work.content}</div>
+      <div style="font-size:12px;color:#999;margin-bottom:15px">${formatTime(work.time)}</div>
+      <div style="display:flex;justify-content:space-around;padding:15px;background:#161823;border-radius:10px;margin-bottom:20px">
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.views.toLocaleString()}</div><div style="font-size:12px;color:#999">播放/观看</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.likes.toLocaleString()}</div><div style="font-size:12px;color:#999">点赞</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.comments.toLocaleString()}</div><div style="font-size:12px;color:#999">评论</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.shares.toLocaleString()}</div><div style="font-size:12px;color:#999">转发</div></div>
+      </div>
+      ${work.revenue ? `<div style="font-size:14px;color:#667eea;margin-bottom:15px">💰 收益：${work.revenue}元</div>` : ''}
+      <div style="margin-bottom:10px;font-weight:bold">评论区</div>
+      <div id="commentsList">${comments.map(comment => `
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-user">${comment.user}</span>
+            <span class="comment-time">${comment.time}</span>
+          </div>
+          <div class="comment-content">${comment.content}</div>
+          <div class="comment-actions">
+            <span class="comment-action">👍 ${comment.likes}</span>
+            <span class="comment-action">回复</span>
+          </div>
+        </div>
+      `).join('')}</div>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn" onclick="togglePrivate(${work.id})" style="background: ${work.isPrivate ? '#667eea' : '#333'}; flex: 1;">
+          ${work.isPrivate ? '🔓 取消私密' : '🔒 设为私密'}
+        </button>
+        <button class="btn btn-danger" onclick="deleteWork(${work.id})" style="flex: 1; background: #ff0050;">
+          🗑️ 删除作品
+        </button>
+      </div>
     </div>
   `;
   
-  showModal(`<div class="modal-header"><div class="modal-title">${work.type === 'video' ? '视频详情' : work.type === 'live' ? '直播详情' : '动态详情'}</div><div class="close-btn" onclick="closeModal()">✕</div></div>
-    <div style="margin-bottom:20px">${trafficStatus}${adBadge}${privacyBadge}<div style="font-size:16px;margin-bottom:10px">${work.content}</div><div style="font-size:12px;color:#999;margin-bottom:15px">${formatTime(work.time)}</div>
-      <div style="display:flex;justify-content:space-around;padding:15px;background:#161823;border-radius:10px;margin-bottom:20px"><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.views.toLocaleString()}</div><div style="font-size:12px;color:#999">播放/观看</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.likes.toLocaleString()}</div><div style="font-size:12px;color:#999">点赞</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.comments.toLocaleString()}</div><div style="font-size:12px;color:#999">评论</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.shares.toLocaleString()}</div><div style="font-size:12px;color:#999">转发</div></div></div>${work.revenue ? `<div style="font-size:14px;color:#667eea;margin-bottom:15px">💰 收益：${work.revenue}元</div>` : ''}
-      <div style="margin-bottom:10px;font-weight:bold">评论区</div><div id="commentsList">${comments.map(comment => `<div class="comment-item"><div class="comment-header"><span class="comment-user">${comment.user}</span><span class="comment-time">${comment.time}</span></div><div class="comment-content">${comment.content}</div><div class="comment-actions"><span class="comment-action">👍 ${comment.likes}</span><span class="comment-action">回复</span></div></div>`).join('')}</div>
-      ${buttonHtml}
-    </div>`);
+  document.getElementById('workDetailTitle').textContent = work.type === 'video' ? '视频详情' : work.type === 'live' ? '直播详情' : '动态详情';
+  document.getElementById('workDetailPage').classList.add('active');
+  document.getElementById('mainContent').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
 }
 
 // ==================== 删除作品 ====================
@@ -233,7 +379,7 @@ function deleteWork(workId) {
     const interactionCount = work.views + work.comments + work.likes + work.shares;
     gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
     
-    closeModal();
+    closeFullscreenPage('workDetail');
     updateDisplay();
     showNotification('删除成功', '作品已删除');
   }
@@ -251,9 +397,6 @@ function togglePrivate(workId) {
   gameState.works = publicWorks.length;
   gameState.views = publicWorks.reduce((sum, w) => sum + w.views, 0);
   gameState.likes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
-  
-  // 修改：不要重新计算收益，保持累计值不变
-  // gameState.money = publicWorks.reduce((sum, w) => sum + (w.revenue || 0), 0);
   
   // 重新计算总互动数
   gameState.totalInteractions = publicWorks.reduce((sum, w) => {
@@ -306,42 +449,75 @@ function showNotifications() {
   showModal(`<div class="modal-header"><div class="modal-title">通知中心</div><div class="close-btn" onclick="closeModal()">✕</div></div><div style="max-height:60vh;overflow-y:auto">${gameState.notifications.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml}</div>`);
 }
 
-// ==================== 全屏页面切换 ====================
+// ==================== 标签页切换 ====================
 function switchTab(tab) {
+  // 更新导航栏激活状态
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  if (event && event.target) event.target.closest('.nav-item').classList.add('active');
-  document.getElementById('mainContent').style.display = 'none';
+  if (event && event.target) {
+    event.target.closest('.nav-item').classList.add('active');
+  }
+  
+  // 显示主容器但不显示标签内容
+  document.getElementById('mainContent').style.display = 'block';
+  document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+  document.querySelector('.bottom-nav').style.display = 'flex';
+  
+  // 隐藏所有全屏页面
   document.querySelectorAll('.fullscreen-page').forEach(page => page.classList.remove('active'));
   
   switch (tab) {
     case 'home':
-      document.getElementById('mainContent').style.display = 'block';
+      // 显示首页默认内容
+      document.querySelectorAll('.main-content-section').forEach(el => el.style.display = '');
       break;
     case 'works':
+      // 隐藏首页默认内容，显示作品列表
+      document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
+      document.getElementById('worksContent').style.display = 'block';
       if (typeof showWorksFullscreen === 'function') showWorksFullscreen();
       break;
     case 'messages':
+      // 隐藏首页默认内容，显示消息列表
+      document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
+      document.getElementById('messagesContent').style.display = 'block';
       if (typeof showMessagesFullscreen === 'function') showMessagesFullscreen();
       break;
     case 'achievements':
+      // 隐藏首页默认内容，显示成就列表
+      document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
+      document.getElementById('achievementsContent').style.display = 'block';
       if (typeof showAchievementsFullscreen === 'function') showAchievementsFullscreen();
       break;
   }
 }
 
+// ==================== 全屏页面关闭 ====================
 function closeFullscreenPage(pageName) {
-  document.getElementById(pageName + 'Page').classList.remove('active');
+  // 隐藏所有全屏页面
+  document.querySelectorAll('.fullscreen-page').forEach(page => page.classList.remove('active'));
+  
+  // 恢复主界面和导航栏
   document.getElementById('mainContent').style.display = 'block';
-  document.querySelector('.bottom-nav').style.display = 'flex'; // 恢复导航栏显示
+  document.querySelector('.bottom-nav').style.display = 'flex';
+  
+  // 重置导航栏激活状态为首页
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
   document.querySelector('.nav-item').classList.add('active');
+  
+  // 清理当前详情状态
+  if (pageName === 'workDetail') {
+    currentDetailWork = null;
+  }
+  
+  // 重新显示首页默认内容
+  document.querySelectorAll('.main-content-section').forEach(el => el.style.display = '');
+  document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
 }
 
 // ==================== 全屏作品页 ====================
 function showWorksFullscreen() {
-  const worksPage = document.getElementById('worksPage');
-  const content = document.getElementById('worksPageContent');
-  if (!worksPage || !content) return;
+  const content = document.getElementById('worksListTab');
+  if (!content) return;
   
   const worksHtml = gameState.worksList.map(work => {
     const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
@@ -369,14 +545,15 @@ function showWorksFullscreen() {
   content.innerHTML = worksHtml.length === 0 ? 
     '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>' : worksHtml;
   
-  worksPage.classList.add('active');
+  // 更新作品总数
+  const totalCountEl = document.getElementById('worksTotalCount');
+  if (totalCountEl) totalCountEl.textContent = `共${gameState.worksList.length}个作品`;
 }
 
 // ==================== 全屏消息页 ====================
 function showMessagesFullscreen() {
-  const messagesPage = document.getElementById('messagesPage');
-  const content = document.getElementById('messagesPageContent');
-  if (!messagesPage || !content) return;
+  const content = document.getElementById('messagesListTab');
+  if (!content) return;
   
   gameState.notifications.forEach(n => n.read = true);
   updateNotificationBadge();
@@ -393,15 +570,12 @@ function showMessagesFullscreen() {
   
   content.innerHTML = gameState.notifications.length === 0 ? 
     '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml;
-  
-  messagesPage.classList.add('active');
 }
 
 // ==================== 全屏成就页 ====================
 function showAchievementsFullscreen() {
-  const achievementsPage = document.getElementById('achievementsPage');
-  const content = document.getElementById('achievementsPageContent');
-  if (!achievementsPage || !content) return;
+  const content = document.getElementById('achievementsListTab');
+  if (!content) return;
   
   const progressMap = {
     1: { current: () => gameState.fans, target: 1 },
@@ -460,7 +634,6 @@ function showAchievementsFullscreen() {
   }).join('');
   
   content.innerHTML = achievementHtml;
-  achievementsPage.classList.add('active');
 }
 
 // ==================== 消息全部已读 ====================
@@ -496,6 +669,9 @@ function showWarning(message) {
 window.updateDisplay = updateDisplay;
 window.showModal = showModal;
 window.closeModal = closeModal;
+window.showDevPasswordModal = showDevPasswordModal;
+window.closeDevPasswordModal = closeDevPasswordModal;
+window.handleDevSettingsClick = handleDevSettingsClick;
 window.showSettings = showSettings;
 window.showProfile = showProfile;
 window.showAllWorks = showAllWorks;
@@ -513,3 +689,8 @@ window.showAchievementsHelp = showAchievementsHelp;
 window.showWarning = showWarning;
 window.deleteWork = deleteWork;
 window.togglePrivate = togglePrivate;
+window.changeUsername = changeUsername;
+window.changeUserId = changeUserId;
+window.changeAvatar = changeAvatar;
+window.clearData = clearData;
+window.generateComments = generateComments;

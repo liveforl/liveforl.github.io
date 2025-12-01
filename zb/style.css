@@ -83,7 +83,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 .live-btn-start { background: #00f2ea; color: #000; }
 .live-btn-end { background: #ff0050; color: #fff; }
 
-/* ==================== 修改部分：图表容器不再固定高度 ==================== */
+/* ==================== 图表容器不再固定高度 ==================== */
 .chart-container {
     padding: 20px;
     display: flex;
@@ -95,7 +95,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .chart-title { font-size: 16px; color: #fff; }
 
-/* ==================== 修改部分：canvas强制固定高度 ==================== */
+/* ==================== canvas强制固定高度 ==================== */
 .chart-canvas {
     width: 100%;
     height: 200px !important;
@@ -206,4 +206,81 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
     color: #999;
     margin-top: 5px;
     text-align: right;
+}
+
+/* ==================== 标签页内容样式 ==================== */
+.tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 60px 10px;
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ==================== 主内容区子元素隐藏样式 ==================== */
+.main-content-section.hidden {
+    display: none !important;
+}
+
+/* ==================== 开发者模式专用样式 ==================== */
+.dev-float-button {
+    position: fixed;
+    bottom: 150px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%);
+    color: #000;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 242, 234, 0.3);
+    transition: all .3s;
+    z-index: 98;
+    display: none;
+}
+
+.dev-float-button:active {
+    transform: scale(0.95);
+}
+
+.dev-float-button:hover {
+    box-shadow: 0 6px 20px rgba(0, 242, 234, 0.5);
+}
+
+/* 开发者选项按钮样式 */
+.btn-secondary {
+    background: #333;
+    color: #fff;
+}
+
+.btn-danger {
+    background: #ff0050;
+    color: #fff;
+}
+
+/* 确保模态框样式正确 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.modal-content {
+    background: #161823;
+    margin: 20px;
+    border-radius: 15px;
+    padding: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
