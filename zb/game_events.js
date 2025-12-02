@@ -8,7 +8,6 @@ function startHotSearch(title) {
   if (!gameState.hotSearchInterval) gameState.hotSearchInterval = setInterval(() => {
     if (gameState.isHotSearch) {
       const fanGrowth = Math.floor(Math.random() * 100) + 50;
-      // 热搜期间额外产生大量互动
       const interactionBoost = Math.floor(fanGrowth * 3.5);
       gameState.fans += fanGrowth;
       gameState.totalInteractions += interactionBoost;
@@ -162,7 +161,6 @@ function updateChartData() {
   const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
   const dayIndex = virtualDays % 60;
   
-  // 确保只记录递增的累积值（防止意外下降）
   const prevFans = gameState.chartData.fans[dayIndex] || 0;
   const prevLikes = gameState.chartData.likes[dayIndex] || 0;
   const prevViews = gameState.chartData.views[dayIndex] || 0;
@@ -171,15 +169,12 @@ function updateChartData() {
   gameState.chartData.likes[dayIndex] = Math.max(prevLikes, gameState.likes);
   gameState.chartData.views[dayIndex] = Math.max(prevViews, gameState.views);
   
-  // 新增互动数据更新
   const prevInteractions = gameState.chartData.interactions[dayIndex] || 0;
   gameState.chartData.interactions[dayIndex] = Math.max(prevInteractions, gameState.totalInteractions);
   
-  // 实时更新已打开的图表
   updateChartsRealtime();
 }
 
-// 新增：实时更新图表右上角的统计数字
 function updateChartStatsRealtime() {
   const chartsPage = document.getElementById('chartsPage');
   if (!chartsPage || !chartsPage.classList.contains('active')) return;
@@ -197,7 +192,6 @@ function updateChartStatsRealtime() {
   if (statElements.interactions) statElements.interactions.textContent = gameState.totalInteractions.toLocaleString();
 }
 
-// 修改：实时刷新图表数据
 function updateChartsRealtime() {
   if (!window.charts) return;
   
@@ -214,18 +208,15 @@ function updateChartsRealtime() {
 
 // ==================== 游戏主循环（已恢复涨粉掉粉） ====================
 function startGameLoop() {
-  // 每虚拟天（1分钟）精确更新一次图表
   setInterval(() => {
     updateChartData();
   }, VIRTUAL_DAY_MS);
   
-  // 每30秒触发随机事件
   setInterval(() => {
     const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
     handleRandomEvent(event);
   }, 30000);
   
-  // 每分钟检查长时间未更新
   setInterval(() => {
     const timeSinceLastUpdate = Date.now() - gameState.lastUpdateTime;
     if (timeSinceLastUpdate > 10 * 60 * 1000) {
@@ -235,7 +226,6 @@ function startGameLoop() {
     }
   }, 60000);
   
-  // 每秒检查状态（流量推广、舆论风波等）
   setInterval(() => {
     Object.keys(gameState.trafficWorks).forEach(workId => {
       const trafficData = gameState.trafficWorks[workId];
@@ -251,64 +241,29 @@ function startGameLoop() {
     }
   }, 1000);
   
-  // ==================== 核心恢复：自然涨粉/掉粉 ====================
   setInterval(() => {
-    // 5%概率触发粉丝自然波动（约每20秒一次）
     if (Math.random() < 0.05) {
-      const change = Math.floor(Math.random() * 100) - 50; // -50到+50的随机变化
+      const change = Math.floor(Math.random() * 100) - 50;
       gameState.fans = Math.max(0, gameState.fans + change);
-      
-      if (change > 0) {
-        showNotification('粉丝变化', `获得了${change}个新粉丝`);
-      } else if (change < 0) {
-        showNotification('粉丝变化', `失去了${Math.abs(change)}个粉丝`);
-      }
-      
-      // 粉丝变化时同步更新图表
       updateChartData();
     }
-    
-    // 每100ms更新主界面显示（保持流畅）
     updateDisplay();
   }, 100);
   
-  // ==================== 新增：自动互动生成系统 ====================
   setInterval(() => {
     if (gameState.fans <= 0) return;
     
-    // 根据活跃粉丝数生成随机互动
-    const baseChance = Math.min(gameState.fans / 1000, 0.3); // 最多30%概率
+    const baseChance = Math.min(gameState.fans / 1000, 0.3);
     if (Math.random() < baseChance) {
-      const interactionTypes = ['观看', '点赞', '评论', '转发', '访问主页'];
-      const interactionWeights = [0.4, 0.25, 0.15, 0.1, 0.1]; // 权重分布
-      
-      let random = Math.random();
-      let selectedType = '';
-      let accumulatedWeight = 0;
-      
-      for (let i = 0; i < interactionTypes.length; i++) {
-        accumulatedWeight += interactionWeights[i];
-        if (random < accumulatedWeight) {
-          selectedType = interactionTypes[i];
-          break;
-        }
-      }
-      
       const interactionAmount = Math.floor(Math.random() * 50) + 1;
       gameState.totalInteractions += interactionAmount;
-      
-      // 小概率显示通知提示（避免刷屏）
-      if (Math.random() < 0.05) {
-        showNotification('粉丝活跃', `${interactionAmount}位粉丝进行了${selectedType}互动`);
-      }
     }
     
-    // 活跃粉丝自然波动（5%概率）
     if (Math.random() < 0.05) {
       const activeChange = Math.floor(Math.random() * 20) - 10;
       gameState.activeFans = Math.max(0, gameState.activeFans + activeChange);
     }
-  }, 5000); // 每5秒检查一次互动
+  }, 5000);
 }
 
 // ==================== 成就检查 ====================
@@ -355,7 +310,6 @@ function drawChart(canvasId, data, color, label) {
   const ctx = canvas.getContext('2d');
   const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
   
-  // 生成X轴标签（最近60天）
   const labels = [];
   for (let i = 59; i >= 0; i--) {
     const day = virtualDays - i;
@@ -366,12 +320,10 @@ function drawChart(canvasId, data, color, label) {
     }
   }
   
-  // 销毁旧图表
   if (window.charts && window.charts[canvasId]) {
     window.charts[canvasId].destroy();
   }
   
-  // 创建新图表（优化性能）
   const chart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -424,7 +376,6 @@ function drawChart(canvasId, data, color, label) {
     }
   });
   
-  // 保存图表实例
   if (!window.charts) window.charts = {};
   window.charts[canvasId] = chart;
 }

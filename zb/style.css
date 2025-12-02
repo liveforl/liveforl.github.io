@@ -1,5 +1,5 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #000; color: #fff; overflow-x: hidden; touch-action: manipulation; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #000; color: #fff; overflow-x: hidden; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 .container { max-width: 100vw; min-height: 100vh; display: flex; flex-direction: column; }
 #loginPage { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; }
 .login-window { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 40px 30px; width: 100%; max-width: 350px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
@@ -82,27 +82,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 .live-btn { flex: 1; padding: 15px; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; transition: all .3s; }
 .live-btn-start { background: #00f2ea; color: #000; }
 .live-btn-end { background: #ff0050; color: #fff; }
-
-/* ==================== 图表容器不再固定高度 ==================== */
-.chart-container {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
+.chart-container { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 .chart-item { background: #161823; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
 .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .chart-title { font-size: 16px; color: #fff; }
-
-/* ==================== canvas强制固定高度 ==================== */
-.chart-canvas {
-    width: 100%;
-    height: 200px !important;
-    background: #222;
-    border-radius: 8px;
-}
-
+.chart-canvas { width: 100%; height: 200px !important; background: #222; border-radius: 8px; }
 .settings-item { background: #161823; padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .settings-item:active { background: #222; }
 .settings-label { font-size: 14px; }
@@ -131,156 +115,239 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
     .stat-value { font-size: 18px; }
     .action-buttons { grid-template-columns: repeat(3, 1fr); }
 }
+.fullscreen-page { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 998; display: none; flex-direction: column; }
+.fullscreen-page.active { display: flex; }
+.fullscreen-header { background: #161823; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.back-btn { font-size: 24px; cursor: pointer; padding: 5px; color: #667eea; }
+.fullscreen-title { font-size: 18px; font-weight: bold; flex: 1; text-align: center; }
+.fullscreen-action { font-size: 14px; color: #667eea; cursor: pointer; padding: 5px; white-space: nowrap; }
+.fullscreen-content { flex: 1; overflow-y: auto; padding: 10px; }
+.achievement-progress { margin-top: 8px; background: #333; border-radius: 10px; height: 6px; overflow: hidden; }
+.achievement-progress-bar { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.5s ease; }
+.achievement-progress-text { font-size: 11px; color: #999; margin-top: 5px; text-align: right; }
+.tab-content { flex: 1; overflow-y: auto; padding: 0 10px 60px 10px; display: none; }
+.tab-content.active { display: block; }
+.main-content-section.hidden { display: none !important; }
+.dev-float-button { position: fixed; bottom: 150px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); color: #000; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 242, 234, 0.3); transition: all .3s; z-index: 98; display: none; }
+.dev-float-button:active { transform: scale(0.95); }
+.dev-float-button:hover { box-shadow: 0 6px 20px rgba(0, 242, 234, 0.5); animation: float 3s ease-in-out infinite; }
+.btn-secondary { background: #333; color: #fff; }
+.btn-danger { background: #ff0050; color: #fff; }
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 1000; overflow-y: auto; }
+.modal-content { background: #161823; margin: 20px; border-radius: 15px; padding: 20px; max-height: 80vh; overflow-y: auto; }
 
-/* ==================== 全屏页面样式 ==================== */
-.fullscreen-page {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #000;
-    z-index: 998;
-    display: none;
-    flex-direction: column;
+/* ==================== 点击反馈美化 ==================== */
+
+/* 通用点击元素：微妙的缩放和透明度变化 */
+*[onclick]:active,
+button:active,
+.nav-item:active,
+.comment-action:active,
+.close-btn:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fullscreen-page.active {
-    display: flex;
+/* 保持特定元素的原有效果，但增强视觉反馈 */
+.action-btn:active {
+    transform: scale(0.95);
+    background: linear-gradient(135deg, #222, #2a2a3a);
+    box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
 }
 
-.fullscreen-header {
-    background: #161823;
+.work-item:active,
+.settings-item:active,
+.achievement-item:active {
+    background: linear-gradient(135deg, #1a1a2a, #222);
+    transform: translateY(1px);
+    border-left: 3px solid #667eea;
+}
+
+/* 直播按钮特殊效果 */
+.live-control-btn:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 15px rgba(255, 0, 80, 0.5);
+}
+
+/* 开发者悬浮按钮 */
+.dev-float-button:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 15px rgba(0, 242, 234, 0.5);
+}
+
+/* 输入框点击不触发效果 */
+input:active,
+textarea:active,
+select:active {
+    transform: none;
+    opacity: 1;
+}
+
+/* ==================== 开发者控制台专业样式 ==================== */
+
+.dev-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.dev-stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.dev-stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.dev-stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dev-section {
+  background: #161823;
+  border-radius: 12px;
+  padding: 15px;
+  border: 1px solid #333;
+}
+
+.dev-section-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dev-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.dev-btn {
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.dev-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+.dev-btn-icon {
+  font-size: 20px;
+  transition: transform 0.2s;
+}
+
+.dev-btn-text {
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* 不同类型按钮的颜色主题 */
+.dev-btn-test {
+  border-color: #00f2ea;
+  background: linear-gradient(135deg, #002a28, #222);
+}
+
+.dev-btn-test .dev-btn-icon {
+  color: #00f2ea;
+}
+
+.dev-btn-edit {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #1a1a3a, #222);
+}
+
+.dev-btn-edit .dev-btn-icon {
+  color: #667eea;
+}
+
+.dev-btn-manage {
+  border-color: #ff6b00;
+  background: linear-gradient(135deg, #2a1a00, #222);
+}
+
+.dev-btn-manage .dev-btn-icon {
+  color: #ff6b00;
+}
+
+.dev-btn-danger {
+  border-color: #ff0050;
+  background: linear-gradient(135deg, #2a000a, #222);
+  flex-direction: row;
+  justify-content: center;
+  padding: 14px;
+}
+
+.dev-btn-danger .dev-btn-icon {
+  color: #ff0050;
+}
+
+.dev-btn-danger .dev-btn-text {
+  font-weight: bold;
+}
+
+/* 悬浮按钮动画 */
+.dev-float-button {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+/* ==================== 离线报告样式优化 ==================== */
+.offline-report-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
     padding: 15px;
-    border-bottom: 1px solid #333;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.back-btn {
-    font-size: 24px;
-    cursor: pointer;
-    padding: 5px;
-    color: #667eea;
-}
-
-.fullscreen-title {
-    font-size: 18px;
-    font-weight: bold;
-    flex: 1;
+    border-radius: 10px;
+    margin-bottom: 20px;
     text-align: center;
 }
 
-.fullscreen-action {
-    font-size: 14px;
-    color: #667eea;
-    cursor: pointer;
-    padding: 5px;
-    white-space: nowrap;
-}
-
-.fullscreen-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-}
-
-.achievement-progress {
-    margin-top: 8px;
-    background: #333;
-    border-radius: 10px;
-    height: 6px;
-    overflow: hidden;
-}
-
-.achievement-progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    transition: width 0.5s ease;
-}
-
-.achievement-progress-text {
-    font-size: 11px;
-    color: #999;
-    margin-top: 5px;
-    text-align: right;
-}
-
-/* ==================== 标签页内容样式 ==================== */
-.tab-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 10px 60px 10px;
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-/* ==================== 主内容区子元素隐藏样式 ==================== */
-.main-content-section.hidden {
-    display: none !important;
-}
-
-/* ==================== 开发者模式专用样式 ==================== */
-.dev-float-button {
-    position: fixed;
-    bottom: 150px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%);
-    color: #000;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 242, 234, 0.3);
-    transition: all .3s;
-    z-index: 98;
-    display: none;
-}
-
-.dev-float-button:active {
-    transform: scale(0.95);
-}
-
-.dev-float-button:hover {
-    box-shadow: 0 6px 20px rgba(0, 242, 234, 0.5);
-}
-
-/* 开发者选项按钮样式 */
-.btn-secondary {
-    background: #333;
-    color: #fff;
-}
-
-.btn-danger {
-    background: #ff0050;
-    color: #fff;
-}
-
-/* 确保模态框样式正确 */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-    overflow-y: auto;
-}
-
-.modal-content {
+.offline-report-changes {
     background: #161823;
-    margin: 20px;
-    border-radius: 15px;
-    padding: 20px;
-    max-height: 80vh;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.offline-report-events {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* 确保模态框可以显示长内容 */
+.modal-content {
+    max-height: 85vh;
     overflow-y: auto;
 }

@@ -63,7 +63,10 @@ let gameState = {
   publicOpinionStartTime: null, 
   publicOpinionInterval: null, 
   publicOpinionTitle: '',
-  devMode: false // 新增：开发者模式状态
+  devMode: false,
+  // 新增：退出时间戳和离线报告
+  lastExitTime: null,
+  offlineReport: null
 };
 
 // ==================== 成就列表 ====================
@@ -102,13 +105,21 @@ function formatTime(timestamp) {
   return `${Math.floor(minutes / 1440)}天前`;
 }
 
-function saveGame() { localStorage.setItem('streamerGameState', JSON.stringify(gameState)); }
+function saveGame() { 
+  gameState.lastExitTime = Date.now();
+  localStorage.setItem('streamerGameState', JSON.stringify(gameState)); 
+}
 
 // ==================== 游戏初始化 ====================
 function initGame() {
   const saved = localStorage.getItem('streamerGameState');
   if (saved) {
     gameState = JSON.parse(saved);
+    
+    // 处理离线进度
+    if (gameState.lastExitTime) {
+      processOfflineProgress();
+    }
     
     // 重置定时器引用（关键！）
     gameState.liveInterval = null; 
@@ -243,6 +254,13 @@ function initGame() {
   if (typeof startGameLoop === 'function') startGameLoop();
   
   saveGame();
+  
+  // 延迟显示报告，确保UI已加载
+  setTimeout(() => {
+    if (gameState.offlineReport) {
+      showOfflineReport();
+    }
+  }, 500);
 }
 
 // ==================== 游戏启动 ====================
@@ -276,6 +294,265 @@ window.onload = function() {
   }, 100);
 };
 
+// ==================== 离线进度处理 ====================
+function processOfflineProgress() {
+  const now = Date.now();
+  const offlineTime = now - gameState.lastExitTime;
+  const offlineMinutes = offlineTime / (60 * 1000);
+  const offlineSeconds = offlineTime / 1000;
+  
+  if (offlineMinutes < 1) {
+    gameState.offlineReport = null;
+    return;
+  }
+  
+  const report = {
+    duration: formatDuration(offlineTime),
+    startFans: gameState.fans,
+    startMoney: gameState.money,
+    startViews: gameState.views,
+    startLikes: gameState.likes,
+    events: { total: 0, good: 0, bad: 0 },
+    changes: {
+      fans: 0,
+      money: 0,
+      views: 0,
+      likes: 0,
+      works: 0,
+      interactions: 0,
+      activeFans: 0
+    }
+  };
+  
+  // 1. 自然涨粉/掉粉机制
+  const fanFluctuations = Math.floor(offlineSeconds / 20);
+  for (let i = 0; i < fanFluctuations; i++) {
+    const change = Math.floor(Math.random() * 100) - 50;
+    gameState.fans = Math.max(0, gameState.fans + change);
+    report.changes.fans += change;
+  }
+  
+  // 2. 作品自动更新
+  const updateCycles = Math.floor(offlineSeconds / 3);
+  if (gameState.worksList.length > 0) {
+    for (let cycle = 0; cycle < updateCycles; cycle++) {
+      gameState.worksList.forEach(work => {
+        if (work.isPrivate) return;
+        
+        const viewsGrowth = Math.floor(Math.random() * 50);
+        const likesGrowth = Math.floor(Math.random() * 20);
+        
+        work.views += viewsGrowth;
+        work.likes += likesGrowth;
+        gameState.views += viewsGrowth;
+        gameState.likes += likesGrowth;
+        report.changes.views += viewsGrowth;
+        report.changes.likes += likesGrowth;
+      });
+    }
+  }
+  
+  // 3. 随机事件（仅统计数量）
+  const eventTicks = Math.floor(offlineSeconds / 30);
+  for (let i = 0; i < eventTicks; i++) {
+    if (Math.random() < 0.3) {
+      const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+      
+      if (event.type === 'good') {
+        report.events.good++;
+        if (event.effect.views) {
+          gameState.views += event.effect.views;
+          report.changes.views += event.effect.views;
+        }
+        if (event.effect.fans) {
+          gameState.fans = Math.max(0, gameState.fans + event.effect.fans);
+          report.changes.fans += event.effect.fans;
+        }
+        if (event.effect.likes) {
+          gameState.likes += event.effect.likes;
+          report.changes.likes += event.effect.likes;
+        }
+        if (event.effect.money) {
+          gameState.money += event.effect.money;
+          report.changes.money += event.effect.money;
+        }
+      } else if (event.type === 'bad') {
+        report.events.bad++;
+        if (event.effect.views) {
+          gameState.views = Math.max(0, gameState.views + event.effect.views);
+          report.changes.views += event.effect.views;
+        }
+        if (event.effect.fans) {
+          gameState.fans = Math.max(0, gameState.fans + event.effect.fans);
+          report.changes.fans += event.effect.fans;
+        }
+        if (event.effect.likes) {
+          gameState.likes = Math.max(0, gameState.likes + event.effect.likes);
+          report.changes.likes += event.effect.likes;
+        }
+        if (event.effect.money) {
+          gameState.money = Math.max(0, gameState.money + event.effect.money);
+          report.changes.money += event.effect.money;
+        }
+        if (event.effect.warnings) {
+          gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
+        }
+      }
+    }
+  }
+  report.events.total = report.events.good + report.events.bad;
+  
+  // 4. 粉丝互动生成
+  const interactionTicks = Math.floor(offlineSeconds / 5);
+  for (let i = 0; i < interactionTicks; i++) {
+    if (gameState.fans > 0 && Math.random() < 0.1) {
+      const baseChance = Math.min(gameState.fans / 1000, 0.3);
+      if (Math.random() < baseChance) {
+        const interactionAmount = Math.floor(Math.random() * 50) + 1;
+        gameState.totalInteractions += interactionAmount;
+        report.changes.interactions += interactionAmount;
+      }
+    }
+    
+    if (Math.random() < 0.05) {
+      const activeChange = Math.floor(Math.random() * 20) - 10;
+      gameState.activeFans = Math.max(0, gameState.activeFans + activeChange);
+      report.changes.activeFans += activeChange;
+    }
+  }
+  
+  // 5. 处理进行中的状态时间流逝
+  if (gameState.isHotSearch && gameState.hotSearchStartTime) {
+    const elapsedDays = getVirtualDaysPassed(gameState.hotSearchStartTime);
+    gameState.hotSearchDaysCount -= elapsedDays;
+    if (gameState.hotSearchDaysCount <= 0) {
+      gameState.isHotSearch = false;
+    }
+  }
+  
+  if (gameState.isPublicOpinionCrisis && gameState.publicOpinionStartTime) {
+    const elapsedDays = getVirtualDaysPassed(gameState.publicOpinionStartTime);
+    gameState.publicOpinionDaysCount -= elapsedDays;
+    if (gameState.publicOpinionDaysCount <= 0) {
+      gameState.isPublicOpinionCrisis = false;
+    }
+  }
+  
+  if (gameState.isBanned && gameState.banStartTime) {
+    const elapsedDays = getVirtualDaysPassed(gameState.banStartTime);
+    gameState.banDaysCount -= elapsedDays;
+    if (gameState.banDaysCount <= 0) {
+      gameState.isBanned = false;
+      gameState.warnings = 0;
+    }
+  }
+  
+  // 6. 流量推广
+  Object.keys(gameState.trafficWorks).forEach(workId => {
+    const trafficData = gameState.trafficWorks[workId];
+    if (trafficData && trafficData.isActive) {
+      const elapsed = getVirtualDaysPassed(trafficData.startTime);
+      const remaining = trafficData.days - elapsed;
+      
+      if (remaining <= 0) {
+        delete gameState.trafficWorks[workId];
+      } else {
+        const boostIterations = Math.floor(offlineSeconds);
+        for (let i = 0; i < boostIterations; i++) {
+          const viewsBoost = Math.floor(Math.random() * 1000) + 200;
+          const work = gameState.worksList.find(w => w.id == workId);
+          if (work) {
+            work.views += viewsBoost;
+            gameState.views += viewsBoost;
+            report.changes.views += viewsBoost;
+          }
+        }
+      }
+    }
+  });
+  
+  gameState.offlineReport = report;
+  saveGame();
+}
+
+function formatDuration(ms) {
+  const minutes = Math.floor(ms / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) return `${days}天 ${hours % 24}小时`;
+  if (hours > 0) return `${hours}小时 ${minutes % 60}分钟`;
+  return `${minutes}分钟`;
+}
+
+function showOfflineReport() {
+  const report = gameState.offlineReport;
+  if (!report) return;
+  
+  const changesHtml = Object.entries(report.changes)
+    .filter(([_, value]) => value !== 0)
+    .map(([key, value]) => {
+      const iconMap = {
+        fans: '👥',
+        money: '💰',
+        views: '▶️',
+        likes: '❤️',
+        interactions: '💬',
+        activeFans: '🎯'
+      };
+      const sign = value > 0 ? '+' : '';
+      return `<div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>${iconMap[key] || '•'} ${key}</span>
+        <span style="color:${value > 0 ? '#00f2ea' : '#ff0050'};font-weight:bold">
+          ${sign}${value.toLocaleString()}
+        </span>
+      </div>`;
+    }).join('');
+  
+  const reportContent = `
+    <div class="modal-header">
+      <div class="modal-title">欢迎回来！</div>
+      <div class="close-btn" onclick="closeModal()">✕</div>
+    </div>
+    <div style="padding:20px">
+      <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:15px;border-radius:10px;margin-bottom:20px;text-align:center">
+        <div style="font-size:18px;font-weight:bold;margin-bottom:5px">离线时长</div>
+        <div style="font-size:24px">${report.duration}</div>
+      </div>
+      
+      ${changesHtml ? `
+        <div style="background:#161823;border-radius:10px;padding:15px;margin-bottom:20px">
+          <div style="font-size:16px;font-weight:bold;margin-bottom:15px">数据变化</div>
+          ${changesHtml}
+        </div>
+      ` : ''}
+      
+      ${report.events.total > 0 ? `
+        <div style="background:#161823;border-radius:10px;padding:15px;margin-bottom:20px">
+          <div style="font-size:16px;font-weight:bold;margin-bottom:15px">离线事件统计</div>
+          <div style="display:flex;justify-content:space-around;text-align:center">
+            <div>
+              <div style="font-size:24px;color:#00f2ea">${report.events.good}</div>
+              <div style="font-size:12px;color:#999">好事</div>
+            </div>
+            <div>
+              <div style="font-size:24px;color:#ff0050">${report.events.bad}</div>
+              <div style="font-size:12px;color:#999">坏事</div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <button class="btn" onclick="closeModal()" style="margin-top:10px">知道了</button>
+    </div>
+  `;
+  
+  showModal(reportContent);
+  
+  gameState.offlineReport = null;
+  saveGame();
+}
+
 // ==================== 全局函数绑定 ====================
 window.gameState = gameState;
 window.achievements = achievements;
@@ -284,3 +561,6 @@ window.randomEvents = randomEvents;
 window.violationKeywords = violationKeywords;
 window.startGame = startGame;
 window.initGame = initGame;
+window.processOfflineProgress = processOfflineProgress;
+window.formatDuration = formatDuration;
+window.showOfflineReport = showOfflineReport;
