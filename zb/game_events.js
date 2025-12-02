@@ -156,7 +156,7 @@ function endPublicOpinionCrisis() {
   updateDisplay();
 }
 
-// ==================== 图表更新（核心修复） ====================
+// ==================== 图表更新 ====================
 function updateChartData() {
   const virtualDays = Math.floor(getVirtualDaysPassed(gameState.gameStartTime));
   const dayIndex = virtualDays % 60;
@@ -206,17 +206,20 @@ function updateChartsRealtime() {
   }
 }
 
-// ==================== 游戏主循环（已恢复涨粉掉粉） ====================
+// ==================== 游戏主循环（已恢复全部机制） ====================
 function startGameLoop() {
+  // 每虚拟天（1分钟）精确更新一次图表
   setInterval(() => {
     updateChartData();
   }, VIRTUAL_DAY_MS);
   
+  // 每30秒触发随机事件
   setInterval(() => {
     const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
     handleRandomEvent(event);
   }, 30000);
   
+  // 每分钟检查长时间未更新（掉粉机制）
   setInterval(() => {
     const timeSinceLastUpdate = Date.now() - gameState.lastUpdateTime;
     if (timeSinceLastUpdate > 10 * 60 * 1000) {
@@ -226,6 +229,7 @@ function startGameLoop() {
     }
   }, 60000);
   
+  // 每秒检查状态（流量推广、舆论风波等）
   setInterval(() => {
     Object.keys(gameState.trafficWorks).forEach(workId => {
       const trafficData = gameState.trafficWorks[workId];
@@ -241,29 +245,64 @@ function startGameLoop() {
     }
   }, 1000);
   
+  // ==================== 核心：自然涨粉/掉粉机制 ====================
   setInterval(() => {
+    // 5%概率触发粉丝自然波动（约每20秒一次）
     if (Math.random() < 0.05) {
-      const change = Math.floor(Math.random() * 100) - 50;
+      const change = Math.floor(Math.random() * 100) - 50; // -50到+50的随机变化
       gameState.fans = Math.max(0, gameState.fans + change);
+      
+      if (change > 0) {
+        showNotification('粉丝变化', `获得了${change}个新粉丝`);
+      } else if (change < 0) {
+        showNotification('粉丝变化', `失去了${Math.abs(change)}个粉丝`);
+      }
+      
+      // 粉丝变化时同步更新图表
       updateChartData();
     }
+    
+    // 每100ms更新主界面显示（保持流畅）
     updateDisplay();
   }, 100);
   
+  // ==================== 自动互动生成系统 ====================
   setInterval(() => {
     if (gameState.fans <= 0) return;
     
-    const baseChance = Math.min(gameState.fans / 1000, 0.3);
+    // 根据活跃粉丝数生成随机互动
+    const baseChance = Math.min(gameState.fans / 1000, 0.3); // 最多30%概率
     if (Math.random() < baseChance) {
+      const interactionTypes = ['观看', '点赞', '评论', '转发', '访问主页'];
+      const interactionWeights = [0.4, 0.25, 0.15, 0.1, 0.1]; // 权重分布
+      
+      let random = Math.random();
+      let selectedType = '';
+      let accumulatedWeight = 0;
+      
+      for (let i = 0; i < interactionTypes.length; i++) {
+        accumulatedWeight += interactionWeights[i];
+        if (random < accumulatedWeight) {
+          selectedType = interactionTypes[i];
+          break;
+        }
+      }
+      
       const interactionAmount = Math.floor(Math.random() * 50) + 1;
       gameState.totalInteractions += interactionAmount;
+      
+      // 小概率显示通知提示（避免刷屏）
+      if (Math.random() < 0.05) {
+        showNotification('粉丝活跃', `${interactionAmount}位粉丝进行了${selectedType}互动`);
+      }
     }
     
+    // 活跃粉丝自然波动（5%概率）
     if (Math.random() < 0.05) {
       const activeChange = Math.floor(Math.random() * 20) - 10;
       gameState.activeFans = Math.max(0, gameState.activeFans + activeChange);
     }
-  }, 5000);
+  }, 5000); // 每5秒检查一次互动
 }
 
 // ==================== 成就检查 ====================
