@@ -321,33 +321,3 @@ select:active {
   50% { transform: translateY(-5px); }
   100% { transform: translateY(0px); }
 }
-
-/* ==================== 离线报告样式优化 ==================== */
-.offline-report-summary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.offline-report-changes {
-    background: #161823;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
-
-.offline-report-events {
-    max-height: 200px;
-    overflow-y: auto;
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-/* 确保模态框可以显示长内容 */
-.modal-content {
-    max-height: 85vh;
-    overflow-y: auto;
-}
