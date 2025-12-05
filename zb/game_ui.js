@@ -3,9 +3,23 @@ function updateDisplay() {
     document.getElementById('usernameDisplay').textContent = gameState.username;
     document.getElementById('userAvatar').textContent = gameState.avatar;
     
+    // 更新虚拟日期显示（包含完整时间）
+    const dateDisplay = document.getElementById('virtualDateDisplay');
+    if (dateDisplay) {
+        dateDisplay.textContent = formatVirtualDate(true); // 显示为"2025年01月01日 14:30:25"
+        // 添加日期变化动画
+        dateDisplay.classList.add('updating');
+        setTimeout(() => dateDisplay.classList.remove('updating'), 300);
+    }
+    
     // 只统计非私密作品
     const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
-    const totalViews = publicWorks.reduce((sum, w) => sum + w.views, 0);
+    
+    // ========== 修改：只统计视频和直播的播放量，不包含动态 ==========
+    const videoAndLiveWorks = publicWorks.filter(w => w.type === 'video' || w.type === 'live');
+    const totalViews = videoAndLiveWorks.reduce((sum, w) => sum + w.views, 0);
+    // ========== 结束修改 ==========
+    
     const totalLikes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
     
     document.getElementById('fansCount').textContent = formatNumber(gameState.fans);
@@ -17,6 +31,16 @@ function updateDisplay() {
     document.getElementById('moneyCount').textContent = Math.floor(gameState.money);
     
     document.getElementById('warningCount').textContent = `${gameState.warnings}/20`;
+    
+    // 添加虚拟时间统计
+    const virtualDate = getVirtualDate();
+    const timeStat = document.getElementById('virtualTimeStat');
+    if (timeStat) {
+        timeStat.textContent = `${virtualDate.totalDays}天`;
+        // 鼠标悬停显示完整日期时间
+        timeStat.parentElement.title = `${virtualDate.year}年${virtualDate.month}月${virtualDate.day}日 ${virtualDate.formattedTime}`;
+    }
+    
     const liveBtn = document.getElementById('liveControlBtn');
     if (liveBtn) {
         liveBtn.style.display = 'block';
@@ -60,20 +84,62 @@ function updateWorksList() {
     worksList.innerHTML = '';
     const recentWorks = gameState.worksList.slice(-5).reverse();
     recentWorks.forEach((work) => {
+        const statusBadges = [];
+        
+        // ========== 新增：状态标识 ==========
+        // 推荐状态
+        if (work.isRecommended) {
+            const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusBadges.push(`<span style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥推荐${timeLeft.toFixed(1)}天</span>`);
+        }
+        
+        // 争议状态
+        if (work.isControversial) {
+            const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusBadges.push(`<span style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">⚠️争议${timeLeft.toFixed(1)}天</span>`);
+        }
+        
+        // 热搜状态（动态）
+        if (work.isHot) {
+            const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusBadges.push(`<span style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥热搜${timeLeft.toFixed(1)}天</span>`);
+        }
+        
+        // 推广状态
         const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
-        const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
-        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
-        const trafficIndicator = isTrafficActive ? '<div class="traffic-indicator">🔥 推送中</div>' : '';
+        if (isTrafficActive) {
+            statusBadges.push('<span style="background:#667eea;color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">📈推广</span>');
+        }
+        
+        // 其他原有标识
+        const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">商单</span>' : '';
+        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔒私密</span>' : '';
+        
+        const statusBar = statusBadges.length > 0 ? `<div style="margin-bottom:8px;">${statusBadges.join('')}</div>` : '';
+        
         const workItem = document.createElement('div');
         workItem.className = 'work-item';
-        workItem.innerHTML = `<div class="work-header"><span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span><span class="work-time">${formatTime(work.time)} ${adBadge}</span></div><div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div><div class="work-stats"><span>▶️ <span class="stat-number" id="work-views-${work.id}">${work.views.toLocaleString()}</span></span><span>❤️ <span class="stat-number" id="work-likes-${work.id}">${work.likes.toLocaleString()}</span></span><span>💬 <span class="stat-number" id="work-comments-${work.id}">${work.comments.toLocaleString()}</span></span><span>🔄 <span class="stat-number" id="work-shares-${work.id}">${work.shares.toLocaleString()}</span></span></div>${trafficIndicator}`;
+        workItem.innerHTML = `
+            ${statusBar}
+            <div class="work-header">
+                <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
+                <span class="work-time">${formatTime(work.time)} ${adBadge}</span>
+            </div>
+            <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
+            <div class="work-stats">
+                <span>▶️ ${work.views.toLocaleString()}</span>
+                <span>❤️ ${work.likes.toLocaleString()}</span>
+                <span>💬 ${work.comments.toLocaleString()}</span>
+                <span>🔄 ${work.shares.toLocaleString()}</span>
+            </div>
+        `;
         workItem.onclick = () => showWorkDetail(work);
         worksList.appendChild(workItem);
     });
     if (recentWorks.length === 0) worksList.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>';
 }
 
-// ==================== 作品自动更新 ====================
+// ==================== 作品自动更新（修复版） ====================
 function startWorkUpdates() {
     setInterval(() => {
         if (gameState.worksList.length === 0) return;
@@ -85,7 +151,13 @@ function startWorkUpdates() {
             const sharesGrowth = Math.floor(Math.random() * 5);
             const oldViews = work.views;
             work.views += viewsGrowth;
-            gameState.views += viewsGrowth;
+            
+            // ========== 修改：只有视频和直播的播放量增长才计入总播放量 ==========
+            if (work.type === 'video' || work.type === 'live') {
+                gameState.views += viewsGrowth;
+            }
+            // ========== 结束修改 ==========
+            
             const oldRevenue = work.revenue || 0;
             const newRevenue = Math.floor(work.views / 1000);
             const revenueGrowth = newRevenue - oldRevenue;
@@ -97,6 +169,10 @@ function startWorkUpdates() {
             gameState.likes += likesGrowth;
             work.comments += commentsGrowth;
             work.shares += sharesGrowth;
+            
+            // 修复：只统计主动互动行为（评论、转发），去掉播放量
+            gameState.totalInteractions += commentsGrowth + sharesGrowth;
+            
             const viewsEl = document.getElementById(`work-views-${work.id}`);
             const likesEl = document.getElementById(`work-likes-${work.id}`);
             const commentsEl = document.getElementById(`work-comments-${work.id}`);
@@ -320,23 +396,51 @@ function showWorkDetail(work) {
     currentDetailWork = work;
     const trafficData = gameState.trafficWorks[work.id];
     const isTrafficActive = trafficData && trafficData.isActive;
+    
+    // ========== 新增：状态显示 ==========
+    const statusIndicators = [];
+    
+    if (work.isRecommended) {
+        const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
+        statusIndicators.push(`<div style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">🔥 推荐中...（剩余${timeLeft.toFixed(1)}天）</div>`);
+    }
+    
+    if (work.isControversial) {
+        const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
+        statusIndicators.push(`<div style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">⚠️ 争议中（剩余${timeLeft.toFixed(1)}天）</div>`);
+    }
+    
+    if (work.isHot) {
+        const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
+        statusIndicators.push(`<div style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">🔥 热搜中（剩余${timeLeft.toFixed(1)}天）</div>`);
+    }
+    
     const trafficStatus = isTrafficActive ? `
         <div style="background: linear-gradient(135deg,#ff6b00 0%,#ff0050 100%); color: #fff; padding: 8px; border-radius: 5px; text-align: center; font-weight: bold; margin-bottom: 15px; animation: pulse 1s infinite;">
-            🔥 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - ((gameTimer - trafficData.startTime) / VIRTUAL_DAY_MS)))}天）
+            📈 推送中...（剩余${Math.ceil(Math.max(0, trafficData.days - ((gameTimer - trafficData.startTime) / VIRTUAL_DAY_MS)))}天）
         </div>
     ` : '';
+    
     const adBadge = work.isAd ? '<div style="background:#ff0050;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🎯 商单合作</div>' : '';
     const privacyBadge = work.isPrivate ? '<div style="background:#999;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🔒 私密作品</div>' : '';
     const comments = typeof generateComments === 'function' ? generateComments(work.comments, work.time) : [];
     
+    // ========== 修改：根据作品类型显示不同的指标文字 ==========
+    const viewsLabel = work.type === 'post' ? '查阅' : '播放/观看';
+    // ========== 结束修改 ==========
+    
     const content = document.getElementById('workDetailPageContent');
     content.innerHTML = `
         <div style="margin-bottom:20px">
+            ${statusIndicators.join('')}
             ${trafficStatus}${adBadge}${privacyBadge}
             <div style="font-size:16px;margin-bottom:10px">${work.content}</div>
             <div style="font-size:12px;color:#999;margin-bottom:15px">${formatTime(work.time)}</div>
             <div style="display:flex;justify-content:space-around;padding:15px;background:#161823;border-radius:10px;margin-bottom:20px">
-                <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.views.toLocaleString()}</div><div style="font-size:12px;color:#999">播放/观看</div></div>
+                <div style="text-align:center">
+                    <div style="font-size:18px;font-weight:bold">${work.views.toLocaleString()}</div>
+                    <div style="font-size:12px;color:#999">${viewsLabel}</div>
+                </div>
                 <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.likes.toLocaleString()}</div><div style="font-size:12px;color:#999">点赞</div></div>
                 <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.comments.toLocaleString()}</div><div style="font-size:12px;color:#999">评论</div></div>
                 <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${work.shares.toLocaleString()}</div><div style="font-size:12px;color:#999">转发</div></div>
@@ -373,7 +477,7 @@ function showWorkDetail(work) {
     document.querySelector('.bottom-nav').style.display = 'none';
 }
 
-// ==================== 删除作品 ====================
+// ==================== 删除作品（修复版） ====================
 function deleteWork(workId) {
     const workIndex = gameState.worksList.findIndex(w => w.id === workId);
     if (workIndex === -1) return;
@@ -381,8 +485,21 @@ function deleteWork(workId) {
     const work = gameState.worksList[workIndex];
     
     if (confirm(`确定要删除这个${work.type === 'video' ? '视频' : work.type === 'live' ? '直播' : '动态'}吗？此操作不可恢复！`)) {
+        // 停止相关效果
+        if (work.isRecommended && work.recommendInterval) {
+            clearInterval(work.recommendInterval);
+        }
+        if (work.isControversial && work.controversyInterval) {
+            clearInterval(work.controversyInterval);
+        }
+        if (work.isHot && work.hotInterval) {
+            clearInterval(work.hotInterval);
+        }
+        
         // 减去该作品对总数据的贡献
-        gameState.views = Math.max(0, gameState.views - work.views);
+        if (work.type === 'video' || work.type === 'live') {
+            gameState.views = Math.max(0, gameState.views - work.views);
+        }
         gameState.likes = Math.max(0, gameState.likes - work.likes);
         
         // 从列表中移除
@@ -393,12 +510,12 @@ function deleteWork(workId) {
             if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
         }
         
+        // 修复：只减去主动互动行为（评论、点赞、转发），去掉播放量
+        const interactionCount = work.comments + work.likes + work.shares;
+        gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
+        
         // 更新作品数
         gameState.works = gameState.worksList.filter(w => !w.isPrivate).length;
-        
-        // 更新总互动数据
-        const interactionCount = work.views + work.comments + work.likes + work.shares;
-        gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
         
         closeFullscreenPage('workDetail');
         updateDisplay();
@@ -416,12 +533,12 @@ function togglePrivate(workId) {
     // 重新计算统计数据
     const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
     gameState.works = publicWorks.length;
-    gameState.views = publicWorks.reduce((sum, w) => sum + w.views, 0);
+    gameState.views = publicWorks.filter(w => w.type === 'video' || w.type === 'live').reduce((sum, w) => sum + w.views, 0);
     gameState.likes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
     
-    // 重新计算总互动数
+    // 重新计算总互动数（只包含主动行为：评论、点赞、转发）
     gameState.totalInteractions = publicWorks.reduce((sum, w) => {
-        return sum + w.views + w.comments + w.likes + w.shares;
+        return sum + w.comments + w.likes + w.shares;
     }, 0);
     
     showNotification('设置成功', work.isPrivate ? '作品已设为私密' : '作品已取消私密');
@@ -546,19 +663,82 @@ function closeFullscreenPage(pageName) {
     document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
 }
 
-// ==================== 全屏作品页 ====================
+// ==================== 全屏作品页（完整重写） ====================
+// ========== 新增：作品分类标签切换功能 ==========
 function showWorksFullscreen() {
     const content = document.getElementById('worksListTab');
     if (!content) return;
     
-    const worksHtml = gameState.worksList.map(work => {
+    // 添加分类标签栏
+    const categoryTabs = `
+        <div style="display: flex; padding: 10px; gap: 10px; background: #161823; border-radius: 10px; margin: 10px;">
+            <div class="category-tab active" data-category="all" onclick="filterWorksByCategory('all')">全部</div>
+            <div class="category-tab" data-category="video" onclick="filterWorksByCategory('video')">视频</div>
+            <div class="category-tab" data-category="post" onclick="filterWorksByCategory('post')">动态</div>
+            <div class="category-tab" data-category="live" onclick="filterWorksByCategory('live')">直播</div>
+        </div>
+        <div id="filteredWorksList" style="padding: 0 10px 60px 10px;"></div>
+    `;
+    
+    content.innerHTML = categoryTabs;
+    
+    // 首次加载显示全部作品
+    filterWorksByCategory('all');
+    
+    const totalCountEl = document.getElementById('worksTotalCount');
+    if (totalCountEl) totalCountEl.textContent = `共${gameState.worksList.length}个作品`;
+}
+
+// ========== 新增：作品分类筛选函数 ==========
+function filterWorksByCategory(category) {
+    // 更新标签激活状态
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-category="${category}"]`).classList.add('active');
+    
+    // 筛选作品
+    let filteredWorks = gameState.worksList;
+    if (category !== 'all') {
+        filteredWorks = gameState.worksList.filter(work => work.type === category);
+    }
+    
+    // 渲染筛选后的作品列表
+    const worksHtml = filteredWorks.map(work => {
+        const statusBadges = [];
+        
+        // 推荐状态
+        if (work.isRecommended) {
+            const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusBadges.push(`<span style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥推荐${timeLeft.toFixed(1)}天</span>`);
+        }
+        
+        // 争议状态
+        if (work.isControversial) {
+            const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusBadges.push(`<span style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">⚠️争议${timeLeft.toFixed(1)}天</span>`);
+        }
+        
+        // 热搜状态（动态）
+        if (work.isHot) {
+            const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
+            statusBadges.push(`<span style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥热搜${timeLeft.toFixed(1)}天</span>`);
+        }
+        
         const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
-        const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
-        const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
-        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
+        if (isTrafficActive) {
+            statusBadges.push('<span style="background:#667eea;color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">📈推广</span>');
+        }
+        
+        const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;">商单</span>' : '';
+        const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;">推广中</span>' : '';
+        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;">🔒 私密</span>' : '';
+        
+        const statusBar = statusBadges.length > 0 ? `<div style="margin-bottom:8px;">${statusBadges.join('')}</div>` : '';
         
         return `
             <div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
+                ${statusBar}
                 <div class="work-header">
                     <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
                     <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
@@ -574,11 +754,9 @@ function showWorksFullscreen() {
         `;
     }).join('');
     
-    content.innerHTML = worksHtml.length === 0 ? 
-        '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>' : worksHtml;
-    
-    const totalCountEl = document.getElementById('worksTotalCount');
-    if (totalCountEl) totalCountEl.textContent = `共${gameState.worksList.length}个作品`;
+    const filteredListEl = document.getElementById('filteredWorksList');
+    filteredListEl.innerHTML = worksHtml.length === 0 ? 
+        '<div style="text-align:center;color:#999;padding:20px;">该分类暂无作品，快去创作吧！</div>' : worksHtml;
 }
 
 // ==================== 全屏消息页 ====================
@@ -725,3 +903,4 @@ window.changeUserId = changeUserId;
 window.changeAvatar = changeAvatar;
 window.clearData = clearData;
 window.generateComments = generateComments;
+window.filterWorksByCategory = filterWorksByCategory;

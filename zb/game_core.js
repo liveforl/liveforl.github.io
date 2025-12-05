@@ -1,5 +1,12 @@
 // ==================== 虚拟时间机制 ====================
 const VIRTUAL_DAY_MS = 1 * 60 * 1000; // 1虚拟天 = 1分钟
+const VIRTUAL_MONTH_DAYS = 30; // 1虚拟月 = 30天
+const VIRTUAL_YEAR_DAYS = 365; // 1虚拟年 = 365天
+
+// 新增：虚拟时间单位
+const VIRTUAL_HOUR_MS = VIRTUAL_DAY_MS / 24; // 1虚拟小时 = 2.5现实秒
+const VIRTUAL_MINUTE_MS = VIRTUAL_HOUR_MS / 60; // 1虚拟分钟 = 0.0417秒
+const VIRTUAL_SECOND_MS = VIRTUAL_MINUTE_MS / 60; // 1虚拟秒 = 0.000694秒
 
 // 增加图表实例管理
 window.charts = {
@@ -8,6 +15,50 @@ window.charts = {
     views: null,
     interactions: null
 };
+
+// ==================== 新增：虚拟日期系统 ====================
+// 游戏起始虚拟日期（2025年1月1日）
+const GAME_START_VIRTUAL_DATE = {
+    year: 2025,
+    month: 1, // 1-12
+    day: 1    // 1-30
+};
+
+// 计算虚拟日期
+function getVirtualDate() {
+    const totalDays = Math.floor(getVirtualDaysPassed());
+    const daysInCurrentYear = totalDays % VIRTUAL_YEAR_DAYS;
+    const monthsPassed = Math.floor(daysInCurrentYear / VIRTUAL_MONTH_DAYS);
+    const daysInCurrentMonth = daysInCurrentYear % VIRTUAL_MONTH_DAYS;
+    
+    // 计算一天内的时间
+    const timeInDay = gameTimer % VIRTUAL_DAY_MS;
+    const hours = Math.floor(timeInDay / VIRTUAL_HOUR_MS);
+    const minutes = Math.floor((timeInDay % VIRTUAL_HOUR_MS) / VIRTUAL_MINUTE_MS);
+    const seconds = Math.floor((timeInDay % VIRTUAL_MINUTE_MS) / VIRTUAL_SECOND_MS);
+    
+    return {
+        year: GAME_START_VIRTUAL_DATE.year + Math.floor(totalDays / VIRTUAL_YEAR_DAYS),
+        month: ((GAME_START_VIRTUAL_DATE.month - 1 + monthsPassed) % 12) + 1,
+        day: daysInCurrentMonth + 1,
+        totalDays: totalDays,
+        totalMonths: Math.floor(totalDays / VIRTUAL_MONTH_DAYS),
+        totalYears: Math.floor(totalDays / VIRTUAL_YEAR_DAYS),
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds,
+        formattedTime: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    };
+}
+
+// 格式化虚拟日期显示
+function formatVirtualDate(short = false) {
+    const date = getVirtualDate();
+    if (short) {
+        return `${date.year}年${String(date.month).padStart(2, '0')}月${String(date.day).padStart(2, '0')}日 ${date.formattedTime}`;
+    }
+    return `虚拟${date.year}年${date.month}月${date.day}日 ${date.formattedTime}`;
+}
 
 // ==================== 新增：核心计时器系统 ====================
 let gameTimer = 0; // 游戏内经过的毫秒数（从00:00:00开始）
@@ -88,7 +139,8 @@ let gameState = {
         views: [], 
         interactions: [],
         currentIndex: 0,    // 新增：当前数据写入位置
-        currentDay: 0       // 新增：当前虚拟天数
+        currentDay: 0,       // 新增：当前虚拟天数
+        lastInteractionTotal: 0 // 新增：用于计算每日互动增量
     }, 
     liveInterval: null, 
     workUpdateIntervals: [], 
@@ -126,14 +178,6 @@ const adOrdersDB = [
     { id: 1, title: "健康饮品推广", content: "某知名品牌健康饮品，口感清爽，适合运动后的水分补充", reward: 5000, risk: 0, keyword: "" }, { id: 2, title: "学习APP推荐", content: "高效学习工具，帮助提升记忆力", reward: 8000, risk: 0, keyword: "" }, { id: 3, title: "生活用品测评", content: "日常好物分享，提升生活品质", reward: 12000, risk: 0, keyword: "" }, { id: 4, title: "投资理财课程", content: "零基础学理财，分享年化20%+的实战技巧", reward: 50000, risk: 0.7, keyword: "收益" }, { id: 5, title: "传统草本精华", content: "调节身体机能，效果因人而异，坚持服用见效", reward: 30000, risk: 0.6, keyword: "见效" }, { id: 6, title: "资金周转方案", content: "快速审批，灵活还款，解决短期资金需求", reward: 80000, risk: 0.9, keyword: "资金周转" }, { id: 7, title: "数字资产机遇", content: "新兴区块链项目，把握时代机遇", reward: 100000, risk: 0.85, keyword: "区块链" }, { id: 8, title: "美容护肤产品", content: "7天见证肌肤改变，独家生物科技配方", reward: 25000, risk: 0.65, keyword: "7天" }, { id: 9, title: "游戏陪玩平台", content: "边娱乐边创收，时间自由多劳多得", reward: 40000, risk: 0.5, keyword: "多劳多得" }, { id: 10, title: "海外好物分享", content: "原装进口，价格优惠，支持专柜验货", reward: 15000, risk: 0.4, keyword: "验货" }
 ];
 
-// ==================== 随机事件 ====================
-const randomEvents = [
-    { type: 'good', title: '视频爆了！', desc: '你的视频被推荐到首页，播放量暴涨', effect: { views: 50000, fans: 5000, likes: 3000 } }, { type: 'good', title: '话题热搜', desc: '你的动态登上热搜榜', effect: { views: 20000, fans: 2000, likes: 1500 } }, { type: 'good', title: '大V转发', desc: '知名博主转发了你的作品', effect: { views: 30000, fans: 3000, likes: 2000 } }, { type: 'good', title: '粉丝福利', desc: '粉丝们给你刷了礼物', effect: { money: 1000, likes: 500 } }, { type: 'good', title: '品牌合作', desc: '有品牌找你合作推广', effect: { money: 5000, fans: 1000 } }, { type: 'bad', title: '内容争议', desc: '你的内容引发争议，有人举报', effect: { fans: -500, warnings: 1 } }, { type: 'bad', title: '黑粉攻击', desc: '有人组织黑粉攻击你的账号', effect: { fans: -1000, likes: -500 } }, { type: 'bad', title: '系统误判', desc: '系统误判你的内容违规', effect: { warnings: 1 } }, { type: 'bad', title: '竞争对手', desc: '同类型主播抢走了你的流量', effect: { views: -10000, fans: -800 } }, { type: 'bad', title: '网络暴力', desc: '你被网暴了，心情低落', effect: { fans: -300, likes: -200 } }, { type: 'neutral', title: '平淡一天', desc: '今天没什么特别的事情发生', effect: {} }, { type: 'neutral', title: '粉丝互动', desc: '和粉丝们聊得很开心', effect: { likes: 100 } }, { type: 'neutral', title: '灵感枯竭', desc: '今天没有创作灵感', effect: {} }, { type: 'good', title: '技能提升', desc: '你学会了新的剪辑技巧', effect: { views: 5000 } }, { type: 'good', title: '设备升级', desc: '你购买了新的直播设备', effect: { fans: 800 } }, { type: 'bad', title: '设备故障', desc: '直播设备出现故障', effect: { fans: -200 } }, { type: 'good', title: '粉丝见面会', desc: '举办了粉丝见面会', effect: { fans: 2000, money: 2000 } }, { type: 'bad', title: '恶意投诉', desc: '有人恶意投诉你的直播', effect: { warnings: 1 } }, { type: 'good', title: '平台推荐', desc: '平台给你提供了推荐位', effect: { views: 40000, fans: 4000 } }, { type: 'bad', title: '算法调整', desc: '平台算法调整，流量下降', effect: { views: -15000 } }, { type: 'good', title: '病毒传播', desc: '你的视频成为病毒式传播', effect: { views: 100000, fans: 10000 } }, { type: 'bad', title: '版权争议', desc: '你的视频涉及版权问题', effect: { warnings: 2, views: -5000 } }, { type: 'good', title: '登上热搜', desc: '你的内容登上平台热搜榜，获得海量曝光', effect: { hotSearch: true } }, { type: 'good', title: '话题引爆', desc: '你制造的话题引发全网讨论', effect: { hotSearch: true } }, { type: 'good', title: '热搜第一', desc: '你的内容登上热搜榜第一名！', effect: { hotSearch: true } },
-    { type: 'bad', title: '舆论风波', desc: '你被卷入舆论风波，粉丝开始流失', effect: { publicOpinion: true } },
-    { type: 'bad', title: '负面新闻', desc: '关于你的负面新闻在网上传播', effect: { publicOpinion: true } },
-    { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true } }
-];
-
 // ==================== 违规关键词 ====================
 const violationKeywords = ['暴力', '色情', '政治', '谣言', '诈骗', '盗版', '侵权', '辱骂', '歧视', '毒品'];
 
@@ -144,14 +188,23 @@ function formatNumber(num) {
     return num.toString();
 }
 
+// 修复：基于虚拟时间的相对时间格式化
 function formatTime(timestamp) {
-    // 修改：基于游戏计时器的时间格式化
+    // 计算游戏时间差（毫秒）
     const diff = gameTimer - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return '刚刚';
-    if (minutes < 60) return `${minutes}分钟前`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)}小时前`;
-    return `${Math.floor(minutes / 1440)}天前`;
+    
+    if (diff < 0) return '未来';
+    
+    // 转换为虚拟时间单位
+    const virtualMinutes = Math.floor(diff / VIRTUAL_MINUTE_MS);
+    const virtualHours = Math.floor(diff / VIRTUAL_HOUR_MS);
+    const virtualDays = Math.floor(diff / VIRTUAL_DAY_MS);
+    
+    // 根据虚拟时间单位返回相对时间
+    if (virtualMinutes < 1) return '刚刚';
+    if (virtualMinutes < 60) return `${virtualMinutes}分钟前`;
+    if (virtualHours < 24) return `${virtualHours}小时前`;
+    return `${virtualDays}天前`;
 }
 
 function saveGame() {
@@ -269,6 +322,11 @@ function initGame() {
                         gameState.chartData.currentIndex = (virtualDays - 1) % 60;
                         gameState.chartData.currentDay = virtualDays - 1;
                     }
+                }
+                
+                // ==================== 新增：为旧存档添加互动累积基准字段 ====================
+                if (gameState.chartData.lastInteractionTotal === undefined) {
+                    gameState.chartData.lastInteractionTotal = gameState.totalInteractions || 0;
                 }
             }
             
@@ -411,6 +469,7 @@ function initGame() {
         // 新增：初始化元数据
         gameState.chartData.currentIndex = 0;
         gameState.chartData.currentDay = 0;
+        gameState.chartData.lastInteractionTotal = 0; // 初始化互动累积基准
         
         // 初始化开发者模式为关闭
         gameState.devMode = false;
@@ -489,7 +548,7 @@ function resetGame() {
         gameState.banDropInterval = null;
     }
     if (gameState.hotSearchInterval) {
-        clearInterval(gameState.hotSearchInterval);
+        clearInterval(gameState.hotSearchLateval);
         gameState.hotSearchInterval = null;
     }
     if (gameState.publicOpinionInterval) {
@@ -564,7 +623,8 @@ function resetGame() {
             views: [], 
             interactions: [],
             currentIndex: 0, // 新增
-            currentDay: 0    // 新增
+            currentDay: 0,    // 新增
+            lastInteractionTotal: 0 // 重置互动累积基准
         }, 
         liveInterval: null, 
         workUpdateIntervals: [], 
@@ -577,7 +637,7 @@ function resetGame() {
         adOrdersCount: 0, 
         isPublicOpinionCrisis: false, 
         publicOpinionDaysCount: 0, 
-        publicOpinionStartTime: null, // 改为游戏计时器时间
+        publicOpinionStartTime: null, // 存储游戏计时器时间
         publicOpinionInterval: null, 
         publicOpinionTitle: '',
         devMode: false,
@@ -669,7 +729,7 @@ window.addEventListener('beforeunload', function() {
 window.gameState = gameState;
 window.achievements = achievements;
 window.adOrdersDB = adOrdersDB;
-window.randomEvents = randomEvents;
+// window.randomEvents = randomEvents; // 已移除
 window.violationKeywords = violationKeywords;
 window.startGame = startGame;
 window.initGame = initGame;
@@ -678,5 +738,7 @@ window.gameTimer = gameTimer;
 window.startGameTimer = startGameTimer;
 window.stopGameTimer = stopGameTimer;
 window.getVirtualDaysPassed = getVirtualDaysPassed;
+window.formatVirtualDate = formatVirtualDate;
+window.getVirtualDate = getVirtualDate;
 
 console.log('游戏核心已加载，startGame函数:', typeof startGame);

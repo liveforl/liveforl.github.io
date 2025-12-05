@@ -388,6 +388,7 @@ function devUnlockAllAchievements() {
   showNotification('修改数据', `已解锁${unlockedCount}个成就`);
 }
 
+// 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
 function devAddRandomWork() {
   const types = ['video', 'post', 'live'];
   const type = types[Math.floor(Math.random() * types.length)];
@@ -416,11 +417,11 @@ function devAddRandomWork() {
   gameState.views += views;
   gameState.likes += likes;
   gameState.money += work.revenue;
-  
   const newFans = Math.floor(views / 1000 * (Math.random() * 2 + 0.5));
   gameState.fans += newFans;
   
-  gameState.totalInteractions += views + comments + likes + shares;
+  // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
+  gameState.totalInteractions += comments + likes + shares;
   gameState.activeFans += Math.floor(newFans * 0.5);
   
   updateDisplay();

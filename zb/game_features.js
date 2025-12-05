@@ -46,7 +46,14 @@ function createVideo() {
         shares: shares, 
         time: gameTimer, // 使用游戏计时器
         revenue: Math.floor(views / 1000), 
-        isPrivate: false 
+        isPrivate: false,
+        // 新增：状态标记
+        isRecommended: false,
+        recommendEndTime: null,
+        recommendInterval: null,
+        isControversial: false,
+        controversyEndTime: null,
+        controversyInterval: null
     };
     
     gameState.worksList.push(work);
@@ -57,8 +64,8 @@ function createVideo() {
     const newFans = Math.floor(views / 1000 * (Math.random() * 2 + 0.5));
     gameState.fans += newFans;
     
-    // 更新总互动数据（视频观看+评论+点赞+转发）
-    const interactionBoost = views + comments + likes + shares;
+    // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
+    const interactionBoost = comments + likes + shares;
     gameState.totalInteractions += interactionBoost;
     gameState.activeFans += Math.floor(newFans * 0.6);
     
@@ -111,18 +118,24 @@ function createPost() {
         comments: comments, 
         shares: shares, 
         time: gameTimer, // 使用游戏计时器
-        isPrivate: false 
+        isPrivate: false,
+        // 新增：热搜状态
+        isHot: false,
+        hotEndTime: null,
+        hotInterval: null
     };
     
     gameState.worksList.push(work);
     gameState.works++;
-    gameState.views += views;
+    // ========== 修改：动态不纳入播放量统计 ==========
+    // gameState.views += views; // 这行被移除
+    // ========== 结束修改 ==========
     gameState.likes += likes;
     const newFans = Math.floor(views / 2000 * (Math.random() * 1.5 + 0.3));
     gameState.fans += newFans;
     
-    // 更新总互动数据（浏览+评论+点赞+转发）
-    const interactionBoost = views + comments + likes + shares;
+    // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
+    const interactionBoost = comments + likes + shares;
     gameState.totalInteractions += interactionBoost;
     gameState.activeFans += Math.floor(newFans * 0.4);
     
@@ -247,8 +260,8 @@ function endLiveStream() {
         gameState.views += totalViews;
         gameState.likes += liveData.likes;
         
-        // 更新总互动数据（观看+评论+点赞+转发）
-        gameState.totalInteractions += totalViews + liveData.comments + liveData.likes + liveData.shares;
+        // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
+        gameState.totalInteractions += liveData.comments + liveData.likes + liveData.shares;
         
         if (totalViews >= 1000) {
             const achievement = achievements.find(a => a.id === 8);
@@ -494,7 +507,7 @@ function showAppeal() {
     }
 }
 
-// ==================== 商单系统（改为全屏） ====================
+// ==================== 商单系统（改为全屏，支持品牌合作） ====================
 function generateAdOrder() {
     const ad = adOrdersDB[Math.floor(Math.random() * adOrdersDB.length)];
     return { ...ad, actualReward: Math.floor(Math.random() * (100000 - 500) + 500), method: null, time: gameTimer, status: 'pending' }; // 使用游戏计时器
@@ -506,60 +519,216 @@ function showAdOrders() {
         return; 
     }
     
-    const ad = generateAdOrder();
-    gameState.currentAdOrder = ad;
-    const riskText = { 
-        0: '风险等级：低', 
-        0.4: '风险等级：中低', 
-        0.5: '风险等级：中', 
-        0.6: '风险等级：中高', 
-        0.65: '风险等级：中高', 
-        0.7: '风险等级：高', 
-        0.85: '风险等级：很高', 
-        0.9: '风险等级：极高' 
-    };
-    const riskColor = ad.risk > 0.6 ? '#ff0050' : ad.risk > 0.3 ? '#ff6b00' : '#00f2ea';
-    
     const content = document.getElementById('adOrdersPageContent');
-    content.innerHTML = `
-        <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333;">
-            <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${ad.title}</div>
-            <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${ad.content}</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${ad.actualReward}元</div>
-                <div style="font-size:12px;color:${riskColor}">${riskText[ad.risk] || '风险等级：低'}</div>
+    
+    // 检查是否有待处理的品牌合作
+    if (gameState.pendingBrandDeal && gameState.pendingBrandDeal.status === 'pending') {
+        const brandDeal = gameState.pendingBrandDeal;
+        const riskText = '风险等级：低';
+        const riskColor = '#00f2ea';
+        
+        content.innerHTML = `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #fff; font-weight: bold; text-align: center;">
+                🎉 品牌合作机会
             </div>
-        </div>
-        <div style="margin-bottom:15px;">
-            <div class="input-label">选择发布方式</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-                <div class="action-btn" onclick="selectMethod('video')" style="padding:10px">
-                    <div class="action-icon">🎬</div>
-                    <div class="action-text">视频</div>
-                </div>
-                <div class="action-btn" onclick="selectMethod('post')" style="padding:10px">
-                    <div class="action-icon">📝</div>
-                    <div class="action-text">动态</div>
-                </div>
-                <div class="action-btn" onclick="selectMethod('live')" style="padding:10px">
-                    <div class="action-icon">📱</div>
-                    <div class="action-text">直播</div>
+            <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333; border-left: 4px solid #667eea;">
+                <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${brandDeal.title}</div>
+                <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${brandDeal.content}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${brandDeal.actualReward}元</div>
+                    <div style="font-size:12px;color:${riskColor}">${riskText}</div>
                 </div>
             </div>
-        </div>
-        <div id="publishForm" style="display:none">
-            <div class="input-group">
-                <div class="input-label">内容创作</div>
-                <textarea class="text-input" id="adContent" rows="4" placeholder="根据商单要求创作内容..." maxlength="200"></textarea>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="action-btn" onclick="acceptBrandDeal()" style="flex: 1; background: #667eea;">
+                    <div class="action-icon">✅</div>
+                    <div class="action-text">接受合作</div>
+                </div>
+                <div class="action-btn" onclick="rejectBrandDeal()" style="flex: 1; background: #333;">
+                    <div class="action-icon">❌</div>
+                    <div class="action-text">拒绝合作</div>
+                </div>
             </div>
-            <button class="btn" onclick="publishAd()">发布并领取报酬</button>
-        </div>
-        <div style="margin-top:15px;font-size:12px;color:#999;text-align:center">⚠️ 违规内容将导致警告甚至封号</div>
-    `;
+            <div style="font-size: 12px; color: #999; text-align: center;">
+                💡 品牌合作风险较低，但请确保内容真实
+            </div>
+        `;
+    } else {
+        // 显示普通商单
+        const ad = generateAdOrder();
+        gameState.currentAdOrder = ad;
+        const riskText = { 
+            0: '风险等级：低', 
+            0.4: '风险等级：中低', 
+            0.5: '风险等级：中', 
+            0.6: '风险等级：中高', 
+            0.65: '风险等级：中高', 
+            0.7: '风险等级：高', 
+            0.85: '风险等级：很高', 
+            0.9: '风险等级：极高' 
+        };
+        const riskColor = ad.risk > 0.6 ? '#ff0050' : ad.risk > 0.3 ? '#ff6b00' : '#00f2ea';
+        
+        content.innerHTML = `
+            <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333;">
+                <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${ad.title}</div>
+                <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${ad.content}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${ad.actualReward}元</div>
+                    <div style="font-size:12px;color:${riskColor}">${riskText[ad.risk] || '风险等级：低'}</div>
+                </div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <div class="input-label">选择发布方式</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                    <div class="action-btn" onclick="selectMethod('video')" style="padding:10px">
+                        <div class="action-icon">🎬</div>
+                        <div class="action-text">视频</div>
+                    </div>
+                    <div class="action-btn" onclick="selectMethod('post')" style="padding:10px">
+                        <div class="action-icon">📝</div>
+                        <div class="action-text">动态</div>
+                    </div>
+                    <div class="action-btn" onclick="selectMethod('live')" style="padding:10px">
+                        <div class="action-icon">📱</div>
+                        <div class="action-text">直播</div>
+                    </div>
+                </div>
+            </div>
+            <div id="publishForm" style="display:none">
+                <div class="input-group">
+                    <div class="input-label">内容创作</div>
+                    <textarea class="text-input" id="adContent" rows="4" placeholder="根据商单要求创作内容..." maxlength="200"></textarea>
+                </div>
+                <button class="btn" onclick="publishAd()">发布并领取报酬</button>
+            </div>
+            <div style="margin-top:15px;font-size:12px;color:#999;text-align:center">⚠️ 违规内容将导致警告甚至封号</div>
+        `;
+    }
     
     document.getElementById('adOrdersPage').classList.add('active');
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+// ==================== 新增：接受品牌合作 ==========
+function acceptBrandDeal() {
+    if (!gameState.pendingBrandDeal || gameState.pendingBrandDeal.status !== 'pending') {
+        showWarning('没有待处理的品牌合作');
+        return;
+    }
+    
+    const brandDeal = gameState.pendingBrandDeal;
+    
+    const content = document.getElementById('adOrdersPageContent');
+    content.innerHTML = `
+        <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333; border-left: 4px solid #00f2ea;">
+            <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${brandDeal.title}</div>
+            <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${brandDeal.content}</div>
+            <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${brandDeal.actualReward}元</div>
+        </div>
+        <div class="input-group">
+            <div class="input-label">合作内容创作</div>
+            <textarea class="text-input" id="brandAdContent" rows="6" placeholder="根据品牌要求进行内容创作，注意保持真实体验分享..." maxlength="300"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px;">
+            <div class="action-btn" onclick="selectBrandMethod('video')" style="padding:10px">
+                <div class="action-icon">🎬</div>
+                <div class="action-text">视频</div>
+            </div>
+            <div class="action-btn" onclick="selectBrandMethod('post')" style="padding:10px">
+                <div class="action-icon">📝</div>
+                <div class="action-text">动态</div>
+            </div>
+            <div class="action-btn" onclick="selectBrandMethod('live')" style="padding:10px">
+                <div class="action-icon">📱</div>
+                <div class="action-text">直播</div>
+            </div>
+        </div>
+        <button class="btn" onclick="publishBrandAd()">发布合作内容并领取报酬</button>
+        <div style="margin-top:15px;font-size:12px;color:#999;text-align:center">💡 品牌合作内容需真实体验，避免虚假宣传</div>
+    `;
+    
+    window.selectedBrandMethod = 'video'; // 默认选择视频
+}
+
+// ==================== 新增：拒绝品牌合作 ==========
+function rejectBrandDeal() {
+    if (!gameState.pendingBrandDeal || gameState.pendingBrandDeal.status !== 'pending') {
+        showWarning('没有待处理的品牌合作');
+        return;
+    }
+    
+    gameState.pendingBrandDeal.status = 'rejected';
+    gameState.rejectedAdOrders++;
+    
+    showNotification('合作已拒绝', '你拒绝了品牌合作机会');
+    closeFullscreenPage('adOrders');
+    updateDisplay();
+}
+
+// ==================== 新增：选择品牌合作发布方式 ==========
+function selectBrandMethod(method) {
+    window.selectedBrandMethod = method;
+    
+    document.querySelectorAll('#adOrdersPageContent .action-btn').forEach(btn => {
+        btn.style.border = '1px solid #333';
+    });
+    
+    event.currentTarget.style.border = '2px solid #00f2ea';
+}
+
+// ==================== 新增：发布品牌合作内容 ==========
+function publishBrandAd() {
+    const content = document.getElementById('brandAdContent').value.trim();
+    const brandDeal = gameState.pendingBrandDeal;
+    
+    if (!content) { 
+        alert('请输入合作内容'); 
+        return; 
+    }
+    if (typeof checkViolation === 'function' && checkViolation(content)) return;
+    
+    const views = Math.floor(Math.random() * 15000 + 5000);
+    const likes = Math.floor(Math.random() * 1500 + 100);
+    const comments = Math.floor(Math.random() * 200 + 20);
+    const shares = Math.floor(Math.random() * 100 + 10);
+    const work = { 
+        id: Date.now(), 
+        type: window.selectedBrandMethod || 'video', 
+        content: content, 
+        views: views, 
+        likes: likes, 
+        comments: comments, 
+        shares: shares, 
+        time: gameTimer, // 使用游戏计时器
+        isAd: true, 
+        revenue: Math.floor(views / 1000), 
+        isPrivate: false 
+    };
+    
+    gameState.worksList.push(work);
+    gameState.works++;
+    gameState.adOrdersCount++;
+    
+    // 只有视频/直播计入播放量
+    if (work.type === 'video' || work.type === 'live') {
+        gameState.views += work.views;
+    }
+    gameState.likes += work.likes;
+    gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
+    gameState.money += brandDeal.actualReward;
+    
+    // 修复：只统计主动互动行为
+    gameState.totalInteractions += comments + likes + shares;
+    
+    // 清空pending状态
+    gameState.pendingBrandDeal = null;
+    
+    showNotification('合作完成', `品牌合作完成，获得${brandDeal.actualReward}元`);
+    
+    closeFullscreenPage('adOrders');
+    updateDisplay();
 }
 
 function selectMethod(m) { 
@@ -604,14 +773,20 @@ function publishAd() {
         };
         gameState.worksList.push(work);
         gameState.works++;
-        gameState.views += work.views;
+        
+        // ========== 修改：商单也遵循类型规则，只有视频/直播计入播放量 ==========
+        if (work.type === 'video' || work.type === 'live') {
+            gameState.views += work.views;
+        }
+        // ========== 结束修改 ==========
+        
         gameState.likes += work.likes;
         gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
         gameState.money += ad.actualReward;
         gameState.adOrdersCount++;
         
-        // 更新总互动数据（观看+评论+点赞+转发）
-        gameState.totalInteractions += views + comments + likes + shares;
+        // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
+        gameState.totalInteractions += comments + likes + shares;
         
         if (gameState.adOrdersCount % 10 === 0) {
             const fanLoss = Math.floor(Math.random() * 1000) + 500;
@@ -670,10 +845,16 @@ function startTrafficProcess(workId) {
         const shareBoost = Math.floor(Math.random() * 30) + 5;
         
         work.views += viewsBoost;
-        gameState.views += viewsBoost;
+        // ========== 修改：只有视频和直播的播放量增长才计入总播放量 ==========
+        if (work.type === 'video' || work.type === 'live') {
+            gameState.views += viewsBoost;
+        }
+        // ========== 结束修改 ==========
         gameState.fans += fanBoost;
         work.comments += commentBoost;
-        gameState.totalInteractions += viewsBoost + commentBoost + shareBoost;
+        
+        // 修复：只统计主动互动行为（评论、转发），去掉播放量
+        gameState.totalInteractions += commentBoost + shareBoost;
         
         const oldRevenue = work.revenue || 0;
         const newRevenue = Math.floor(work.views / 1000);
@@ -907,6 +1088,13 @@ function checkHighAdCountPenalty() {
 // ==================== 全局函数绑定（新增） ====================
 window.resetInactivityDropState = resetInactivityDropState;
 window.checkHighAdCountPenalty = checkHighAdCountPenalty;
+window.acceptBrandDeal = acceptBrandDeal;
+window.rejectBrandDeal = rejectBrandDeal;
+window.selectBrandMethod = selectBrandMethod;
+window.publishBrandAd = publishBrandAd;
+window.endRecommendEffect = endRecommendEffect;
+window.endPostHotEffect = endPostHotEffect;
+window.endControversyEffect = endControversyEffect;
 
 // 保留原有全局函数
 window.showCreateVideo = showCreateVideo;
@@ -932,3 +1120,10 @@ window.showAppeal = showAppeal;
 window.checkViolation = checkViolation;
 window.showCharts = showCharts;
 window.stopChartsRefresh = stopChartsRefresh;
+
+// ==================== 新增：缺失的全局函数 ==========
+window.toggleWorkPrivacy = function() {
+    if (currentDetailWork) {
+        togglePrivate(currentDetailWork.id);
+    }
+};

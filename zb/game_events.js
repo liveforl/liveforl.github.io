@@ -110,19 +110,6 @@ function showBanNotice() {
     }, 1000);
 }
 
-// ==================== 随机事件处理 ====================
-function handleRandomEvent(event) {
-    if (event.effect.fans) gameState.fans = Math.max(0, gameState.fans + event.effect.fans);
-    if (event.effect.likes) gameState.likes = Math.max(0, gameState.likes + event.effect.likes);
-    if (event.effect.views) gameState.views = Math.max(0, gameState.views + event.effect.views);
-    if (event.effect.money) gameState.money = Math.max(0, gameState.money + event.effect.money);
-    if (event.effect.warnings) gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
-    if (event.effect.hotSearch) startHotSearch(event.title);
-    if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
-    showNotification(event.title, event.desc);
-    if (!gameState.isBanned && gameState.warnings >= 20) banAccount('多次违反社区规定');
-}
-
 // ==================== 舆论风波系统 ====================
 function startPublicOpinionCrisis(title) {
     if (gameState.isPublicOpinionCrisis) return;
@@ -182,12 +169,19 @@ function updateChartData() {
     const prevFans = gameState.chartData.fans[dayIndex] || 0;
     const prevLikes = gameState.chartData.likes[dayIndex] || 0;
     const prevViews = gameState.chartData.views[dayIndex] || 0;
-    const prevInteractions = gameState.chartData.interactions[dayIndex] || 0;
     
     gameState.chartData.fans[dayIndex] = Math.max(prevFans, gameState.fans);
     gameState.chartData.likes[dayIndex] = Math.max(prevLikes, gameState.likes);
     gameState.chartData.views[dayIndex] = Math.max(prevViews, gameState.views);
-    gameState.chartData.interactions[dayIndex] = Math.max(prevInteractions, gameState.totalInteractions);
+    
+    // ==================== 核心修改：互动改为每日增量 ====================
+    // 计算今日新增互动数 = 当前累积值 - 昨日记录基准
+    const todayInteractionIncrement = Math.max(0, gameState.totalInteractions - gameState.chartData.lastInteractionTotal);
+    gameState.chartData.interactions[dayIndex] = todayInteractionIncrement;
+    
+    // 保存当前累积值供下次计算使用
+    gameState.chartData.lastInteractionTotal = gameState.totalInteractions;
+    // ============================================================
     
     // 实时更新已打开的图表
     updateChartsRealtime();
@@ -209,7 +203,12 @@ function updateChartStatsRealtime() {
     if (statElements.fans) statElements.fans.textContent = gameState.fans.toLocaleString();
     if (statElements.likes) statElements.likes.textContent = gameState.likes.toLocaleString();
     if (statElements.views) statElements.views.textContent = gameState.views.toLocaleString();
-    if (statElements.interactions) statElements.interactions.textContent = gameState.totalInteractions.toLocaleString();
+    
+    // ==================== 修改：互动统计显示今日增量 ====================
+    if (statElements.interactions) {
+        const todayInteractions = gameState.chartData.interactions[gameState.chartData.currentIndex] || 0;
+        statElements.interactions.textContent = '+' + todayInteractions.toLocaleString();
+    }
 }
 
 // 修改：实时刷新图表数据
@@ -281,20 +280,8 @@ function checkInactivityPenalty() {
             // 改为：移除概率判断，每次掉粉都通知
             showNotification('📉 粉丝流失', `失去了${dropAmount}个粉丝（已${Math.floor(currentDaysSinceLastWork)}天未更新）`);
             
-            // 触发粉丝数字闪烁效果
-            if (typeof triggerFanDropAnimation === 'function') {
-                triggerFanDropAnimation();
-            }
-            
             updateDisplay();
         }, 1000); // 每秒执行一次
-    }
-    
-    // 接近7天时给出警告（每6小时提醒一次）
-    if (daysSinceLastWork >= 6 && daysSinceLastWork < 7 && !gameState.inactivityWarningShown) {
-        gameState.inactivityWarningShown = true;
-        const hoursLeft = Math.ceil((7 - daysSinceLastWork) * 24);
-        showNotification('⏰ 更新提醒', `还有${hoursLeft}小时将触发掉粉惩罚！`);
     }
 }
 
@@ -419,7 +406,8 @@ function checkAchievements() {
                 case 10: unlocked = gameState.money >= 1000000; break;
                 case 11: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.shares >= 10000); break;
                 case 12: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.comments >= 5000); break;
-                case 13: unlocked = (Date.now() - gameState.gameStartTime) >= 30 * 24 * 60 * 60 * 1000; break;
+                // 修复：使用虚拟时间计算全勤主播成就（30虚拟天）
+                case 13: unlocked = (gameTimer - gameState.gameStartTime) >= 30 * VIRTUAL_DAY_MS; break;
                 case 14: unlocked = achievement.unlocked || false; break;
                 case 15: unlocked = gameState.notifications.length >= 50; break;
                 case 21: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 1; break;
@@ -552,7 +540,7 @@ window.showHotSearchNotice = showHotSearchNotice;
 window.endHotSearch = endHotSearch;
 window.banAccount = banAccount;
 window.showBanNotice = showBanNotice;
-window.handleRandomEvent = handleRandomEvent;
+// window.handleRandomEvent = handleRandomEvent; // 已移除
 window.checkAchievements = checkAchievements;
 window.startPublicOpinionCrisis = startPublicOpinionCrisis;
 window.showPublicOpinionNotice = showPublicOpinionNotice;
