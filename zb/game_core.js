@@ -347,6 +347,18 @@ function initGame() {
                     showBanNotice();
                     getVirtualDaysPassed = originalGetVirtualDaysPassed;
                 }
+                
+                // ✅ 新增：恢复封禁掉粉定时器
+                if (!gameState.banDropInterval) {
+                    gameState.banDropInterval = setInterval(() => {
+                        if (gameState.isBanned && gameState.fans > 0) {
+                            const fanLoss = Math.floor(Math.random() * 90) + 10;
+                            gameState.fans = Math.max(0, gameState.fans - fanLoss);
+                            showNotification('粉丝流失', `封禁期间粉丝流失：${fanLoss}`);
+                            updateDisplay();
+                        }
+                    }, 1000);
+                }
             }
             
             if (gameState.isHotSearch && gameState.hotSearchStartTime !== null) {
@@ -529,44 +541,29 @@ function startGame() {
     initGame();
 }
 
-// ==================== 游戏重置功能 ====================
+// ==================== 游戏重置功能（增强版） ====================
 function resetGame() {
     // 停止游戏计时器
     stopGameTimer();
     
-    // 停止所有定时器
-    if (gameState.liveInterval) {
-        clearInterval(gameState.liveInterval);
-        gameState.liveInterval = null;
-    }
-    if (gameState.banInterval) {
-        clearInterval(gameState.banInterval);
-        gameState.banInterval = null;
-    }
-    if (gameState.banDropInterval) {
-        clearInterval(gameState.banDropInterval);
-        gameState.banDropInterval = null;
-    }
-    if (gameState.hotSearchInterval) {
-        clearInterval(gameState.hotSearchLateval);
-        gameState.hotSearchInterval = null;
-    }
-    if (gameState.publicOpinionInterval) {
-        clearInterval(gameState.publicOpinionInterval);
-        gameState.publicOpinionInterval = null;
-    }
-    if (gameState.inactivityDropInterval) {
-        clearInterval(gameState.inactivityDropInterval);
-        gameState.inactivityDropInterval = null;
-    }
-    if (gameState.highAdCountDropInterval) {
-        clearInterval(gameState.highAdCountDropInterval);
-        gameState.highAdCountDropInterval = null;
-    }
-    if (gameState.adOrdersPenaltyInterval) {  // 新增：清除商单惩罚定时器
-        clearInterval(gameState.adOrdersPenaltyInterval);
-        gameState.adOrdersPenaltyInterval = null;
-    }
+    // 停止所有定时器（按类型清理）
+    const intervals = [
+        'liveInterval',
+        'banInterval', 
+        'banDropInterval',  // ← 确保清理封禁掉粉定时器
+        'hotSearchInterval',
+        'publicOpinionInterval',
+        'inactivityDropInterval',
+        'highAdCountDropInterval',
+        'adOrdersPenaltyInterval'
+    ];
+    
+    intervals.forEach(intervalName => {
+        if (gameState[intervalName]) {
+            clearInterval(gameState[intervalName]);
+            gameState[intervalName] = null;
+        }
+    });
     
     // 停止流量推广定时器
     Object.keys(gameState.trafficWorks).forEach(workId => {
@@ -580,6 +577,12 @@ function resetGame() {
     if (window.chartRefreshInterval) {
         clearInterval(window.chartRefreshInterval);
         window.chartRefreshInterval = null;
+    }
+    
+    // 停止开发者倒计时
+    if (window.devCountdownInterval) {
+        clearInterval(window.devCountdownInterval);
+        window.devCountdownInterval = null;
     }
     
     // 重置游戏状态对象
@@ -643,7 +646,7 @@ function resetGame() {
         devMode: false,
         gameTimer: 0, // 新增
         realStartTime: 0, // 新增
-        // ========== 新增：重置商单惩罚状态 ==========
+        // ========== 新增：商单惩罚机制状态变量 ==========
         adOrdersPenaltyActive: false,
         adOrdersPenaltyEndTime: 0,
         adOrdersPenaltyIntensity: 0,

@@ -44,21 +44,34 @@ function endHotSearch() {
     updateDisplay();
 }
 
-// ==================== 账号封禁 ====================
+// ==================== 账号封禁（修复版） ====================
 function banAccount(reason) {
     if (gameState.isBanned) return;
     gameState.isBanned = true;
     gameState.banReason = reason;
     gameState.banDaysCount = Math.floor(Math.random() * 30) + 1;
-    gameState.banStartTime = gameTimer; // 使用游戏计时器
+    gameState.banStartTime = gameTimer;
     gameState.appealAvailable = true;
+    
+    // 停止直播
     if (gameState.liveStatus) {
         endLiveStream();
         showNotification('直播中断', '账号被封禁，直播已强制结束');
     }
+    
+    // 停止流量推广
     Object.keys(gameState.trafficWorks).forEach(workId => {
         if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
     });
+    
+    // ✅ 修复：不要重置不更新掉粉状态，让它继续运行
+    // 移除以下代码：
+    // if (gameState.inactivityDropInterval) {
+    //     clearInterval(gameState.inactivityDropInterval);
+    //     gameState.inactivityDropInterval = null;
+    // }
+    // gameState.isDroppingFansFromInactivity = false;
+    
     saveGame();
     if (typeof showBanNotice === 'function') showBanNotice();
     updateDisplay();
@@ -96,6 +109,10 @@ function showBanNotice() {
             clearInterval(gameState.banDropInterval);
             gameState.banDropInterval = null;
         }
+        
+        // ✅ 修复：不要重置不更新掉粉状态
+        // 移除：gameState.isDroppingFansFromInactivity = false;
+        
         showNotification('封禁结束', '恭喜你，账号已恢复正常使用，警告次数已清空');
         updateDisplay();
     }
@@ -255,9 +272,10 @@ function checkInactivityPenalty() {
         // 强制显示警告（首次触发）
         showNotification('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
         
-        // 启动每秒掉粉（核心修改：增加掉粉数量）
+        // 启动每秒掉粉（核心修改：大幅增加掉粉数量）
         gameState.inactivityDropInterval = setInterval(() => {
-            if (!gameState.isDroppingFansFromInactivity || gameState.isBanned) {
+            // ✅ 修复：移除错误的gameState.isBanned检查
+            if (!gameState.isDroppingFansFromInactivity) {  // 只检查自身状态
                 clearInterval(gameState.inactivityDropInterval);
                 return;
             }

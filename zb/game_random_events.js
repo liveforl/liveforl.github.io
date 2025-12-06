@@ -1,26 +1,29 @@
 // ==================== 随机事件数据 ====================
 const randomEvents = [
-    // ========== 修改：视频推荐类事件 ==========
+    // ========== 新增：视频推荐类事件（新功能） ==========
     { type: 'good', title: '视频爆了！', desc: '你的视频被推荐到首页，播放量暴涨', effect: { recommendVideo: true, duration: 1 } }, 
     { type: 'good', title: '病毒传播', desc: '你的视频成为病毒式传播', effect: { recommendVideo: true, duration: 1 } }, 
     
-    // ========== 修改：动态热搜类事件 ==========
-    { type: 'good', title: '话题热搜', desc: '你的动态登上热搜榜', effect: { hotPost: true, duration: 1 } }, 
-    { type: 'good', title: '话题引爆', desc: '你制造的话题引发全网讨论', effect: { hotPost: true, duration: 1 } }, 
-    { type: 'good', title: '热搜第一', desc: '你的内容登上热搜榜第一名！', effect: { hotPost: true, duration: 1 } },
+    // ========== 新增：动态热搜类事件（新功能） ==========
+    { type: 'good', title: '动态热门', desc: '你的动态获得大量曝光', effect: { hotPost: true, duration: 1 } }, 
     
-    // ========== 新增：品牌合作事件 ==========
+    // ========== 新增：品牌合作事件（新功能） ==========
     { type: 'good', title: '品牌合作', desc: '有品牌找你合作推广', effect: { brandDeal: true } }, 
     
-    // ========== 修改：争议类事件（不删除视频） ==========
+    // ========== 恢复：原始热搜事件（重要！恢复概率） ==========
+    { type: 'good', title: '登上热搜', desc: '你的内容登上平台热搜榜，获得海量曝光', effect: { hotSearch: true } }, 
+    { type: 'good', title: '话题引爆', desc: '你制造的话题引发全网讨论', effect: { hotSearch: true } }, 
+    { type: 'good', title: '热搜第一', desc: '你的内容登上热搜榜第一名！', effect: { hotSearch: true } },
+    
+    // ========== 新增：争议类事件（新功能） ==========
     { type: 'bad', title: '内容争议', desc: '你的内容引发争议，有人举报', effect: { controversial: true, duration: 1, addWarning: true } }, 
     { type: 'bad', title: '网络暴力', desc: '你被网暴了，心情低落', effect: { controversial: true, duration: 2, addWarning: false } }, 
     
-    // ========== 修改：删除视频类事件 ==========
+    // ========== 新增：删除视频类事件（新功能） ==========
     { type: 'bad', title: '系统误判', desc: '系统误判你的内容违规', effect: { removeVideo: true, addWarning: true } }, 
     { type: 'bad', title: '版权争议', desc: '你的视频涉及版权问题', effect: { removeVideo: true, addWarning: true } }, 
     
-    // ========== 保持不变的其它事件 ==========
+    // ========== 保持不变的原有事件 ==========
     { type: 'good', title: '大V转发', desc: '知名博主转发了你的作品', effect: { views: 30000, fans: 3000, likes: 2000 } }, 
     { type: 'good', title: '粉丝福利', desc: '粉丝们给你刷了礼物', effect: { money: 1000, likes: 500 } }, 
     { type: 'bad', title: '黑粉攻击', desc: '有人组织黑粉攻击你的账号', effect: { fans: -1000, likes: -500 } }, 
@@ -39,12 +42,12 @@ const randomEvents = [
     { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true } }
 ];
 
-// ==================== 随机事件处理函数（核心修改版） ====================
+// ==================== 随机事件处理函数 ====================
 function handleRandomEvent(event) {
     let message = event.desc;
     let targetWork = null;
     
-    // ========== 处理视频推荐事件 ==========
+    // ========== 处理视频推荐事件（新功能） ==========
     if (event.effect.recommendVideo) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate);
         if (videos.length > 0) {
@@ -59,7 +62,7 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 处理动态热搜事件 ==========
+    // ========== 处理动态热搜事件（新功能） ==========
     else if (event.effect.hotPost) {
         const posts = gameState.worksList.filter(w => w.type === 'post' && !w.isPrivate);
         if (posts.length > 0) {
@@ -74,14 +77,21 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 处理品牌合作事件 ==========
+    // ========== 处理品牌合作事件（新功能） ==========
     else if (event.effect.brandDeal) {
         generateBrandDeal();
         message = '有新的品牌合作机会，请在商单中心查看！';
         showNotification(event.title, message);
     }
     
-    // ========== 处理争议事件 ==========
+    // ========== 恢复：处理原始热搜事件（重要！） ==========
+    else if (event.effect.hotSearch) {
+        const title = event.title || '🔥 话题热议中';
+        startHotSearch(title);
+        showNotification(event.title, event.desc);
+    }
+    
+    // ========== 处理争议事件（新功能） ==========
     else if (event.effect.controversial) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate && !w.isControversial);
         if (videos.length > 0) {
@@ -100,7 +110,7 @@ function handleRandomEvent(event) {
         }
     }
     
-    // ========== 处理删除视频事件 ==========
+    // ========== 处理删除视频事件（新功能） ==========
     else if (event.effect.removeVideo) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate);
         if (videos.length > 0) {
@@ -129,7 +139,6 @@ function handleRandomEvent(event) {
         if (event.effect.views) gameState.views = Math.max(0, gameState.views + event.effect.views);
         if (event.effect.money) gameState.money = Math.max(0, gameState.money + event.effect.money);
         if (event.effect.warnings) gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
-        if (event.effect.hotSearch) startHotSearch(event.title);
         if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
         showNotification(event.title, event.desc);
     }
