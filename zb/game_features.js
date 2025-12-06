@@ -1127,3 +1127,60 @@ window.toggleWorkPrivacy = function() {
         togglePrivate(currentDetailWork.id);
     }
 };
+
+// ==================== 核心修复：不更新掉粉检测（移除封禁检查） ====================
+function checkInactivityPenalty() {
+    // ❌ 移除：if (!gameState || gameState.isBanned) return;
+    // ✅ 修复：只在初始化时检查gameState是否存在，不检查isBanned
+    if (!gameState) return;
+    
+    // 使用虚拟时间计算天数差
+    const daysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
+    
+    // 如果7天内，确保不掉粉
+    if (daysSinceLastWork < 7) {
+        if (gameState.isDroppingFansFromInactivity) {
+            gameState.isDroppingFansFromInactivity = false;
+            if (gameState.inactivityDropInterval) {
+                clearInterval(gameState.inactivityDropInterval);
+                gameState.inactivityDropInterval = null;
+            }
+        }
+        if (gameState.inactivityWarningShown) {
+            gameState.inactivityWarningShown = false;
+        }
+        return;
+    }
+    
+    // 达到7天，开始掉粉
+    if (daysSinceLastWork >= 7 && !gameState.isDroppingFansFromInactivity) {
+        gameState.isDroppingFansFromInactivity = true;
+        
+        // 强制显示警告（首次触发）
+        showNotification('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
+        
+        // 启动每秒掉粉
+        gameState.inactivityDropInterval = setInterval(() => {
+            if (!gameState.isDroppingFansFromInactivity) { 
+                clearInterval(gameState.inactivityDropInterval);
+                return;
+            }
+            
+            // 重新计算当前天数差（因为gameTimer在持续增加）
+            const currentDaysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
+            
+            // 大幅提升掉粉数量
+            const extraDays = Math.floor(currentDaysSinceLastWork - 7);
+            const baseDrop = Math.floor(Math.random() * 31) + 20; // 20-50基础掉粉
+            const extraDrop = extraDays * (Math.floor(Math.random() * 11) + 5); // 每多1天额外掉5-15粉
+            const dropAmount = baseDrop + extraDrop;
+            
+            gameState.fans = Math.max(0, gameState.fans - dropAmount);
+            
+            // 100%通知概率
+            showNotification('📉 粉丝流失', `失去了${dropAmount}个粉丝（已${Math.floor(currentDaysSinceLastWork)}天未更新）`);
+            
+            updateDisplay();
+        }, 1000);
+    }
+}

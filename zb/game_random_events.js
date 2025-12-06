@@ -148,8 +148,8 @@ function handleRandomEvent(event) {
     if (typeof updateWorksList === 'function') updateWorksList();
 }
 
-// ==================== 新增：视频推荐效果 ==========
-function startRecommendEffect(workId, durationDays) {
+// ==================== 新增：视频推荐效果（支持恢复模式）==========
+function startRecommendEffect(workId, durationDays, isResume = false) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isRecommended) return;
     
@@ -175,6 +175,11 @@ function startRecommendEffect(workId, durationDays) {
         updateDisplay();
         updateWorksList();
     }, 1000);
+    
+    // 只在非恢复模式下显示通知
+    if (!isResume) {
+        showNotification('🔥 视频推荐', `视频《${work.title || work.content.substring(0, 20)}...》获得平台推荐！`);
+    }
 }
 
 function endRecommendEffect(workId) {
@@ -184,14 +189,15 @@ function endRecommendEffect(workId) {
     if (work.recommendInterval) clearInterval(work.recommendInterval);
     work.isRecommended = false;
     work.recommendEndTime = null;
+    work.recommendInterval = null;
     
     showNotification('推荐结束', `视频《${work.title || work.content.substring(0, 20)}...》的热度推荐已结束`);
     updateDisplay();
     updateWorksList();
 }
 
-// ==================== 新增：动态热搜效果 ==========
-function startPostHotEffect(workId, durationDays) {
+// ==================== 新增：动态热搜效果（支持恢复模式）==========
+function startPostHotEffect(workId, durationDays, isResume = false) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isHot) return;
     
@@ -218,6 +224,10 @@ function startPostHotEffect(workId, durationDays) {
         updateDisplay();
         updateWorksList();
     }, 1000);
+    
+    if (!isResume) {
+        showNotification('🔥 动态热搜', `动态《${work.content.substring(0, 20)}...》登上热搜！`);
+    }
 }
 
 function endPostHotEffect(workId) {
@@ -227,14 +237,15 @@ function endPostHotEffect(workId) {
     if (work.hotInterval) clearInterval(work.hotInterval);
     work.isHot = false;
     work.hotEndTime = null;
+    work.hotInterval = null;
     
     showNotification('热搜结束', `动态《${work.content.substring(0, 20)}...》的热搜已结束`);
     updateDisplay();
     updateWorksList();
 }
 
-// ==================== 新增：争议效果（每秒掉粉） ==========
-function startControversyEffect(workId, durationDays) {
+// ==================== 新增：争议效果（支持恢复模式）==========
+function startControversyEffect(workId, durationDays, isResume = false) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isControversial) return;
     
@@ -255,13 +266,18 @@ function startControversyEffect(workId, durationDays) {
             gameState.likes = Math.max(0, gameState.likes - likesLoss);
         }
         
-        if (Math.random() < 0.2) {
+        // 降低通知频率，避免恢复时刷屏
+        if (Math.random() < 0.05) {
             showNotification('争议持续', `视频争议中，粉丝持续流失：-${fanLoss}`);
         }
         
         updateDisplay();
         updateWorksList();
     }, 1000);
+    
+    if (!isResume) {
+        showNotification('⚠️ 内容争议', `视频《${work.title || work.content.substring(0, 20)}...》引发争议！`);
+    }
 }
 
 function endControversyEffect(workId) {
@@ -271,6 +287,7 @@ function endControversyEffect(workId) {
     if (work.controversyInterval) clearInterval(work.controversyInterval);
     work.isControversial = false;
     work.controversyEndTime = null;
+    work.controversyInterval = null;
     
     showNotification('争议平息', `视频《${work.title || work.content.substring(0, 20)}...》的争议已平息`);
     updateDisplay();

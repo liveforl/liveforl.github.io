@@ -44,7 +44,7 @@ function endHotSearch() {
     updateDisplay();
 }
 
-// ==================== 账号封禁（修复版） ====================
+// ==================== 账号封禁 ====================
 function banAccount(reason) {
     if (gameState.isBanned) return;
     gameState.isBanned = true;
@@ -52,26 +52,13 @@ function banAccount(reason) {
     gameState.banDaysCount = Math.floor(Math.random() * 30) + 1;
     gameState.banStartTime = gameTimer;
     gameState.appealAvailable = true;
-    
-    // 停止直播
     if (gameState.liveStatus) {
         endLiveStream();
         showNotification('直播中断', '账号被封禁，直播已强制结束');
     }
-    
-    // 停止流量推广
     Object.keys(gameState.trafficWorks).forEach(workId => {
         if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
     });
-    
-    // ✅ 修复：不要重置不更新掉粉状态，让它继续运行
-    // 移除以下代码：
-    // if (gameState.inactivityDropInterval) {
-    //     clearInterval(gameState.inactivityDropInterval);
-    //     gameState.inactivityDropInterval = null;
-    // }
-    // gameState.isDroppingFansFromInactivity = false;
-    
     saveGame();
     if (typeof showBanNotice === 'function') showBanNotice();
     updateDisplay();
@@ -109,12 +96,13 @@ function showBanNotice() {
             clearInterval(gameState.banDropInterval);
             gameState.banDropInterval = null;
         }
-        
-        // ✅ 修复：不要重置不更新掉粉状态
-        // 移除：gameState.isDroppingFansFromInactivity = false;
-        
         showNotification('封禁结束', '恭喜你，账号已恢复正常使用，警告次数已清空');
         updateDisplay();
+        
+        // ✅ 修复：解封后立即检查不更新掉粉状态
+        if (typeof checkInactivityPenalty === 'function') {
+            checkInactivityPenalty();
+        }
     }
     if (!gameState.banInterval) gameState.banInterval = setInterval(() => showBanNotice(), VIRTUAL_DAY_MS);
     if (!gameState.banDropInterval) gameState.banDropInterval = setInterval(() => {
@@ -245,7 +233,9 @@ function updateChartsRealtime() {
 
 // ==================== 不更新掉粉检测（核心修改） ====================
 function checkInactivityPenalty() {
-    if (!gameState || gameState.isBanned) return;
+    // ❌ 原始代码：if (!gameState || gameState.isBanned) return;
+    // ✅ 修复：移除gameState.isBanned检查，让该机制在封禁期间也能运行
+    if (!gameState) return;
     
     // 使用虚拟时间计算天数差
     const daysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
@@ -272,10 +262,9 @@ function checkInactivityPenalty() {
         // 强制显示警告（首次触发）
         showNotification('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
         
-        // 启动每秒掉粉（核心修改：大幅增加掉粉数量）
+        // 启动每秒掉粉
         gameState.inactivityDropInterval = setInterval(() => {
-            // ✅ 修复：移除错误的gameState.isBanned检查
-            if (!gameState.isDroppingFansFromInactivity) {  // 只检查自身状态
+            if (!gameState.isDroppingFansFromInactivity) { 
                 clearInterval(gameState.inactivityDropInterval);
                 return;
             }
@@ -283,9 +272,7 @@ function checkInactivityPenalty() {
             // 重新计算当前天数差（因为gameTimer在持续增加）
             const currentDaysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
             
-            // ==================== 核心修改：大幅提升掉粉数量 ====================
-            // 原来是：基础5-15粉 + 每多1天加1粉
-            // 改为：基础20-50粉 + 每多1天加5-15粉
+            // 大幅提升掉粉数量
             const extraDays = Math.floor(currentDaysSinceLastWork - 7);
             const baseDrop = Math.floor(Math.random() * 31) + 20; // 20-50基础掉粉
             const extraDrop = extraDays * (Math.floor(Math.random() * 11) + 5); // 每多1天额外掉5-15粉
@@ -293,13 +280,11 @@ function checkInactivityPenalty() {
             
             gameState.fans = Math.max(0, gameState.fans - dropAmount);
             
-            // ==================== 核心修改：100%通知概率 ====================
-            // 原来是：Math.random() < 0.1（10%概率）
-            // 改为：移除概率判断，每次掉粉都通知
+            // 100%通知概率
             showNotification('📉 粉丝流失', `失去了${dropAmount}个粉丝（已${Math.floor(currentDaysSinceLastWork)}天未更新）`);
             
             updateDisplay();
-        }, 1000); // 每秒执行一次
+        }, 1000);
     }
 }
 
@@ -316,8 +301,7 @@ function startGameLoop() {
         handleRandomEvent(event);
     }, 30000);
     
-    // ==================== 核心修改：增加每秒检查不更新惩罚的机制 ====================
-    // 原来只有每分钟检查一次，现在每秒检查，确保实时响应
+    // 每秒检查不更新惩罚
     setInterval(() => {
         // 检查不更新惩罚（每秒）
         checkInactivityPenalty();

@@ -165,7 +165,10 @@ let gameState = {
     adOrdersPenaltyActive: false,      // 是否处于商单惩罚期
     adOrdersPenaltyEndTime: 0,         // 惩罚结束时间（游戏计时器）
     adOrdersPenaltyIntensity: 0,       // 惩罚强度（清零前的商单数）
-    adOrdersPenaltyInterval: null      // 惩罚期专用定时器
+    adOrdersPenaltyInterval: null,      // 惩罚期专用定时器
+    
+    // ========== 新增：品牌合作 ==========
+    pendingBrandDeal: null // 待处理的品牌合作
 };
 
 // ==================== 成就列表 ====================
@@ -455,6 +458,76 @@ function initGame() {
                 }
             }
             
+            // ========== 新增：恢复作品状态（推荐、争议、热搜） ==========
+            console.log('开始恢复作品状态...');
+            gameState.worksList.forEach(work => {
+                // 恢复推荐状态
+                if (work.isRecommended && work.recommendEndTime !== null) {
+                    const timePassed = gameTimer - work.recommendEndTime;
+                    const daysLeft = -timePassed / VIRTUAL_DAY_MS;
+                    
+                    if (daysLeft <= 0) {
+                        // 已经结束，清理状态
+                        console.log(`作品${work.id}的推荐状态已过期，清理状态`);
+                        work.isRecommended = false;
+                        work.recommendEndTime = null;
+                        if (work.recommendInterval) {
+                            clearInterval(work.recommendInterval);
+                            work.recommendInterval = null;
+                        }
+                    } else {
+                        // 重新开始效果
+                        console.log(`作品${work.id}的推荐状态恢复，剩余${daysLeft.toFixed(1)}天`);
+                        if (typeof startRecommendEffect === 'function') {
+                            startRecommendEffect(work.id, daysLeft, true);
+                        }
+                    }
+                }
+                
+                // 恢复争议状态
+                if (work.isControversial && work.controversyEndTime !== null) {
+                    const timePassed = gameTimer - work.controversyEndTime;
+                    const daysLeft = -timePassed / VIRTUAL_DAY_MS;
+                    
+                    if (daysLeft <= 0) {
+                        console.log(`作品${work.id}的争议状态已过期，清理状态`);
+                        work.isControversial = false;
+                        work.controversyEndTime = null;
+                        if (work.controversyInterval) {
+                            clearInterval(work.controversyInterval);
+                            work.controversyInterval = null;
+                        }
+                    } else {
+                        console.log(`作品${work.id}的争议状态恢复，剩余${daysLeft.toFixed(1)}天`);
+                        if (typeof startControversyEffect === 'function') {
+                            startControversyEffect(work.id, daysLeft, true);
+                        }
+                    }
+                }
+                
+                // 恢复动态热搜状态
+                if (work.isHot && work.hotEndTime !== null) {
+                    const timePassed = gameTimer - work.hotEndTime;
+                    const daysLeft = -timePassed / VIRTUAL_DAY_MS;
+                    
+                    if (daysLeft <= 0) {
+                        console.log(`作品${work.id}的热搜状态已过期，清理状态`);
+                        work.isHot = false;
+                        work.hotEndTime = null;
+                        if (work.hotInterval) {
+                            clearInterval(work.hotInterval);
+                            work.hotInterval = null;
+                        }
+                    } else {
+                        console.log(`作品${work.id}的热搜状态恢复，剩余${daysLeft.toFixed(1)}天`);
+                        if (typeof startPostHotEffect === 'function') {
+                            startPostHotEffect(work.id, daysLeft, true);
+                        }
+                    }
+                }
+            });
+            console.log('作品状态恢复完成');
+            
         } catch (error) {
             console.error('加载存档失败:', error);
             localStorage.removeItem('streamerGameState');
@@ -650,7 +723,9 @@ function resetGame() {
         adOrdersPenaltyActive: false,
         adOrdersPenaltyEndTime: 0,
         adOrdersPenaltyIntensity: 0,
-        adOrdersPenaltyInterval: null
+        adOrdersPenaltyInterval: null,
+        // ========== 新增：品牌合作 ==========
+        pendingBrandDeal: null
     };
     
     // 重置计时器
