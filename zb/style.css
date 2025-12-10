@@ -381,3 +381,64 @@ select:active {
     color: #fff;
     font-weight: bold;
 }
+
+/* ==================== 分页按钮样式 ==================== */
+.page-btn {
+    background: #222;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-btn:hover:not(.disabled) {
+    background: #333;
+    border-color: #667eea;
+}
+
+.page-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: #fff;
+    font-weight: bold;
+}
+
+.page-btn:disabled,
+.page-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-btn:active:not(.disabled) {
+    transform: scale(0.95);
+}
+
+/* ==================== 作品列表实时更新动画 ==================== */
+.work-item {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.work-item.updating {
+    animation: workUpdatePulse 0.6s ease;
+}
+
+@keyframes workUpdatePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); opacity: 0.9; }
+    100% { transform: scale(1); }
+}
+
+/* ==================== 优化滚动性能 ==================== */
+#worksListTab {
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-overflow-scrolling: touch;
+}

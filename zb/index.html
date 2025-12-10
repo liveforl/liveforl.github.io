@@ -29,7 +29,8 @@
             <div class="header-icon" onclick="showNotifications()">🔔
                 <span class="notification-badge" id="notificationBadge" style="display:none">0</span>
             </div>
-            <div class="header-icon" onclick="showSettings()">⚙️</div>
+            <!-- 关键修改：主页面设置改为游戏设置 -->
+            <div class="header-icon" onclick="showGameSettings()">⚙️</div>
         </div>
     </div>
     <div class="top-notices">
@@ -191,12 +192,12 @@
         <div id="workDetailPageContent" class="fullscreen-content"></div>
     </div>
 
-    <!-- 全屏账号设置页 -->
+    <!-- 全屏游戏设置页 -->
     <div id="settingsPage" class="fullscreen-page">
         <div class="fullscreen-header">
             <div class="back-btn" onclick="closeFullscreenPage('settings')">‹</div>
-            <!-- 关键修改：添加ID和可点击样式 -->
-            <div class="fullscreen-title" id="settingsHeaderTitle" style="cursor: pointer;" title="点击这里15次解锁开发者模式">账号设置</div>
+            <!-- 关键修改：设置标题为游戏设置，移除开发者模式触发 -->
+            <div class="fullscreen-title" id="settingsHeaderTitle">游戏设置</div>
             <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
         </div>
         <div id="settingsPageContent" class="fullscreen-content"></div>
@@ -207,6 +208,7 @@
         <div class="fullscreen-header">
             <div class="back-btn" onclick="closeFullscreenPage('profile')">‹</div>
             <div class="fullscreen-title">个人主页</div>
+            <!-- 个人主页设置调用账号设置 -->
             <div class="fullscreen-action" onclick="showSettings()">⚙️</div>
         </div>
         <div id="profilePageContent" class="fullscreen-content"></div>

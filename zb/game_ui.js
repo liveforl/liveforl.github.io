@@ -6,8 +6,7 @@ function updateDisplay() {
     // 更新虚拟日期显示（包含完整时间）
     const dateDisplay = document.getElementById('virtualDateDisplay');
     if (dateDisplay) {
-        dateDisplay.textContent = formatVirtualDate(true); // 显示为"2025年01月01日 14:30:25"
-        // 添加日期变化动画
+        dateDisplay.textContent = formatVirtualDate(true);
         dateDisplay.classList.add('updating');
         setTimeout(() => dateDisplay.classList.remove('updating'), 300);
     }
@@ -15,10 +14,9 @@ function updateDisplay() {
     // 只统计非私密作品
     const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
     
-    // ========== 修改：只统计视频和直播的播放量，不包含动态 ==========
+    // 只统计视频和直播的播放量
     const videoAndLiveWorks = publicWorks.filter(w => w.type === 'video' || w.type === 'live');
     const totalViews = videoAndLiveWorks.reduce((sum, w) => sum + w.views, 0);
-    // ========== 结束修改 ==========
     
     const totalLikes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
     
@@ -27,17 +25,17 @@ function updateDisplay() {
     document.getElementById('viewsCount').textContent = formatNumber(totalViews);
     document.getElementById('worksCount').textContent = publicWorks.length;
     
-    // 修改：直接显示累计收益，不重新计算
-    document.getElementById('moneyCount').textContent = Math.floor(gameState.money);
+    // ========== 修改：零钱单位转换 ==========
+    document.getElementById('moneyCount').textContent = formatNumber(Math.floor(gameState.money));
+    // ========== 结束修改 ==========
     
     document.getElementById('warningCount').textContent = `${gameState.warnings}/20`;
     
-    // 添加虚拟时间统计
+    // 虚拟时间统计
     const virtualDate = getVirtualDate();
     const timeStat = document.getElementById('virtualTimeStat');
     if (timeStat) {
         timeStat.textContent = `${virtualDate.totalDays}天`;
-        // 鼠标悬停显示完整日期时间
         timeStat.parentElement.title = `${virtualDate.year}年${virtualDate.month}月${virtualDate.day}日 ${virtualDate.formattedTime}`;
     }
     
@@ -46,15 +44,19 @@ function updateDisplay() {
         liveBtn.style.display = 'block';
         liveBtn.classList.toggle('active', gameState.liveStatus);
     }
+    
     const hotSearchNotice = document.getElementById('hotSearchNotice');
     const banNotice = document.getElementById('banNotice');
     const publicOpinionNotice = document.getElementById('publicOpinionNotice');
+    
     if (hotSearchNotice) gameState.isHotSearch ? hotSearchNotice.classList.add('show') : hotSearchNotice.classList.remove('show');
     if (banNotice) gameState.isBanned ? banNotice.classList.add('show') : banNotice.classList.remove('show');
     if (publicOpinionNotice) gameState.isPublicOpinionCrisis ? publicOpinionNotice.classList.add('show') : publicOpinionNotice.classList.remove('show');
+    
     if (typeof showHotSearchNotice === 'function') showHotSearchNotice();
     if (typeof showBanNotice === 'function') showBanNotice();
     if (typeof showPublicOpinionNotice === 'function') showPublicOpinionNotice();
+    
     updateWorksList();
     if (typeof checkAchievements === 'function') checkAchievements();
     saveGame();
@@ -65,6 +67,18 @@ function updateDisplay() {
     } else {
         document.getElementById('devFloatButton').style.display = 'none';
     }
+    
+    // ========== 新增：作品标签页实时更新 ==========
+    const activeTab = document.querySelector('.nav-item.active');
+    if (activeTab && activeTab.textContent.includes('作品')) {
+        const worksContent = document.getElementById('worksContent');
+        if (worksContent && worksContent.style.display !== 'none') {
+            if (typeof renderWorksPage === 'function') {
+                renderWorksPage();
+            }
+        }
+    }
+    // ========== 结束修改 ==========
 }
 
 // ==================== 模态框 ====================
@@ -86,32 +100,26 @@ function updateWorksList() {
     recentWorks.forEach((work) => {
         const statusBadges = [];
         
-        // ========== 新增：状态标识 ==========
-        // 推荐状态
         if (work.isRecommended) {
             const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
             statusBadges.push(`<span style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥推荐${timeLeft.toFixed(1)}天</span>`);
         }
         
-        // 争议状态
         if (work.isControversial) {
             const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
             statusBadges.push(`<span style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">⚠️争议${timeLeft.toFixed(1)}天</span>`);
         }
         
-        // 热搜状态（动态）
         if (work.isHot) {
             const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
             statusBadges.push(`<span style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥热搜${timeLeft.toFixed(1)}天</span>`);
         }
         
-        // 推广状态
         const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
         if (isTrafficActive) {
             statusBadges.push('<span style="background:#667eea;color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">📈推广</span>');
         }
         
-        // 其他原有标识
         const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">商单</span>' : '';
         const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔒私密</span>' : '';
         
@@ -139,12 +147,12 @@ function updateWorksList() {
     if (recentWorks.length === 0) worksList.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>';
 }
 
-// ==================== 作品自动更新（修复版） ====================
+// ==================== 作品自动更新 ====================
 function startWorkUpdates() {
     setInterval(() => {
         if (gameState.worksList.length === 0) return;
         gameState.worksList.forEach(work => {
-            if (work.isPrivate) return; // 跳过私密作品的自动更新
+            if (work.isPrivate) return;
             const viewsGrowth = Math.floor(Math.random() * 50);
             const likesGrowth = Math.floor(Math.random() * 20);
             const commentsGrowth = Math.floor(Math.random() * 10);
@@ -152,11 +160,9 @@ function startWorkUpdates() {
             const oldViews = work.views;
             work.views += viewsGrowth;
             
-            // ========== 修改：只有视频和直播的播放量增长才计入总播放量 ==========
             if (work.type === 'video' || work.type === 'live') {
                 gameState.views += viewsGrowth;
             }
-            // ========== 结束修改 ==========
             
             const oldRevenue = work.revenue || 0;
             const newRevenue = Math.floor(work.views / 1000);
@@ -170,7 +176,6 @@ function startWorkUpdates() {
             work.comments += commentsGrowth;
             work.shares += sharesGrowth;
             
-            // 修复：只统计主动互动行为（评论、转发），去掉播放量
             gameState.totalInteractions += commentsGrowth + sharesGrowth;
             
             const viewsEl = document.getElementById(`work-views-${work.id}`);
@@ -193,11 +198,9 @@ function animateNumberUpdate(element) {
 }
 
 // ==================== 账号设置 ====================
-let settingsClickCount = 0;
-let lastSettingsClickTime = 0;
-
-// ==================== 修改后的showSettings函数（已移除提示项） ====================
 function showSettings() {
+    document.querySelectorAll('.fullscreen-page').forEach(page => page.classList.remove('active'));
+    
     const content = document.getElementById('settingsPageContent');
     content.innerHTML = `
         <div class="settings-item" onclick="changeUsername()">
@@ -212,18 +215,14 @@ function showSettings() {
             <div><div class="settings-label">修改头像</div><div class="settings-value">点击修改</div></div>
             <div>></div>
         </div>
-        <div class="settings-item" onclick="showProfile()">
-            <div><div class="settings-label">个人主页</div><div class="settings-value">查看主页</div></div>
-            <div>></div>
-        </div>
         <div class="settings-item" onclick="clearData()" style="background:#ff0050">
             <div><div class="settings-label">清除数据</div><div class="settings-value">谨慎操作</div></div>
         </div>
     `;
     
-    // 给顶部标题绑定点击事件
     const headerTitle = document.getElementById('settingsHeaderTitle');
     if (headerTitle) {
+        headerTitle.textContent = '账号设置';
         headerTitle.onclick = handleDevSettingsClick;
     }
     
@@ -232,18 +231,120 @@ function showSettings() {
     document.querySelector('.bottom-nav').style.display = 'none';
 }
 
+// ==================== 游戏设置（仅保留2个选项） ====================
+function showGameSettings() {
+    const headerTitle = document.getElementById('settingsHeaderTitle');
+    if (headerTitle) {
+        headerTitle.textContent = '游戏设置';
+        headerTitle.onclick = null;
+    }
+    
+    const content = document.getElementById('settingsPageContent');
+    content.innerHTML = `
+        <div class="settings-item" onclick="showPlayTime()">
+            <div><div class="settings-label">游玩时间</div><div class="settings-value">查看统计</div></div>
+            <div>></div>
+        </div>
+        <div class="settings-item" onclick="showQQGroup()">
+            <div><div class="settings-label">加入QQ交流群</div><div class="settings-value">交流讨论</div></div>
+            <div>></div>
+        </div>
+    `;
+    
+    document.getElementById('settingsPage').classList.add('active');
+    document.getElementById('mainContent').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+// ==================== 显示游玩时间 ====================
+function showPlayTime() {
+    const totalMinutes = Math.floor(gameTimer / (60 * 1000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const days = Math.floor(getVirtualDaysPassed());
+    
+    const modalContent = `
+        <div class="modal-header">
+            <div class="modal-title">游玩时间统计</div>
+            <div class="close-btn" onclick="closeModal()">✕</div>
+        </div>
+        <div style="padding: 20px; text-align: center;">
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 24px; color: #667eea; margin-bottom: 10px;">${hours}小时 ${minutes}分钟</div>
+                <div style="font-size: 14px; color: #999;">实际游玩时间</div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 24px; color: #00f2ea; margin-bottom: 10px;">${days}天</div>
+                <div style="font-size: 14px; color: #999;">虚拟时间流逝</div>
+            </div>
+            <div style="background: #161823; padding: 15px; border-radius: 10px; font-size: 12px; color: #999; line-height: 1.5;">
+                <p>• 虚拟时间：1分钟 = 1虚拟天</p>
+                <p>• 游戏从2025年1月1日开始</p>
+                <p>• 当前时间：${formatVirtualDate(true)}</p>
+            </div>
+            <button class="btn" onclick="closeModal()" style="margin-top: 20px;">确定</button>
+        </div>
+    `;
+    showModal(modalContent);
+}
+
+// ==================== 显示QQ群号 ====================
+function showQQGroup() {
+    const modalContent = `
+        <div class="modal-header">
+            <div class="modal-title">加入QQ交流群</div>
+            <div class="close-btn" onclick="closeModal()">✕</div>
+        </div>
+        <div style="padding: 20px; text-align: center;">
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 48px; margin-bottom: 10px;">👥</div>
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">主播模拟器交流群</div>
+                <div style="font-size: 14px; color: #999; margin-bottom: 20px;">欢迎加入QQ群与其他玩家交流</div>
+            </div>
+            <div style="background: #161823; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <div style="font-size: 16px; color: #667eea; margin-bottom: 10px;">群号</div>
+                <div style="font-size: 32px; font-weight: bold; color: #fff; letter-spacing: 3px; margin-bottom: 10px;">816068043</div>
+                <div style="font-size: 12px; color: #999;">点击号码可复制</div>
+            </div>
+            <div style="font-size: 12px; color: #999; line-height: 1.5; margin-bottom: 20px;">
+                <p>• 分享游戏心得</p>
+                <p>• 反馈游戏问题</p>
+                <p>• 获取最新资讯</p>
+            </div>
+            <button class="btn" onclick="copyQQGroup()">复制群号</button>
+        </div>
+    `;
+    showModal(modalContent);
+}
+
+// ==================== 复制QQ群号 ====================
+function copyQQGroup() {
+    const groupNumber = '816068043';
+    const textarea = document.createElement('textarea');
+    textarea.value = groupNumber;
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+        document.execCommand('copy');
+        showNotification('复制成功', 'QQ群号已复制到剪贴板');
+    } catch (err) {
+        showWarning('复制失败，请手动输入：816068043');
+    }
+    
+    document.body.removeChild(textarea);
+    closeModal();
+}
+
 // ==================== 处理开发者设置点击 ====================
 function handleDevSettingsClick() {
     const now = Date.now();
-    // 如果超过3秒，重置计数
     if (now - lastSettingsClickTime > 3000) {
         settingsClickCount = 0;
     }
     lastSettingsClickTime = now;
     
     settingsClickCount++;
-    
-    // 当达到15次时自动弹出密码框
     if (settingsClickCount >= 15) {
         showDevPasswordModal();
     }
@@ -267,7 +368,6 @@ function showDevPasswordModal() {
     `;
     showModal(modalContent);
     
-    // 聚焦输入框
     setTimeout(() => {
         const input = document.getElementById('devPasswordInput');
         if (input) input.focus();
@@ -280,6 +380,7 @@ function closeDevPasswordModal() {
     settingsClickCount = 0;
 }
 
+// ==================== 账号设置相关函数 ====================
 function changeUsername() {
     const newName = prompt('请输入新昵称（最多10个字符）', gameState.username);
     if (newName && newName.trim()) {
@@ -310,23 +411,14 @@ function changeAvatar() {
 function clearData() {
     if (confirm('确定要清除所有数据吗？此操作不可恢复！')) {
         try {
-            // 1. 重置内存中的所有游戏状态
             if (typeof resetGame === 'function') {
                 resetGame();
             }
-            
-            // 2. 清除本地存储
             localStorage.removeItem('streamerGameState');
-            
-            // 3. 显示成功消息
             alert('数据已清除！页面将刷新。');
-            
-            // 4. 延迟刷新，确保操作完成
             setTimeout(() => {
-                // 使用 true 强制从服务器重新加载，绕过缓存
                 location.reload(true);
             }, 100);
-            
         } catch (error) {
             console.error('清除数据失败:', error);
             alert('清除数据失败，请手动清除浏览器缓存。');
@@ -360,8 +452,8 @@ function showAllWorks() {
     const worksHtml = gameState.worksList.map(work => {
         const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
         const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
-        const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
-        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">🔒 私密</span>' : '';
+        const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;">推广中</span>' : '';
+        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;">🔒 私密</span>' : '';
         return `
             <div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
                 <div class="work-header">
@@ -379,12 +471,10 @@ function showAllWorks() {
         `;
     }).join('');
     
-    // 在全屏页面内显示所有作品
     const content = document.getElementById('worksPageContent');
     content.innerHTML = worksHtml.length === 0 ? 
         '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>' : worksHtml;
     
-    // 切换到作品全屏页
     document.getElementById('worksPage').classList.add('active');
     document.getElementById('profilePage').classList.remove('active');
 }
@@ -397,22 +487,21 @@ function showWorkDetail(work) {
     const trafficData = gameState.trafficWorks[work.id];
     const isTrafficActive = trafficData && trafficData.isActive;
     
-    // ========== 新增：状态显示 ==========
     const statusIndicators = [];
     
     if (work.isRecommended) {
         const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
-        statusIndicators.push(`<div style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">🔥 推荐中...（剩余${timeLeft.toFixed(1)}天）</div>`);
+        statusIndicators.push(`<div style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">🔥推荐中...（剩余${timeLeft.toFixed(1)}天）</div>`);
     }
     
     if (work.isControversial) {
         const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
-        statusIndicators.push(`<div style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">⚠️ 争议中（剩余${timeLeft.toFixed(1)}天）</div>`);
+        statusIndicators.push(`<div style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">⚠️争议中（剩余${timeLeft.toFixed(1)}天）</div>`);
     }
     
     if (work.isHot) {
         const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
-        statusIndicators.push(`<div style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">🔥 热搜中（剩余${timeLeft.toFixed(1)}天）</div>`);
+        statusIndicators.push(`<div style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:8px;border-radius:5px;text-align:center;font-weight:bold;margin-bottom:10px;animation:pulse 1s infinite;">🔥热搜中（剩余${timeLeft.toFixed(1)}天）</div>`);
     }
     
     const trafficStatus = isTrafficActive ? `
@@ -425,9 +514,7 @@ function showWorkDetail(work) {
     const privacyBadge = work.isPrivate ? '<div style="background:#999;color:white;padding:5px 10px;border-radius:5px;font-size:12px;display:inline-block;margin-bottom:10px;">🔒 私密作品</div>' : '';
     const comments = typeof generateComments === 'function' ? generateComments(work.comments, work.time) : [];
     
-    // ========== 修改：根据作品类型显示不同的指标文字 ==========
     const viewsLabel = work.type === 'post' ? '查阅' : '播放/观看';
-    // ========== 结束修改 ==========
     
     const content = document.getElementById('workDetailPageContent');
     content.innerHTML = `
@@ -477,7 +564,7 @@ function showWorkDetail(work) {
     document.querySelector('.bottom-nav').style.display = 'none';
 }
 
-// ==================== 删除作品（修复版） ====================
+// ==================== 删除作品 ====================
 function deleteWork(workId) {
     const workIndex = gameState.worksList.findIndex(w => w.id === workId);
     if (workIndex === -1) return;
@@ -485,7 +572,6 @@ function deleteWork(workId) {
     const work = gameState.worksList[workIndex];
     
     if (confirm(`确定要删除这个${work.type === 'video' ? '视频' : work.type === 'live' ? '直播' : '动态'}吗？此操作不可恢复！`)) {
-        // 停止相关效果
         if (work.isRecommended && work.recommendInterval) {
             clearInterval(work.recommendInterval);
         }
@@ -496,25 +582,20 @@ function deleteWork(workId) {
             clearInterval(work.hotInterval);
         }
         
-        // 减去该作品对总数据的贡献
         if (work.type === 'video' || work.type === 'live') {
             gameState.views = Math.max(0, gameState.views - work.views);
         }
         gameState.likes = Math.max(0, gameState.likes - work.likes);
         
-        // 从列表中移除
         gameState.worksList.splice(workIndex, 1);
         
-        // 停止流量推广
         if (gameState.trafficWorks[workId]) {
             if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
         }
         
-        // 修复：只减去主动互动行为（评论、点赞、转发），去掉播放量
         const interactionCount = work.comments + work.likes + work.shares;
         gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
         
-        // 更新作品数
         gameState.works = gameState.worksList.filter(w => !w.isPrivate).length;
         
         closeFullscreenPage('workDetail');
@@ -530,36 +611,31 @@ function togglePrivate(workId) {
     
     work.isPrivate = !work.isPrivate;
     
-    // 重新计算统计数据
     const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
     gameState.works = publicWorks.length;
     gameState.views = publicWorks.filter(w => w.type === 'video' || w.type === 'live').reduce((sum, w) => sum + w.views, 0);
     gameState.likes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
     
-    // 重新计算总互动数（只包含主动行为：评论、点赞、转发）
     gameState.totalInteractions = publicWorks.reduce((sum, w) => {
         return sum + w.comments + w.likes + w.shares;
     }, 0);
     
     showNotification('设置成功', work.isPrivate ? '作品已设为私密' : '作品已取消私密');
-    showWorkDetail(work); // 刷新详情页
+    showWorkDetail(work);
     updateDisplay();
 }
 
-// ==================== 评论生成（核心修复） ====================
-// ==================== 修复内容：基于作品时间生成合理的评论时间戳 ====================
+// ==================== 评论生成 ====================
 function generateComments(count, workTime) {
     const comments = [], 
           users = ['小可爱123', '直播达人', '路人甲', '粉丝一号', '吃瓜群众', '热心网友', '匿名用户', '夜猫子'], 
           contents = ['太棒了！', '支持主播！', '666', '拍得真好', '来了来了', '前排围观', '主播辛苦了', '加油加油', '很好看', '不错不错', '学习了', '收藏了', '转发支持', '期待更新', '主播最美', '最棒的主播', '今天状态真好', '这个内容有意思', '讲得很详细', '受益匪浅', '主播人真好', '互动很棒', '直播很有趣'];
     
     const commentCount = Math.min(count, 20);
-    const now = gameTimer; // 当前游戏时间
+    const now = gameTimer;
     
     for (let i = 0; i < commentCount; i++) {
-        // 评论时间 = 作品发布时间 + 随机偏移（不超过当前时间）
         const maxOffset = Math.max(0, now - workTime);
-        // 使用平方分布让评论时间更自然（越早评论越多）
         const randomFactor = Math.random() * Math.random();
         const offset = Math.floor(randomFactor * maxOffset);
         const commentTime = Math.min(workTime + offset, now);
@@ -568,7 +644,7 @@ function generateComments(count, workTime) {
             user: users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random() * 999), 
             content: contents[Math.floor(Math.random() * contents.length)], 
             likes: Math.floor(Math.random() * 100), 
-            time: commentTime // 改为时间戳数字，后续由formatTime格式化
+            time: commentTime
         });
     }
     
@@ -583,6 +659,18 @@ function showAchievements() {
         <div style="color:${achievement.unlocked ? '#667eea' : '#999'};font-size:12px">${achievement.unlocked ? '已解锁' : '未解锁'}</div>
     </div>`).join('');
     showModal(`<div class="modal-header"><div class="modal-title">成就系统</div><div class="close-btn" onclick="closeModal()">✕</div></div><div style="max-height:60vh;overflow-y:auto">${achievementHtml}</div>`);
+}
+
+// ==================== 成就帮助 ====================
+function showAchievementsHelp() {
+    showModal(`<div class="modal-header"><div class="modal-title">成就说明</div><div class="close-btn" onclick="closeModal()">✕</div></div>
+        <div style="padding: 20px; line-height: 1.6;">
+            <p style="margin-bottom: 15px;">🏆 完成成就可以获得游戏内的荣誉标识</p>
+            <p style="margin-bottom: 15px;">📊 每个成就都有对应的进度条，完成目标即可解锁</p>
+            <p style="margin-bottom: 15px;">💡 部分成就需要特定条件才能解锁，请多尝试不同玩法</p>
+            <p style="color: #667eea;">🎯 努力成为传奇主播吧！</p>
+        </div>
+    `);
 }
 
 // ==================== 通知显示 ====================
@@ -605,8 +693,6 @@ function showNotifications() {
     gameState.notifications.forEach(n => n.read = true);
     updateNotificationBadge();
     const notificationHtml = gameState.notifications.slice(-20).reverse().map(notification => `<div class="comment-item"><div class="comment-header"><span class="comment-user">${notification.title}</span><span class="comment-time">${formatTime(notification.time)}</span></div><div class="comment-content">${notification.content}</div></div>`).join('');
-    
-    // 修复：在 close-btn div 中添加了 ✕ 符号
     showModal(`<div class="modal-header"><div class="modal-title">通知中心</div><div class="close-btn" onclick="closeModal()">✕</div></div><div style="max-height:60vh;overflow-y:auto">${gameState.notifications.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml}</div>`);
 }
 
@@ -663,13 +749,23 @@ function closeFullscreenPage(pageName) {
     document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
 }
 
-// ==================== 全屏作品页（完整重写） ====================
-// ========== 新增：作品分类标签切换功能 ==========
+// ==================== 全屏作品页（核心修改：实时动态 + 分页） ====================
+// ========== 新增：分页状态变量 ==========
+window.currentWorksPage = 1;
+window.worksPerPage = 10;
+window.currentWorksCategory = 'all';
+window.worksUpdateInterval = null;
+// ========== 结束修改 ==========
+
 function showWorksFullscreen() {
     const content = document.getElementById('worksListTab');
     if (!content) return;
     
-    // 添加分类标签栏
+    // ========== 新增：初始化分页状态 ==========
+    window.currentWorksPage = 1;
+    window.currentWorksCategory = 'all';
+    // ========== 结束修改 ==========
+    
     const categoryTabs = `
         <div style="display: flex; padding: 10px; gap: 10px; background: #161823; border-radius: 10px; margin: 10px;">
             <div class="category-tab active" data-category="all" onclick="filterWorksByCategory('all')">全部</div>
@@ -677,49 +773,67 @@ function showWorksFullscreen() {
             <div class="category-tab" data-category="post" onclick="filterWorksByCategory('post')">动态</div>
             <div class="category-tab" data-category="live" onclick="filterWorksByCategory('live')">直播</div>
         </div>
-        <div id="filteredWorksList" style="padding: 0 10px 60px 10px;"></div>
+        <div id="filteredWorksList" style="padding: 0 10px;"></div>
+        <div id="worksPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px 10px; background: #161823; margin: 10px; border-radius: 10px; border: 1px solid #333;"></div>
     `;
     
     content.innerHTML = categoryTabs;
+    renderWorksPage();
     
-    // 首次加载显示全部作品
-    filterWorksByCategory('all');
+    // ========== 新增：启动实时更新 ==========
+    startWorksRealtimeUpdate();
+    // ========== 结束修改 ==========
     
     const totalCountEl = document.getElementById('worksTotalCount');
-    if (totalCountEl) totalCountEl.textContent = `共${gameState.worksList.length}个作品`;
+    if (totalCountEl) {
+        const totalWorks = gameState.worksList.length;
+        totalCountEl.textContent = `共${totalWorks}个作品`;
+    }
 }
 
-// ========== 新增：作品分类筛选函数 ==========
-function filterWorksByCategory(category) {
-    // 更新标签激活状态
-    document.querySelectorAll('.category-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelector(`[data-category="${category}"]`).classList.add('active');
+// ========== 新增：渲染作品分页函数 ==========
+function renderWorksPage() {
+    const filteredListEl = document.getElementById('filteredWorksList');
+    const paginationEl = document.getElementById('worksPagination');
+    if (!filteredListEl || !paginationEl) return;
     
-    // 筛选作品
+    // 获取当前分类的作品
     let filteredWorks = gameState.worksList;
-    if (category !== 'all') {
-        filteredWorks = gameState.worksList.filter(work => work.type === category);
+    if (window.currentWorksCategory !== 'all') {
+        filteredWorks = gameState.worksList.filter(work => work.type === window.currentWorksCategory);
     }
     
-    // 渲染筛选后的作品列表
-    const worksHtml = filteredWorks.map(work => {
+    // 计算分页
+    const totalWorks = filteredWorks.length;
+    const totalPages = Math.max(1, Math.ceil(totalWorks / window.worksPerPage));
+    
+    // 确保当前页码有效
+    if (window.currentWorksPage > totalPages) {
+        window.currentWorksPage = totalPages;
+    }
+    if (window.currentWorksPage < 1) {
+        window.currentWorksPage = 1;
+    }
+    
+    // 获取当前页的作品
+    const startIndex = (window.currentWorksPage - 1) * window.worksPerPage;
+    const endIndex = startIndex + window.worksPerPage;
+    const pageWorks = filteredWorks.slice(startIndex, endIndex);
+    
+    // 渲染作品列表
+    const worksHtml = pageWorks.map(work => {
         const statusBadges = [];
         
-        // 推荐状态
         if (work.isRecommended) {
             const timeLeft = Math.max(0, work.recommendEndTime - gameTimer) / VIRTUAL_DAY_MS;
             statusBadges.push(`<span style="background:linear-gradient(135deg, #00f2ea 0%, #667eea 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥推荐${timeLeft.toFixed(1)}天</span>`);
         }
         
-        // 争议状态
         if (work.isControversial) {
             const timeLeft = Math.max(0, work.controversyEndTime - gameTimer) / VIRTUAL_DAY_MS;
             statusBadges.push(`<span style="background:linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">⚠️争议${timeLeft.toFixed(1)}天</span>`);
         }
         
-        // 热搜状态（动态）
         if (work.isHot) {
             const timeLeft = Math.max(0, work.hotEndTime - gameTimer) / VIRTUAL_DAY_MS;
             statusBadges.push(`<span style="background:linear-gradient(135deg, #FFD700 0%, #ff6b00 100%);color:#000;padding:2px 6px;border-radius:3px;font-size:10px;margin-right:5px;">🔥热搜${timeLeft.toFixed(1)}天</span>`);
@@ -754,10 +868,118 @@ function filterWorksByCategory(category) {
         `;
     }).join('');
     
-    const filteredListEl = document.getElementById('filteredWorksList');
     filteredListEl.innerHTML = worksHtml.length === 0 ? 
-        '<div style="text-align:center;color:#999;padding:20px;">该分类暂无作品，快去创作吧！</div>' : worksHtml;
+        '<div style="text-align:center;color:#999;padding:20px;">暂无作品，快去创作吧！</div>' : worksHtml;
+    
+    // 渲染分页控件
+    renderWorksPagination(totalPages, totalWorks);
 }
+// ========== 结束修改 ==========
+
+// ========== 新增：渲染分页控件函数 ==========
+function renderWorksPagination(totalPages, totalWorks) {
+    const paginationEl = document.getElementById('worksPagination');
+    if (!paginationEl) return;
+    
+    const currentPage = window.currentWorksPage;
+    let paginationHtml = '';
+    
+    // 上一页按钮
+    const prevDisabled = currentPage === 1;
+    paginationHtml += `<button class="page-btn ${prevDisabled ? 'disabled' : ''}" onclick="changeWorksPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''}>‹</button>`;
+    
+    // 页码按钮
+    const maxButtons = 7;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    
+    if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+    
+    if (startPage > 1) {
+        paginationHtml += `<button class="page-btn" onclick="changeWorksPage(1)">1</button>`;
+        if (startPage > 2) {
+            paginationHtml += `<span style="color: #666; padding: 0 5px;">...</span>`;
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changeWorksPage(${i})">${i}</button>`;
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHtml += `<span style="color: #666; padding: 0 5px;">...</span>`;
+        }
+        paginationHtml += `<button class="page-btn" onclick="changeWorksPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    // 下一页按钮
+    const nextDisabled = currentPage === totalPages;
+    paginationHtml += `<button class="page-btn ${nextDisabled ? 'disabled' : ''}" onclick="changeWorksPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''}>›</button>`;
+    
+    // 统计信息
+    const startItem = totalWorks > 0 ? (currentPage - 1) * window.worksPerPage + 1 : 0;
+    const endItem = Math.min(currentPage * window.worksPerPage, totalWorks);
+    paginationHtml += `<span style="margin-left: 10px; font-size: 12px; color: #999;">${startItem}-${endItem} / ${totalWorks}</span>`;
+    
+    paginationEl.innerHTML = paginationHtml;
+}
+// ========== 结束修改 ==========
+
+// ========== 新增：切换页面函数 ==========
+function changeWorksPage(page) {
+    const filteredWorks = window.currentWorksCategory === 'all' 
+        ? gameState.worksList 
+        : gameState.worksList.filter(work => work.type === window.currentWorksCategory);
+    
+    const totalPages = Math.max(1, Math.ceil(filteredWorks.length / window.worksPerPage));
+    
+    if (page < 1 || page > totalPages) return;
+    
+    window.currentWorksPage = page;
+    renderWorksPage();
+}
+// ========== 结束修改 ==========
+
+// ========== 修改：分类过滤函数 ==========
+function filterWorksByCategory(category) {
+    // 更新分类按钮状态
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-category="${category}"]`).classList.add('active');
+    
+    // 重置分页状态
+    window.currentWorksCategory = category;
+    window.currentWorksPage = 1;
+    
+    // 重新渲染
+    renderWorksPage();
+}
+// ========== 结束修改 ==========
+
+// ========== 新增：启动作品实时更新 ==========
+function startWorksRealtimeUpdate() {
+    // 先清理之前的定时器
+    if (window.worksUpdateInterval) {
+        clearInterval(window.worksUpdateInterval);
+    }
+    
+    // 每秒更新一次（与主界面同步）
+    window.worksUpdateInterval = setInterval(() => {
+        const worksPage = document.getElementById('worksListTab');
+        if (worksPage && worksPage.offsetParent !== null) {
+            // 作品标签页处于激活状态
+            const activeTab = document.querySelector('.nav-item.active');
+            if (activeTab && activeTab.textContent.includes('作品')) {
+                renderWorksPage();
+            }
+        }
+    }, 1000);
+}
+// ========== 结束修改 ==========
 
 // ==================== 全屏消息页 ====================
 function showMessagesFullscreen() {
@@ -853,18 +1075,6 @@ function markAllRead() {
     showNotification('操作成功', '所有消息已标记为已读');
 }
 
-// ==================== 成就帮助 ====================
-function showAchievementsHelp() {
-    showModal(`<div class="modal-header"><div class="modal-title">成就说明</div><div class="close-btn" onclick="closeModal()">✕</div></div>
-        <div style="padding: 20px; line-height: 1.6;">
-            <p style="margin-bottom: 15px;">🏆 完成成就可以获得游戏内的荣誉标识</p>
-            <p style="margin-bottom: 15px;">📊 每个成就都有对应的进度条，完成目标即可解锁</p>
-            <p style="margin-bottom: 15px;">💡 部分成就需要特定条件才能解锁，请多尝试不同玩法</p>
-            <p style="color: #667eea;">🎯 努力成为传奇主播吧！</p>
-        </div>
-    `);
-}
-
 // ==================== 警告显示 ====================
 function showWarning(message) {
     const toast = document.getElementById('warningToast');
@@ -882,6 +1092,10 @@ window.showDevPasswordModal = showDevPasswordModal;
 window.closeDevPasswordModal = closeDevPasswordModal;
 window.handleDevSettingsClick = handleDevSettingsClick;
 window.showSettings = showSettings;
+window.showGameSettings = showGameSettings;
+window.showPlayTime = showPlayTime;
+window.showQQGroup = showQQGroup;
+window.copyQQGroup = copyQQGroup;
 window.showProfile = showProfile;
 window.showAllWorks = showAllWorks;
 window.showWorkDetail = showWorkDetail;
@@ -904,3 +1118,14 @@ window.changeAvatar = changeAvatar;
 window.clearData = clearData;
 window.generateComments = generateComments;
 window.filterWorksByCategory = filterWorksByCategory;
+
+// ========== 新增：绑定分页相关函数 ==========
+window.renderWorksPage = renderWorksPage;
+window.renderWorksPagination = renderWorksPagination;
+window.changeWorksPage = changeWorksPage;
+window.startWorksRealtimeUpdate = startWorksRealtimeUpdate;
+// ========== 结束修改 ==========
+
+// 开发者模式相关
+let settingsClickCount = 0;
+let lastSettingsClickTime = 0;

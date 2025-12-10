@@ -1,6 +1,6 @@
 // ==================== 虚拟时间机制 ====================
 const VIRTUAL_DAY_MS = 1 * 60 * 1000; // 1虚拟天 = 1分钟
-const VIRTUAL_MONTH_DAYS = 30; // 1虚拟月 = 30天
+const VIRTUAL_MONTH_DAYS = 30; // 1虚拟月 = 30天（用于简化计算，不影响日期显示）
 const VIRTUAL_YEAR_DAYS = 365; // 1虚拟年 = 365天
 
 // 新增：虚拟时间单位
@@ -24,12 +24,27 @@ const GAME_START_VIRTUAL_DATE = {
     day: 1    // 1-30
 };
 
-// 计算虚拟日期
+// 计算虚拟日期（修复版：使用真实月份天数，确保完整365天）
 function getVirtualDate() {
     const totalDays = Math.floor(getVirtualDaysPassed());
-    const daysInCurrentYear = totalDays % VIRTUAL_YEAR_DAYS;
-    const monthsPassed = Math.floor(daysInCurrentYear / VIRTUAL_MONTH_DAYS);
-    const daysInCurrentMonth = daysInCurrentYear % VIRTUAL_MONTH_DAYS;
+    const currentYear = GAME_START_VIRTUAL_DATE.year + Math.floor(totalDays / 365);
+    
+    // 计算一年中的第几天（0-364）
+    const dayOfYear = totalDays % 365;
+    
+    // 12个月的真实天数（非闰年）
+    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let remainingDays = dayOfYear;
+    let month = 0;
+    
+    // 找到当前月份
+    for (let i = 0; i < monthDays.length; i++) {
+        if (remainingDays < monthDays[i]) {
+            month = i;
+            break;
+        }
+        remainingDays -= monthDays[i];
+    }
     
     // 计算一天内的时间
     const timeInDay = gameTimer % VIRTUAL_DAY_MS;
@@ -38,12 +53,12 @@ function getVirtualDate() {
     const seconds = Math.floor((timeInDay % VIRTUAL_MINUTE_MS) / VIRTUAL_SECOND_MS);
     
     return {
-        year: GAME_START_VIRTUAL_DATE.year + Math.floor(totalDays / VIRTUAL_YEAR_DAYS),
-        month: ((GAME_START_VIRTUAL_DATE.month - 1 + monthsPassed) % 12) + 1,
-        day: daysInCurrentMonth + 1,
+        year: currentYear,
+        month: month + 1, // 转换为1-12月
+        day: remainingDays + 1,
         totalDays: totalDays,
-        totalMonths: Math.floor(totalDays / VIRTUAL_MONTH_DAYS),
-        totalYears: Math.floor(totalDays / VIRTUAL_YEAR_DAYS),
+        totalMonths: Math.floor(totalDays / 30), // 简化计算
+        totalYears: Math.floor(totalDays / 365),
         hours: hours,
         minutes: minutes,
         seconds: seconds,
