@@ -288,17 +288,30 @@ function checkInactivityPenalty() {
     }
 }
 
-// ==================== 游戏主循环 ====================
+// ==================== 游戏主循环（核心修改：加权随机事件） ====================
 function startGameLoop() {
     // 每虚拟天（1分钟）精确更新一次图表
     setInterval(() => {
         updateChartData();
     }, VIRTUAL_DAY_MS);
     
-    // 每30秒触发随机事件
+    // 每30秒触发随机事件（修改为加权随机选择）
     setInterval(() => {
-        const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
-        handleRandomEvent(event);
+        // 计算总权重
+        const totalWeight = randomEvents.reduce((sum, event) => sum + (event.weight || 1), 0);
+        let random = Math.random() * totalWeight;
+        let selectedEvent = randomEvents[0];
+        
+        // 根据权重选择事件
+        for (const event of randomEvents) {
+            random -= (event.weight || 1);
+            if (random <= 0) {
+                selectedEvent = event;
+                break;
+            }
+        }
+        
+        handleRandomEvent(selectedEvent);
     }, 30000);
     
     // 每秒检查不更新惩罚
@@ -421,6 +434,13 @@ function checkAchievements() {
             if (unlocked) {
                 achievement.unlocked = true;
                 gameState.achievements.push(achievement.id);
+                
+                // 显示弹窗通知（新增）
+                if (typeof showAchievementPopup === 'function') {
+                    showAchievementPopup(achievement);
+                }
+                
+                // 保留原有的通知中心消息
                 showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
             }
         }

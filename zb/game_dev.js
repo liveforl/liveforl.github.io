@@ -164,7 +164,8 @@ function devVerifyPassword() {
     enableDevMode();
     closeDevPasswordModal();
   } else {
-    alert('密码错误！');
+    // ✅ 已修改：替换浏览器弹窗
+    showAlert('密码错误！', '错误');
   }
 }
 
@@ -335,21 +336,25 @@ function devTestBan() {
 }
 
 function devAddFans() {
-  const amount = parseInt(prompt('请输入要增加的粉丝数量', '1000'));
-  if (!isNaN(amount) && amount > 0) {
-    gameState.fans += amount;
-    updateDisplay();
-    showNotification('修改数据', `已增加${amount}个粉丝`);
-  }
+  // ✅ 已修改：替换浏览器弹窗
+  showPrompt('请输入要增加的粉丝数量', '1000', function(amount) {
+    if (!isNaN(amount) && amount > 0) {
+      gameState.fans += parseInt(amount);
+      updateDisplay();
+      showNotification('修改数据', `已增加${amount}个粉丝`);
+    }
+  });
 }
 
 function devAddMoney() {
-  const amount = parseInt(prompt('请输入要增加的零钱金额', '100000'));
-  if (!isNaN(amount) && amount > 0) {
-    gameState.money += amount;
-    updateDisplay();
-    showNotification('修改数据', `已增加${amount}元`);
-  }
+  // ✅ 已修改：替换浏览器弹窗
+  showPrompt('请输入要增加的零钱金额', '100000', function(amount) {
+    if (!isNaN(amount) && amount > 0) {
+      gameState.money += parseInt(amount);
+      updateDisplay();
+      showNotification('修改数据', `已增加${amount}元`);
+    }
+  });
 }
 
 function devResetWarnings() {
@@ -398,16 +403,16 @@ function devAddRandomWork() {
   const shares = Math.floor(likes * (Math.random() * 0.2 + 0.05));
   
   const work = {
-    id: Date.now(),
-    type: type,
-    title: '开发者测试作品',
-    content: '这是由开发者模式生成的测试作品',
-    views: views,
-    likes: likes,
-    comments: comments,
-    shares: shares,
-    time: gameTimer,
-    revenue: Math.floor(views / 1000),
+    id: Date.now(), 
+    type: type, 
+    title: '开发者测试作品', 
+    content: '这是由开发者模式生成的测试作品', 
+    views: views, 
+    likes: likes, 
+    comments: comments, 
+    shares: shares, 
+    time: gameTimer, // 使用游戏计时器
+    revenue: Math.floor(views / 1000), 
     isPrivate: false,
     isAd: Math.random() < 0.3
   };
@@ -477,27 +482,30 @@ function devClearEvents() {
 }
 
 function devClearDevMode() {
-  if (confirm('确定要清除开发者模式吗？这将隐藏开发者选项且不可恢复。')) {
-    gameState.devMode = false;
-    document.getElementById('devFloatButton').style.display = 'none';
-    closeDevOptions();
-    
-    // 清除点击计数
-    if (window.settingsClickCount) {
-      window.settingsClickCount = 0;
+  // ✅ 已修改：替换浏览器弹窗
+  showConfirm('确定要清除开发者模式吗？这将隐藏开发者选项且不可恢复。', function(confirmed) {
+    if (confirmed) {
+      gameState.devMode = false;
+      document.getElementById('devFloatButton').style.display = 'none';
+      closeDevOptions();
+      
+      // 清除点击计数
+      if (window.settingsClickCount) {
+        window.settingsClickCount = 0;
+      }
+      
+      // 清除倒计时追踪
+      if (window.devCountdownInterval) {
+        clearInterval(window.devCountdownInterval);
+        window.devCountdownInterval = null;
+      }
+      
+      // 清除本地存储中的开发者模式状态
+      saveGame();
+      
+      showNotification('开发者模式', '开发者模式已清除');
     }
-    
-    // 清除倒计时追踪
-    if (window.devCountdownInterval) {
-      clearInterval(window.devCountdownInterval);
-      window.devCountdownInterval = null;
-    }
-    
-    // 清除本地存储中的开发者模式状态
-    saveGame();
-    
-    showNotification('开发者模式', '开发者模式已清除');
-  }
+  });
 }
 
 // ==================== 全局函数绑定 ====================

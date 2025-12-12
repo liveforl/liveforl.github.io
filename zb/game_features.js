@@ -26,7 +26,7 @@ function createVideo() {
     const title = document.getElementById('videoTitle').value.trim();
     const content = document.getElementById('videoContent').value.trim();
     if (!title || !content) { 
-        alert('请填写完整信息'); 
+        showAlert('请填写完整信息', '提示');
         return; 
     }
     if (typeof checkViolation === 'function' && checkViolation(title + content)) return;
@@ -44,10 +44,9 @@ function createVideo() {
         likes: likes, 
         comments: comments, 
         shares: shares, 
-        time: gameTimer, // 使用游戏计时器
+        time: gameTimer,
         revenue: Math.floor(views / 1000), 
         isPrivate: false,
-        // 新增：状态标记
         isRecommended: false,
         recommendEndTime: null,
         recommendInterval: null,
@@ -64,12 +63,10 @@ function createVideo() {
     const newFans = Math.floor(views / 1000 * (Math.random() * 2 + 0.5));
     gameState.fans += newFans;
     
-    // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
     const interactionBoost = comments + likes + shares;
     gameState.totalInteractions += interactionBoost;
     gameState.activeFans += Math.floor(newFans * 0.6);
     
-    // 重置不更新掉粉状态
     resetInactivityDropState();
     
     closeFullscreenPage('createVideo');
@@ -100,7 +97,7 @@ function showCreatePost() {
 function createPost() {
     const content = document.getElementById('postContent').value.trim();
     if (!content) { 
-        alert('请输入动态内容'); 
+        showAlert('请输入动态内容', '提示');
         return; 
     }
     if (typeof checkViolation === 'function' && checkViolation(content)) return;
@@ -117,9 +114,8 @@ function createPost() {
         likes: likes, 
         comments: comments, 
         shares: shares, 
-        time: gameTimer, // 使用游戏计时器
+        time: gameTimer,
         isPrivate: false,
-        // 新增：热搜状态
         isHot: false,
         hotEndTime: null,
         hotInterval: null
@@ -127,19 +123,14 @@ function createPost() {
     
     gameState.worksList.push(work);
     gameState.works++;
-    // ========== 修改：动态不纳入播放量统计 ==========
-    // gameState.views += views; // 这行被移除
-    // ========== 结束修改 ==========
     gameState.likes += likes;
     const newFans = Math.floor(views / 2000 * (Math.random() * 1.5 + 0.3));
     gameState.fans += newFans;
     
-    // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
     const interactionBoost = comments + likes + shares;
     gameState.totalInteractions += interactionBoost;
     gameState.activeFans += Math.floor(newFans * 0.4);
     
-    // 重置不更新掉粉状态
     resetInactivityDropState();
     
     closeFullscreenPage('createPost');
@@ -158,7 +149,6 @@ function startLive() {
         return; 
     }
     
-    // 直播使用全屏页面
     const content = document.getElementById('workDetailPageContent');
     content.innerHTML = `
         <div class="live-container">
@@ -231,7 +221,7 @@ function startLiveStream() {
             likes: liveData.likes, 
             comments: liveData.comments, 
             shares: liveData.shares, 
-            time: gameTimer, // 使用游戏计时器
+            time: gameTimer,
             liveData: liveData, 
             isPrivate: false 
         };
@@ -260,7 +250,6 @@ function endLiveStream() {
         gameState.views += totalViews;
         gameState.likes += liveData.likes;
         
-        // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
         gameState.totalInteractions += liveData.comments + liveData.likes + liveData.shares;
         
         if (totalViews >= 1000) {
@@ -273,7 +262,7 @@ function endLiveStream() {
         }
         showNotification('直播结束', `本次直播获得${totalViews.toLocaleString()}观看，打赏收入${liveData.revenue}元`);
     }
-    gameState.lastUpdateTime = gameTimer; // 使用游戏计时器
+    gameState.lastUpdateTime = gameTimer;
     closeFullscreenPage('workDetail');
     updateDisplay();
 }
@@ -426,14 +415,13 @@ function confirmBuyTraffic() {
     updateDisplay();
 }
 
-// 修复：推广开始时间使用gameTimer
 function startNewTraffic(workId, days) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work) return;
     gameState.trafficWorks[workId] = {
         workId: workId,
         days: days,
-        startTime: gameTimer, // 使用游戏计时器
+        startTime: gameTimer,
         isActive: true,
         remainingTime: days
     };
@@ -448,7 +436,6 @@ function showAppeal() {
         return;
     }
     
-    // 修复：基于游戏计时器计算剩余时间
     const timePassed = gameTimer - gameState.banStartTime;
     const daysPassed = timePassed / VIRTUAL_DAY_MS;
     const daysLeft = Math.ceil(gameState.banDaysCount - daysPassed);
@@ -466,342 +453,46 @@ function showAppeal() {
         return;
     }
     
-    if (confirm(`是否进行申诉？
+    showConfirm(`是否进行申诉？
 当前剩余封禁：${daysLeft}天
 申诉成功率：${successRate}%
-注意：申诉失败将失去再次申诉的机会`)) {
-        
-        const success = Math.random() * 100 < successRate;
-        if (success) {
-            gameState.isBanned = false;
-            gameState.warnings = Math.max(0, gameState.warnings - 5);
-            gameState.appealAvailable = true;
-            
-            const achievement = achievements.find(a => a.id === 14);
-            if (achievement && !achievement.unlocked) {
-                achievement.unlocked = true;
-                gameState.achievements.push(14);
-                showNotification('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
+注意：申诉失败将失去再次申诉的机会`, function(confirmed) {
+        if (confirmed) {
+            const success = Math.random() * 100 < successRate;
+            if (success) {
+                gameState.isBanned = false;
+                gameState.warnings = Math.max(0, gameState.warnings - 5);
+                gameState.appealAvailable = true;
+                
+                const achievement = achievements.find(a => a.id === 14);
+                if (achievement && !achievement.unlocked) {
+                    achievement.unlocked = true;
+                    gameState.achievements.push(14);
+                    showNotification('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
+                }
+                
+                if (gameState.banInterval) {
+                    clearInterval(gameState.banInterval);
+                    gameState.banInterval = null;
+                }
+                if (gameState.banDropInterval) {
+                    clearInterval(gameState.banDropInterval);
+                    gameState.banDropInterval = null;
+                }
+                
+                showNotification('✅ 申诉成功', '账号已解封，警告次数减少5次');
+            } else {
+                gameState.appealAvailable = false;
+                showWarning('申诉失败，无法再次申诉');
             }
             
-            if (gameState.banInterval) {
-                clearInterval(gameState.banInterval);
-                gameState.banInterval = null;
-            }
-            if (gameState.banDropInterval) {
-                clearInterval(gameState.banDropInterval);
-                gameState.banDropInterval = null;
-            }
+            const appealBtn = document.getElementById('appealBtn');
+            if (appealBtn) appealBtn.style.display = 'none';
             
-            showNotification('✅ 申诉成功', '账号已解封，警告次数减少5次');
-        } else {
-            gameState.appealAvailable = false;
-            showWarning('申诉失败，无法再次申诉');
+            saveGame();
+            updateDisplay();
         }
-        
-        const appealBtn = document.getElementById('appealBtn');
-        if (appealBtn) appealBtn.style.display = 'none';
-        
-        saveGame();
-        updateDisplay();
-    }
-}
-
-// ==================== 商单系统（改为全屏，支持品牌合作） ====================
-function generateAdOrder() {
-    const ad = adOrdersDB[Math.floor(Math.random() * adOrdersDB.length)];
-    return { ...ad, actualReward: Math.floor(Math.random() * (100000 - 500) + 500), method: null, time: gameTimer, status: 'pending' }; // 使用游戏计时器
-}
-
-function showAdOrders() {
-    if (gameState.isBanned) { 
-        showWarning('账号被封禁，无法接单'); 
-        return; 
-    }
-    
-    const content = document.getElementById('adOrdersPageContent');
-    
-    // 检查是否有待处理的品牌合作
-    if (gameState.pendingBrandDeal && gameState.pendingBrandDeal.status === 'pending') {
-        const brandDeal = gameState.pendingBrandDeal;
-        const riskText = '风险等级：低';
-        const riskColor = '#00f2ea';
-        
-        content.innerHTML = `
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #fff; font-weight: bold; text-align: center;">
-                🎉 品牌合作机会
-            </div>
-            <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333; border-left: 4px solid #667eea;">
-                <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${brandDeal.title}</div>
-                <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${brandDeal.content}</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${brandDeal.actualReward}元</div>
-                    <div style="font-size:12px;color:${riskColor}">${riskText}</div>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div class="action-btn" onclick="acceptBrandDeal()" style="flex: 1; background: #667eea;">
-                    <div class="action-icon">✅</div>
-                    <div class="action-text">接受合作</div>
-                </div>
-                <div class="action-btn" onclick="rejectBrandDeal()" style="flex: 1; background: #333;">
-                    <div class="action-icon">❌</div>
-                    <div class="action-text">拒绝合作</div>
-                </div>
-            </div>
-            <div style="font-size: 12px; color: #999; text-align: center;">
-                💡 品牌合作风险较低，但请确保内容真实
-            </div>
-        `;
-    } else {
-        // 显示普通商单
-        const ad = generateAdOrder();
-        gameState.currentAdOrder = ad;
-        const riskText = { 
-            0: '风险等级：低', 
-            0.4: '风险等级：中低', 
-            0.5: '风险等级：中', 
-            0.6: '风险等级：中高', 
-            0.65: '风险等级：中高', 
-            0.7: '风险等级：高', 
-            0.85: '风险等级：很高', 
-            0.9: '风险等级：极高' 
-        };
-        const riskColor = ad.risk > 0.6 ? '#ff0050' : ad.risk > 0.3 ? '#ff6b00' : '#00f2ea';
-        
-        content.innerHTML = `
-            <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333;">
-                <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${ad.title}</div>
-                <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${ad.content}</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${ad.actualReward}元</div>
-                    <div style="font-size:12px;color:${riskColor}">${riskText[ad.risk] || '风险等级：低'}</div>
-                </div>
-            </div>
-            <div style="margin-bottom:15px;">
-                <div class="input-label">选择发布方式</div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-                    <div class="action-btn" onclick="selectMethod('video')" style="padding:10px">
-                        <div class="action-icon">🎬</div>
-                        <div class="action-text">视频</div>
-                    </div>
-                    <div class="action-btn" onclick="selectMethod('post')" style="padding:10px">
-                        <div class="action-icon">📝</div>
-                        <div class="action-text">动态</div>
-                    </div>
-                    <div class="action-btn" onclick="selectMethod('live')" style="padding:10px">
-                        <div class="action-icon">📱</div>
-                        <div class="action-text">直播</div>
-                    </div>
-                </div>
-            </div>
-            <div id="publishForm" style="display:none">
-                <div class="input-group">
-                    <div class="input-label">内容创作</div>
-                    <textarea class="text-input" id="adContent" rows="4" placeholder="根据商单要求创作内容..." maxlength="200"></textarea>
-                </div>
-                <button class="btn" onclick="publishAd()">发布并领取报酬</button>
-            </div>
-            <div style="margin-top:15px;font-size:12px;color:#999;text-align:center">⚠️ 违规内容将导致警告甚至封号</div>
-        `;
-    }
-    
-    document.getElementById('adOrdersPage').classList.add('active');
-    document.getElementById('mainContent').style.display = 'none';
-    document.querySelector('.bottom-nav').style.display = 'none';
-}
-
-// ==================== 新增：接受品牌合作 ==========
-function acceptBrandDeal() {
-    if (!gameState.pendingBrandDeal || gameState.pendingBrandDeal.status !== 'pending') {
-        showWarning('没有待处理的品牌合作');
-        return;
-    }
-    
-    const brandDeal = gameState.pendingBrandDeal;
-    
-    const content = document.getElementById('adOrdersPageContent');
-    content.innerHTML = `
-        <div style="margin-bottom:20px;padding:15px;background:#161823;border-radius:10px;border:1px solid #333; border-left: 4px solid #00f2ea;">
-            <div style="font-size:16px;font-weight:bold;margin-bottom:10px">${brandDeal.title}</div>
-            <div style="font-size:14px;margin-bottom:10px;line-height:1.5">${brandDeal.content}</div>
-            <div style="font-size:18px;color:#667eea;font-weight:bold">💰 ${brandDeal.actualReward}元</div>
-        </div>
-        <div class="input-group">
-            <div class="input-label">合作内容创作</div>
-            <textarea class="text-input" id="brandAdContent" rows="6" placeholder="根据品牌要求进行内容创作，注意保持真实体验分享..." maxlength="300"></textarea>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px;">
-            <div class="action-btn" onclick="selectBrandMethod('video')" style="padding:10px">
-                <div class="action-icon">🎬</div>
-                <div class="action-text">视频</div>
-            </div>
-            <div class="action-btn" onclick="selectBrandMethod('post')" style="padding:10px">
-                <div class="action-icon">📝</div>
-                <div class="action-text">动态</div>
-            </div>
-            <div class="action-btn" onclick="selectBrandMethod('live')" style="padding:10px">
-                <div class="action-icon">📱</div>
-                <div class="action-text">直播</div>
-            </div>
-        </div>
-        <button class="btn" onclick="publishBrandAd()">发布合作内容并领取报酬</button>
-        <div style="margin-top:15px;font-size:12px;color:#999;text-align:center">💡 品牌合作内容需真实体验，避免虚假宣传</div>
-    `;
-    
-    window.selectedBrandMethod = 'video'; // 默认选择视频
-}
-
-// ==================== 新增：拒绝品牌合作 ==========
-function rejectBrandDeal() {
-    if (!gameState.pendingBrandDeal || gameState.pendingBrandDeal.status !== 'pending') {
-        showWarning('没有待处理的品牌合作');
-        return;
-    }
-    
-    gameState.pendingBrandDeal.status = 'rejected';
-    gameState.rejectedAdOrders++;
-    
-    showNotification('合作已拒绝', '你拒绝了品牌合作机会');
-    closeFullscreenPage('adOrders');
-    updateDisplay();
-}
-
-// ==================== 新增：选择品牌合作发布方式 ==========
-function selectBrandMethod(method) {
-    window.selectedBrandMethod = method;
-    
-    document.querySelectorAll('#adOrdersPageContent .action-btn').forEach(btn => {
-        btn.style.border = '1px solid #333';
     });
-    
-    event.currentTarget.style.border = '2px solid #00f2ea';
-}
-
-// ==================== 新增：发布品牌合作内容 ==========
-function publishBrandAd() {
-    const content = document.getElementById('brandAdContent').value.trim();
-    const brandDeal = gameState.pendingBrandDeal;
-    
-    if (!content) { 
-        alert('请输入合作内容'); 
-        return; 
-    }
-    if (typeof checkViolation === 'function' && checkViolation(content)) return;
-    
-    const views = Math.floor(Math.random() * 15000 + 5000);
-    const likes = Math.floor(Math.random() * 1500 + 100);
-    const comments = Math.floor(Math.random() * 200 + 20);
-    const shares = Math.floor(Math.random() * 100 + 10);
-    const work = { 
-        id: Date.now(), 
-        type: window.selectedBrandMethod || 'video', 
-        content: content, 
-        views: views, 
-        likes: likes, 
-        comments: comments, 
-        shares: shares, 
-        time: gameTimer, // 使用游戏计时器
-        isAd: true, 
-        revenue: Math.floor(views / 1000), 
-        isPrivate: false 
-    };
-    
-    gameState.worksList.push(work);
-    gameState.works++;
-    gameState.adOrdersCount++;
-    
-    // 只有视频/直播计入播放量
-    if (work.type === 'video' || work.type === 'live') {
-        gameState.views += work.views;
-    }
-    gameState.likes += work.likes;
-    gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
-    gameState.money += brandDeal.actualReward;
-    
-    // 修复：只统计主动互动行为
-    gameState.totalInteractions += comments + likes + shares;
-    
-    // 清空pending状态
-    gameState.pendingBrandDeal = null;
-    
-    showNotification('合作完成', `品牌合作完成，获得${brandDeal.actualReward}元`);
-    
-    closeFullscreenPage('adOrders');
-    updateDisplay();
-}
-
-function selectMethod(m) { 
-    window.selectedMethod = m; 
-    const form = document.getElementById('publishForm');
-    if (form) form.style.display = 'block'; 
-}
-
-function publishAd() {
-    const content = document.getElementById('adContent').value.trim();
-    const ad = gameState.currentAdOrder;
-    if (!content) { 
-        alert('请输入内容'); 
-        return; 
-    }
-    
-    let hasViolation = violationKeywords.some(k => content.includes(k)) || Math.random() < ad.risk;
-    if (ad.keyword && content.includes(ad.keyword)) hasViolation = true;
-    
-    if (hasViolation) {
-        gameState.warnings = Math.min(20, gameState.warnings + Math.floor(Math.random() * 2) + 1);
-        showWarning(`商单内容违规，警告${gameState.warnings}/20次`);
-        if (gameState.warnings >= 20) typeof banAccount === 'function' && banAccount('商单违规');
-        gameState.rejectedAdOrders++;
-    } else {
-        const views = Math.floor(Math.random() * 15000 + 5000);
-        const likes = Math.floor(Math.random() * 1500 + 100);
-        const comments = Math.floor(Math.random() * 200 + 20);
-        const shares = Math.floor(Math.random() * 100 + 10);
-        const work = { 
-            id: Date.now(), 
-            type: window.selectedMethod, 
-            content: content, 
-            views: views, 
-            likes: likes, 
-            comments: comments, 
-            shares: shares, 
-            time: gameTimer, // 使用游戏计时器
-            isAd: true, 
-            revenue: Math.floor((Math.random() * 15000 + 5000) / 1000), 
-            isPrivate: false 
-        };
-        gameState.worksList.push(work);
-        gameState.works++;
-        
-        // ========== 修改：商单也遵循类型规则，只有视频/直播计入播放量 ==========
-        if (work.type === 'video' || work.type === 'live') {
-            gameState.views += work.views;
-        }
-        // ========== 结束修改 ==========
-        
-        gameState.likes += work.likes;
-        gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
-        gameState.money += ad.actualReward;
-        gameState.adOrdersCount++;
-        
-        // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
-        gameState.totalInteractions += comments + likes + shares;
-        
-        if (gameState.adOrdersCount % 10 === 0) {
-            const fanLoss = Math.floor(Math.random() * 1000) + 500;
-            gameState.fans = Math.max(0, gameState.fans - fanLoss);
-            showNotification('粉丝疲劳', `长期接商单导致粉丝流失：${fanLoss}`);
-        }
-        showNotification('商单完成', `获得${ad.actualReward}元`);
-    }
-    
-    closeFullscreenPage('adOrders');
-    
-    // 每次完成商单后检查高商单数惩罚
-    checkHighAdCountPenalty();
-    
-    updateDisplay();
 }
 
 // ==================== 检查违规 ====================
@@ -810,14 +501,13 @@ function checkViolation(content) {
     if (hasViolation) {
         if (gameState.warnings < 20) gameState.warnings++;
         showWarning(`内容包含违规信息，警告${gameState.warnings}/20次`);
-        if (!gameState.isBanned && gameState.warnings >= 20) typeof banAccount === 'function' && banAccount('多次违反社区规定');
+        if (!gameState.isBanned && gameState.warnings >= 20) banAccount('多次违反社区规定');
         return true;
     }
     return false;
 }
 
 // ==================== 流量推广核心 ====================
-// 修复：时间计算使用gameTimer，添加安全保护
 function startTrafficProcess(workId) {
     workId = Number(workId);
     const trafficData = gameState.trafficWorks[workId];
@@ -829,7 +519,6 @@ function startTrafficProcess(workId) {
         const work = gameState.worksList.find(w => w.id === workId);
         if (!work) return;
         
-        // 安全计算时间差
         const timePassed = gameTimer - trafficData.startTime;
         const daysPassed = timePassed / VIRTUAL_DAY_MS;
         const timeLeft = Math.max(0, trafficData.days - daysPassed);
@@ -845,15 +534,12 @@ function startTrafficProcess(workId) {
         const shareBoost = Math.floor(Math.random() * 30) + 5;
         
         work.views += viewsBoost;
-        // ========== 修改：只有视频和直播的播放量增长才计入总播放量 ==========
         if (work.type === 'video' || work.type === 'live') {
             gameState.views += viewsBoost;
         }
-        // ========== 结束修改 ==========
         gameState.fans += fanBoost;
         work.comments += commentBoost;
         
-        // 修复：只统计主动互动行为（评论、转发），去掉播放量
         gameState.totalInteractions += commentBoost + shareBoost;
         
         const oldRevenue = work.revenue || 0;
@@ -889,19 +575,16 @@ function stopTrafficForWork(workId) {
 
 // ==================== 图表显示（修复版） ====================
 function showCharts() {
-    // 切换到全屏页面
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
     document.getElementById('chartsPage').classList.add('active');
     
-    // 确保图表数据已初始化
     if (!gameState.chartData.currentIndex && gameState.chartData.fans.length > 0) {
         const virtualDays = Math.floor(getVirtualDaysPassed());
         gameState.chartData.currentIndex = (virtualDays - 1) % 60;
         gameState.chartData.currentDay = virtualDays - 1;
     }
     
-    // 渲染图表容器
     const content = document.getElementById('chartsPageContent');
     content.innerHTML = `
         <div class="chart-container">
@@ -926,7 +609,6 @@ function showCharts() {
                 </div>
                 <canvas class="chart-canvas" id="viewsChart"></canvas>
             </div>
-            <!-- 粉丝互动数据分析 -->
             <div class="chart-item">
                 <div class="chart-header">
                     <div class="chart-title">粉丝互动趋势</div>
@@ -944,7 +626,6 @@ function showCharts() {
         drawChart('interactionsChart', gameState.chartData.interactions, '#FFD700', '互动次数');
     }, 100);
     
-    // 实时刷新已打开的图表（每5秒）
     if (window.chartRefreshInterval) {
         clearInterval(window.chartRefreshInterval);
     }
@@ -958,7 +639,6 @@ function showCharts() {
     }, 5000);
 }
 
-// 修改：清理函数增加停止数字更新
 function stopChartsRefresh() {
     if (window.chartRefreshInterval) {
         clearInterval(window.chartRefreshInterval);
@@ -966,44 +646,9 @@ function stopChartsRefresh() {
     }
 }
 
-// 保留备用绘制函数
-function drawFallbackChart(canvasId, data, color) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d'), width = canvas.width = canvas.offsetWidth, height = canvas.height = canvas.offsetHeight;
-    ctx.clearRect(0, 0, width, height);
-    const maxValue = Math.max(...data, 1), step = width / (data.length - 1);
-    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-        const y = (height / 4) * i;
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-    }
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, color + '40'); gradient.addColorStop(1, color + '10');
-    ctx.fillStyle = gradient; ctx.beginPath(); ctx.moveTo(0, height);
-    data.forEach((value, index) => {
-        const x = index * step, y = height - (value / maxValue) * height;
-        ctx.lineTo(x, y);
-    });
-    ctx.lineTo(width, height); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath();
-    data.forEach((value, index) => {
-        const x = index * step, y = height - (value / maxValue) * height;
-        if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.fillStyle = color;
-    data.forEach((value, index) => {
-        const x = index * step, y = height - (value / maxValue) * height;
-        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
-    });
-}
-
-// ==================== 不更新掉粉机制控制函数（新增） ====================
+// ==================== 不更新掉粉机制控制函数 ====================
 function resetInactivityDropState() {
-    // 更新最后作品时间（使用游戏计时器）
     gameState.lastWorkTime = gameTimer;
-    // 停止掉粉
     if (gameState.isDroppingFansFromInactivity) {
         gameState.isDroppingFansFromInactivity = false;
         if (gameState.inactivityDropInterval) {
@@ -1011,92 +656,10 @@ function resetInactivityDropState() {
             gameState.inactivityDropInterval = null;
         }
     }
-    // 重置警告状态
     gameState.inactivityWarningShown = false;
 }
 
-// ==================== 高商单数掉粉机制控制函数（完全重写） ====================
-// ========== 核心修改：若接单数超过30单，触发粉丝疲劳惩罚 ==========
-// ========== 惩罚效果：清空商单计数，每秒高概率掉粉，持续1-5虚拟天 ==========
-function checkHighAdCountPenalty() {
-    if (!gameState || gameState.isBanned) return;
-    
-    // 检查是否达到触发阈值（>=30单且不在惩罚期）
-    if (gameState.adOrdersCount >= 30 && !gameState.adOrdersPenaltyActive) {
-        console.log(`商单数达到${gameState.adOrdersCount}，触发粉丝疲劳惩罚`);
-        
-        // 1. 记录惩罚强度（基于清零前的商单数）
-        gameState.adOrdersPenaltyIntensity = gameState.adOrdersCount;
-        
-        // 2. 随机设置惩罚期（1-5虚拟天）
-        const penaltyDays = Math.floor(Math.random() * 5) + 1;
-        gameState.adOrdersPenaltyEndTime = gameTimer + (penaltyDays * VIRTUAL_DAY_MS);
-        gameState.adOrdersPenaltyActive = true;
-        
-        // 3. 清空商单计数（"检测的单数并清空"）
-        gameState.adOrdersCount = 0;
-        
-        // 4. 显示通知
-        showNotification('⚠️ 粉丝疲劳爆发', `长期接商单引发粉丝不满！惩罚持续${penaltyDays}虚拟天`);
-        
-        // 5. 启动惩罚期专用定时器（每秒触发）
-        if (gameState.adOrdersPenaltyInterval) {
-            clearInterval(gameState.adOrdersPenaltyInterval);
-        }
-        
-        gameState.adOrdersPenaltyInterval = setInterval(() => {
-            // 检查惩罚是否结束
-            if (gameTimer >= gameState.adOrdersPenaltyEndTime) {
-                // 惩罚结束，恢复正常
-                clearInterval(gameState.adOrdersPenaltyInterval);
-                gameState.adOrdersPenaltyInterval = null;
-                gameState.adOrdersPenaltyActive = false;
-                gameState.adOrdersPenaltyIntensity = 0;
-                
-                showNotification('✅ 粉丝疲劳缓解', '经过休息，粉丝对你的印象有所好转');
-                updateDisplay();
-                return;
-            }
-            
-            // 惩罚期：高概率掉粉
-            // 基础概率30% + 每10单增加5%（最高80%）
-            const baseProbability = 0.30;
-            const intensityBonus = Math.floor(gameState.adOrdersPenaltyIntensity / 10) * 0.05;
-            const dropProbability = Math.min(0.80, baseProbability + intensityBonus);
-            
-            if (Math.random() < dropProbability) {
-                // 掉粉数量：基础5-15 + 强度加成（每5单+2）
-                const baseDrop = Math.floor(Math.random() * 11) + 5;
-                const intensityDrop = Math.floor(gameState.adOrdersPenaltyIntensity / 5) * 2;
-                const dropAmount = baseDrop + intensityDrop;
-                
-                gameState.fans = Math.max(0, gameState.fans - dropAmount);
-                
-                // 20%概率显示通知，避免刷屏
-                if (Math.random() < 0.20) {
-                    showNotification('📉 粉丝疲劳', `因长期接商单失去${dropAmount}个粉丝`);
-                }
-                
-                updateDisplay();
-            }
-        }, 1000); // 每秒触发一次
-        
-        saveGame();
-    }
-}
-
-// ==================== 全局函数绑定（新增） ====================
-window.resetInactivityDropState = resetInactivityDropState;
-window.checkHighAdCountPenalty = checkHighAdCountPenalty;
-window.acceptBrandDeal = acceptBrandDeal;
-window.rejectBrandDeal = rejectBrandDeal;
-window.selectBrandMethod = selectBrandMethod;
-window.publishBrandAd = publishBrandAd;
-window.endRecommendEffect = endRecommendEffect;
-window.endPostHotEffect = endPostHotEffect;
-window.endControversyEffect = endControversyEffect;
-
-// 保留原有全局函数
+// ==================== 全局函数绑定 ====================
 window.showCreateVideo = showCreateVideo;
 window.showCreatePost = showCreatePost;
 window.startLive = startLive;
@@ -1112,75 +675,15 @@ window.updateSelectedCount = updateSelectedCount;
 window.startNewTraffic = startNewTraffic;
 window.startTrafficProcess = startTrafficProcess;
 window.stopTrafficForWork = stopTrafficForWork;
-window.showAdOrders = showAdOrders;
-window.selectMethod = selectMethod;
-window.publishAd = publishAd;
-window.generateAdOrder = generateAdOrder;
 window.showAppeal = showAppeal;
 window.checkViolation = checkViolation;
 window.showCharts = showCharts;
 window.stopChartsRefresh = stopChartsRefresh;
+window.resetInactivityDropState = resetInactivityDropState;
 
-// ==================== 新增：缺失的全局函数 ==========
+// 新增：缺失的全局函数
 window.toggleWorkPrivacy = function() {
     if (currentDetailWork) {
         togglePrivate(currentDetailWork.id);
     }
 };
-
-// ==================== 核心修复：不更新掉粉检测（移除封禁检查） ====================
-function checkInactivityPenalty() {
-    // ❌ 移除：if (!gameState || gameState.isBanned) return;
-    // ✅ 修复：只在初始化时检查gameState是否存在，不检查isBanned
-    if (!gameState) return;
-    
-    // 使用虚拟时间计算天数差
-    const daysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
-    
-    // 如果7天内，确保不掉粉
-    if (daysSinceLastWork < 7) {
-        if (gameState.isDroppingFansFromInactivity) {
-            gameState.isDroppingFansFromInactivity = false;
-            if (gameState.inactivityDropInterval) {
-                clearInterval(gameState.inactivityDropInterval);
-                gameState.inactivityDropInterval = null;
-            }
-        }
-        if (gameState.inactivityWarningShown) {
-            gameState.inactivityWarningShown = false;
-        }
-        return;
-    }
-    
-    // 达到7天，开始掉粉
-    if (daysSinceLastWork >= 7 && !gameState.isDroppingFansFromInactivity) {
-        gameState.isDroppingFansFromInactivity = true;
-        
-        // 强制显示警告（首次触发）
-        showNotification('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
-        
-        // 启动每秒掉粉
-        gameState.inactivityDropInterval = setInterval(() => {
-            if (!gameState.isDroppingFansFromInactivity) { 
-                clearInterval(gameState.inactivityDropInterval);
-                return;
-            }
-            
-            // 重新计算当前天数差（因为gameTimer在持续增加）
-            const currentDaysSinceLastWork = (gameTimer - gameState.lastWorkTime) / VIRTUAL_DAY_MS;
-            
-            // 大幅提升掉粉数量
-            const extraDays = Math.floor(currentDaysSinceLastWork - 7);
-            const baseDrop = Math.floor(Math.random() * 31) + 20; // 20-50基础掉粉
-            const extraDrop = extraDays * (Math.floor(Math.random() * 11) + 5); // 每多1天额外掉5-15粉
-            const dropAmount = baseDrop + extraDrop;
-            
-            gameState.fans = Math.max(0, gameState.fans - dropAmount);
-            
-            // 100%通知概率
-            showNotification('📉 粉丝流失', `失去了${dropAmount}个粉丝（已${Math.floor(currentDaysSinceLastWork)}天未更新）`);
-            
-            updateDisplay();
-        }, 1000);
-    }
-}

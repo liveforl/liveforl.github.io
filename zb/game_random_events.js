@@ -16,12 +16,14 @@ const randomEvents = [
     { type: 'good', title: '热搜第一', desc: '你的内容登上热搜榜第一名！', effect: { hotSearch: true } },
     
     // ========== 新增：争议类事件（新功能） ==========
-    { type: 'bad', title: '内容争议', desc: '你的内容引发争议，有人举报', effect: { controversial: true, duration: 1, addWarning: true } }, 
+    // 警告事件权重设为 0.05（极难触发）
+    { type: 'bad', title: '内容争议', desc: '你的内容引发争议，有人举报', effect: { controversial: true, duration: 1, addWarning: true }, weight: 0.05 }, 
     { type: 'bad', title: '网络暴力', desc: '你被网暴了，心情低落', effect: { controversial: true, duration: 2, addWarning: false } }, 
     
     // ========== 新增：删除视频类事件（新功能） ==========
-    { type: 'bad', title: '系统误判', desc: '系统误判你的内容违规', effect: { removeVideo: true, addWarning: true } }, 
-    { type: 'bad', title: '版权争议', desc: '你的视频涉及版权问题', effect: { removeVideo: true, addWarning: true } }, 
+    // 警告事件权重设为 0.05（极难触发）
+    { type: 'bad', title: '系统误判', desc: '系统误判你的内容违规', effect: { removeVideo: true, addWarning: true }, weight: 0.05 }, 
+    { type: 'bad', title: '版权争议', desc: '你的视频涉及版权问题', effect: { removeVideo: true, addWarning: true }, weight: 0.05 }, 
     
     // ========== 保持不变的原有事件 ==========
     { type: 'good', title: '大V转发', desc: '知名博主转发了你的作品', effect: { views: 30000, fans: 3000, likes: 2000 } }, 
@@ -35,11 +37,16 @@ const randomEvents = [
     { type: 'good', title: '设备升级', desc: '你购买了新的直播设备', effect: { fans: 800 } }, 
     { type: 'bad', title: '设备故障', desc: '直播设备出现故障', effect: { fans: -200 } }, 
     { type: 'good', title: '粉丝见面会', desc: '举办了粉丝见面会', effect: { fans: 2000, money: 2000 } }, 
-    { type: 'bad', title: '恶意投诉', desc: '有人恶意投诉你的直播', effect: { warnings: 1 } }, 
+    
+    // 警告事件权重设为 0.05（极难触发）
+    { type: 'bad', title: '恶意投诉', desc: '有人恶意投诉你的直播', effect: { warnings: 1 }, weight: 0.05 }, 
+    
     { type: 'good', title: '平台推荐', desc: '平台给你提供了推荐位', effect: { views: 40000, fans: 4000 } }, 
     { type: 'bad', title: '算法调整', desc: '平台算法调整，流量下降', effect: { views: -15000 } }, 
     { type: 'bad', title: '负面新闻', desc: '关于你的负面新闻在网上传播', effect: { publicOpinion: true } },
-    { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true } }
+    
+    // 警告事件权重设为 0.05（极难触发）
+    { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true }, weight: 0.05 }
 ];
 
 // ==================== 随机事件处理函数 ====================
@@ -145,7 +152,6 @@ function handleRandomEvent(event) {
     
     if (!gameState.isBanned && gameState.warnings >= 20) banAccount('多次违反社区规定');
     if (typeof updateDisplay === 'function') updateDisplay();
-    if (typeof updateWorksList === 'function') updateWorksList();
 }
 
 // ==================== 新增：视频推荐效果（支持恢复模式）==========
