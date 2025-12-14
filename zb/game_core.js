@@ -120,6 +120,14 @@ let gameState = {
     hotSearchStartTime: null,
     hotSearchInterval: null, 
     hotSearchTitle: '', 
+    
+    // ✅ 修复：补充舆论风波系统缺失的初始状态
+    isPublicOpinionCrisis: false,
+    publicOpinionDaysCount: 0,
+    publicOpinionStartTime: null,
+    publicOpinionInterval: null,
+    publicOpinionTitle: '',
+    
     achievements: [], 
     worksList: [], 
     notifications: [], 
@@ -151,7 +159,13 @@ let gameState = {
     appealAvailable: true, 
     devMode: false,
     gameTimer: 0,
-    realStartTime: 0
+    realStartTime: 0,
+    // 新增虚假商单相关状态
+    fakeAdPenalty: null,
+    fakeAdPenaltyInterval: null,
+    fakeAdBans: 0,
+    monthsWithoutFakeAd: 0,
+    lastCheckMonth: -1
 };
 
 // ==================== 成就列表 ====================
@@ -210,6 +224,13 @@ function saveGame() {
 
 // ==================== 游戏初始化 ====================
 function initGame() {
+    // ✅ 修复：确保所有舆论风波属性存在（防止undefined导致toggle异常）
+    if (gameState.isPublicOpinionCrisis === undefined) gameState.isPublicOpinionCrisis = false;
+    if (gameState.publicOpinionDaysCount === undefined) gameState.publicOpinionDaysCount = 0;
+    if (gameState.publicOpinionStartTime === undefined) gameState.publicOpinionStartTime = null;
+    if (gameState.publicOpinionInterval === undefined) gameState.publicOpinionInterval = null;
+    if (gameState.publicOpinionTitle === undefined) gameState.publicOpinionTitle = '';
+    
     const saved = localStorage.getItem('streamerGameState');
     if (saved) {
         try {
@@ -250,7 +271,7 @@ function initGame() {
             gameState.banInterval = null; 
             gameState.banDropInterval = null; 
             gameState.hotSearchInterval = null;
-            gameState.publicOpinionInterval = null;
+            gameState.publicOpinionInterval = null; // ✅ 修复：重置定时器引用
             
             if (gameState.chartData) {
                 if (gameState.chartData.fans.length === 0) {
@@ -354,9 +375,9 @@ function initGame() {
                 }
             }
             
+            // ✅ 修复：正确恢复舆论风波状态
             if (gameState.isPublicOpinionCrisis && gameState.publicOpinionStartTime !== null) {
-                const publicOpinionStartTimer = gameState.publicOpinionStartTime;
-                const timePassed = gameTimer - publicOpinionStartTimer;
+                const timePassed = gameTimer - gameState.publicOpinionStartTime;
                 const daysPassed = timePassed / VIRTUAL_DAY_MS;
                 
                 if (typeof showPublicOpinionNotice === 'function') {
@@ -466,6 +487,14 @@ function initGame() {
             });
             console.log('作品状态恢复完成');
             
+            // ==================== 关键修复：恢复虚假商单惩罚 ====================
+            if (typeof window.resumeFakeAdPenalty === 'function') {
+                console.log('正在恢复虚假商单惩罚定时器...');
+                setTimeout(() => {
+                    window.resumeFakeAdPenalty();
+                }, 1000); // 延迟1秒确保所有状态同步
+            }
+            
         } catch (error) {
             console.error('加载存档失败:', error);
             localStorage.removeItem('streamerGameState');
@@ -560,7 +589,7 @@ function resetGame() {
         'banInterval', 
         'banDropInterval',
         'hotSearchInterval',
-        'publicOpinionInterval',
+        'publicOpinionInterval', // ✅ 修复：清除舆论风波定时器
         'inactivityDropInterval',
         'highAdCountDropInterval'
     ];
@@ -589,6 +618,20 @@ function resetGame() {
         window.devCountdownInterval = null;
     }
     
+    // 清除虚假商单相关的定时器
+    if (gameState.fakeAdPenaltyInterval) {
+        clearInterval(gameState.fakeAdPenaltyInterval);
+        gameState.fakeAdPenaltyInterval = null;
+    }
+    if (window.monthlyCheckInterval) {
+        clearInterval(window.monthlyCheckInterval);
+        window.monthlyCheckInterval = null;
+    }
+    if (window.exposureCheckInterval) {
+        clearInterval(window.exposureCheckInterval);
+        window.exposureCheckInterval = null;
+    }
+    
     gameState = {
         username: '', 
         userId: '', 
@@ -607,7 +650,15 @@ function resetGame() {
         hotSearchDaysCount: 0, 
         hotSearchStartTime: null,
         hotSearchInterval: null, 
-        hotSearchTitle: '', 
+        hotSearchTitle: '',
+        
+        // ✅ 修复：确保重置时包含舆论风波状态
+        isPublicOpinionCrisis: false,
+        publicOpinionDaysCount: 0,
+        publicOpinionStartTime: null,
+        publicOpinionInterval: null,
+        publicOpinionTitle: '',
+        
         achievements: [], 
         worksList: [], 
         notifications: [], 
@@ -639,7 +690,13 @@ function resetGame() {
         appealAvailable: true, 
         devMode: false,
         gameTimer: 0,
-        realStartTime: 0
+        realStartTime: 0,
+        // 新增虚假商单相关状态
+        fakeAdPenalty: null,
+        fakeAdPenaltyInterval: null,
+        fakeAdBans: 0,
+        monthsWithoutFakeAd: 0,
+        lastCheckMonth: -1
     };
     
     gameTimer = 0;

@@ -127,7 +127,8 @@ function showWorkDetail(work) {
         </div>
     ` : '';
     
-    const comments = typeof generateComments === 'function' ? generateComments(work.comments, work.time) : [];
+    // 修改：使用新的评论生成函数
+    const comments = typeof generateComments === 'function' ? generateComments(work, work.comments, work.time) : [];
     
     const content = document.getElementById('workDetailPageContent');
     content.innerHTML = `
@@ -150,12 +151,12 @@ function showWorkDetail(work) {
             ${work.revenue ? `<div style="font-size:14px;color:#667eea;margin-bottom:15px">💰 收益：${work.revenue}元</div>` : ''}
             <div style="margin-bottom:10px;font-weight:bold">评论区</div>
             <div id="commentsList">${comments.map(comment => `
-                <div class="comment-item">
+                <div class="comment-item" style="${comment.isNegative ? 'border-left: 3px solid #ff0050;' : ''}">
                     <div class="comment-header">
                         <span class="comment-user">${comment.user}</span>
                         <span class="comment-time">${formatTime(comment.time)}</span>
                     </div>
-                    <div class="comment-content">${comment.content}</div>
+                    <div class="comment-content" style="${comment.isNegative ? 'color: #ff6b00; font-weight: bold;' : ''}">${comment.content}</div>
                     <div class="comment-actions">
                         <span class="comment-action">👍 ${comment.likes}</span>
                         <span class="comment-action">回复</span>
@@ -242,8 +243,14 @@ function togglePrivate(workId) {
     updateDisplay();
 }
 
-// ==================== 评论生成 ====================
-function generateComments(count, workTime) {
+// ==================== 评论生成（修改版） ====================
+function generateComments(work, count, workTime) {
+    // 如果被暴露是虚假商单，生成混合评论
+    if (work.hasNegativeComments && typeof window.generateCommentsWithNegative === 'function') {
+        return window.generateCommentsWithNegative(work, count, workTime);
+    }
+    
+    // 原有逻辑
     const comments = [], 
           users = ['小可爱123', '直播达人', '路人甲', '粉丝一号', '吃瓜群众', '热心网友', '匿名用户', '夜猫子'], 
           contents = ['太棒了！', '支持主播！', '666', '拍得真好', '来了来了', '前排围观', '主播辛苦了', '加油加油', '很好看', '不错不错', '学习了', '收藏了', '转发支持', '期待更新', '主播最美', '最棒的主播', '今天状态真好', '这个内容有意思', '讲得很详细', '受益匪浅', '主播人真好', '互动很棒', '直播很有趣'];

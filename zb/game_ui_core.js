@@ -41,11 +41,28 @@ function updateDisplay() {
     const banNotice = document.getElementById('banNotice');
     const publicOpinionNotice = document.getElementById('publicOpinionNotice');
     
-    // 修复：使用classList.toggle简化状态切换
-    if (hotSearchNotice) hotSearchNotice.classList.toggle('show', gameState.isHotSearch);
-    if (banNotice) banNotice.classList.toggle('show', gameState.isBanned);
-    // 修复：舆论风波的正确显示逻辑（之前错误地使用了remove）
-    if (publicOpinionNotice) publicOpinionNotice.classList.toggle('show', gameState.isPublicOpinionCrisis);
+    // ✅ 修复：使用明确的add/remove替代toggle(undefined)防止反复切换
+    if (hotSearchNotice) {
+        if (gameState.isHotSearch) {
+            hotSearchNotice.classList.add('show');
+        } else {
+            hotSearchNotice.classList.remove('show');
+        }
+    }
+    if (banNotice) {
+        if (gameState.isBanned) {
+            banNotice.classList.add('show');
+        } else {
+            banNotice.classList.remove('show');
+        }
+    }
+    if (publicOpinionNotice) {
+        if (gameState.isPublicOpinionCrisis) {
+            publicOpinionNotice.classList.add('show');
+        } else {
+            publicOpinionNotice.classList.remove('show');
+        }
+    }
     
     if (typeof showHotSearchNotice === 'function') showHotSearchNotice();
     if (typeof showBanNotice === 'function') showBanNotice();

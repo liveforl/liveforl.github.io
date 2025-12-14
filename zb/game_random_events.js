@@ -46,7 +46,10 @@ const randomEvents = [
     { type: 'bad', title: '负面新闻', desc: '关于你的负面新闻在网上传播', effect: { publicOpinion: true } },
     
     // 警告事件权重设为 0.05（极难触发）
-    { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true }, weight: 0.05 }
+    { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true }, weight: 0.05 },
+    
+    // ========== 新增：举报事件 ==========
+    { type: 'bad', title: '网友举报', desc: '有网友发现你的商单存在问题，向平台举报', effect: { reportAd: true }, weight: 0.05 }
 ];
 
 // ==================== 随机事件处理函数 ====================
@@ -136,6 +139,45 @@ function handleRandomEvent(event) {
             }
         } else {
             showNotification(event.title, '没有可删除的视频');
+        }
+    }
+    
+    // ========== 处理举报事件 ==========
+    else if (event.effect.reportAd) {
+        const fakeAdWorks = gameState.worksList.filter(work => 
+            work.isAd && work.adOrder && !work.adOrder.real && !work.adOrder.isExposed && !work.isPrivate
+        );
+        
+        if (fakeAdWorks.length > 0) {
+            const targetWork = fakeAdWorks[Math.floor(Math.random() * fakeAdWorks.length)];
+            targetWork.adOrder.isExposed = true;
+            targetWork.hasNegativeComments = true;
+            
+            const fine = Math.floor(targetWork.adOrder.actualReward * 1.5);
+            gameState.money = Math.max(0, gameState.money - fine);
+            gameState.warnings = Math.min(20, gameState.warnings + 3);
+            
+            // 开始掉粉惩罚
+            const penaltyDays = Math.floor(Math.random() * 46) + 15;
+            const dailyLoss = Math.floor(Math.random() * 200) + 50;
+            
+            if (!gameState.fakeAdPenalty) {
+                gameState.fakeAdPenalty = {
+                    isActive: true,
+                    endTime: gameTimer + (penaltyDays * VIRTUAL_DAY_MS),
+                    exposedWorkIds: [targetWork.id],
+                    dailyFanLoss: dailyLoss
+                };
+            }
+            
+            if (typeof startPublicOpinionCrisis === 'function') {
+                startPublicOpinionCrisis('⚠️ 虚假商单被举报');
+            }
+            
+            showNotification('🚨 虚假商单被举报！', `罚款${fine}元，警告+3，粉丝开始流失！`);
+            showWarning(`虚假商单被举报！警告${gameState.warnings}/20次`);
+        } else {
+            showNotification('举报风波', '有网友质疑你的内容，但未被证实');
         }
     }
     

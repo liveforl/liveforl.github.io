@@ -144,6 +144,18 @@ function showPublicOpinionNotice() {
     // 修改：基于游戏计时器计算剩余时间
     const timePassed = gameTimer - gameState.publicOpinionStartTime;
     const daysPassed = timePassed / VIRTUAL_DAY_MS;
+    
+    // ✅ 修复：防止NaN导致显示异常
+    if (isNaN(daysPassed) || gameState.publicOpinionDaysCount === undefined || gameState.publicOpinionDaysCount <= 0) {
+        console.error('舆论风波状态异常，立即结束:', {
+            gameTimer,
+            publicOpinionStartTime: gameState.publicOpinionStartTime,
+            publicOpinionDaysCount: gameState.publicOpinionDaysCount
+        });
+        endPublicOpinionCrisis();
+        return;
+    }
+    
     const timeLeft = Math.max(0, gameState.publicOpinionDaysCount - daysPassed);
     
     publicOpinionNotice.innerHTML = `<div style="font-size:14px;font-weight:bold">${gameState.publicOpinionTitle}</div><div style="font-size:12px;">剩余：${Math.ceil(timeLeft)}天</div>`;
@@ -191,6 +203,12 @@ function updateChartData() {
     // 实时更新已打开的图表
     updateChartsRealtime();
     updateChartStatsRealtime();
+    
+    // 每月检查商单（在月底）
+    const currentDate = getVirtualDate();
+    if (currentDate.day === 30 && typeof window.checkMonthlyAdOrders === 'function') {
+        window.checkMonthlyAdOrders();
+    }
 }
 
 // 新增：实时更新图表右上角的统计数字
@@ -401,6 +419,16 @@ function startGameLoop() {
     setInterval(() => {
         checkHighAdCountPenalty();
     }, 5000);
+    
+    // 启动月度检查
+    if (typeof window.startMonthlyCheck === 'function') {
+        window.startMonthlyCheck();
+    }
+    
+    // 启动曝光检查
+    if (typeof window.startExposureCheck === 'function') {
+        window.startExposureCheck();
+    }
 }
 
 // ==================== 成就检查 ====================
@@ -562,8 +590,6 @@ window.showHotSearchNotice = showHotSearchNotice;
 window.endHotSearch = endHotSearch;
 window.banAccount = banAccount;
 window.showBanNotice = showBanNotice;
-// window.handleRandomEvent = handleRandomEvent; // 已移除
-window.checkAchievements = checkAchievements;
 window.startPublicOpinionCrisis = startPublicOpinionCrisis;
 window.showPublicOpinionNotice = showPublicOpinionNotice;
 window.endPublicOpinionCrisis = endPublicOpinionCrisis;
