@@ -293,6 +293,34 @@ function showWarning(message) {
     setTimeout(() => toast.style.display = 'none', 3000);
 }
 
+// ==================== 随机事件弹窗通知 ====================
+function showEventPopup(title, content) {
+    // 创建弹窗元素
+    const popup = document.createElement('div');
+    popup.className = 'event-popup';
+    popup.innerHTML = `
+        <div class="event-popup-header">${title}</div>
+        <div class="event-popup-content">${content}</div>
+    `;
+    document.body.appendChild(popup);
+    
+    // 触发动画（滑入）
+    setTimeout(() => {
+        popup.classList.add('show');
+    }, 100);
+    
+    // 3.5秒后自动消失
+    setTimeout(() => {
+        popup.classList.remove('show');
+        // 动画结束后移除元素
+        setTimeout(() => {
+            if (document.body.contains(popup)) {
+                document.body.removeChild(popup);
+            }
+        }, 400);
+    }, 3500);
+}
+
 // ==================== 全局函数绑定 ====================
 window.updateDisplay = updateDisplay;
 window.showModal = showModal;
@@ -307,5 +335,6 @@ window.updateNotificationBadge = updateNotificationBadge;
 window.showNotifications = showNotifications;
 window.showAchievementPopup = showAchievementPopup;
 window.showWarning = showWarning;
+window.showEventPopup = showEventPopup;
 window.switchTab = switchTab;
 window.closeFullscreenPage = closeFullscreenPage;

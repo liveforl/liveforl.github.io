@@ -66,6 +66,7 @@ function handleRandomEvent(event) {
             targetWork.recommendEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
             showNotification(event.title, message);
+            showEventPopup(event.title, message); // ✅ 新增事件弹窗
             startRecommendEffect(targetWork.id, event.effect.duration);
         } else {
             showNotification(event.title, '你还没有可推荐的视频作品');
@@ -81,6 +82,7 @@ function handleRandomEvent(event) {
             targetWork.hotEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `动态《${targetWork.content.substring(0, 20)}...》登上热搜！`;
             showNotification(event.title, message);
+            showEventPopup(event.title, message); // ✅ 新增事件弹窗
             startPostHotEffect(targetWork.id, event.effect.duration);
         } else {
             showNotification(event.title, '你还没有可上热搜的动态');
@@ -92,6 +94,7 @@ function handleRandomEvent(event) {
         generateBrandDeal();
         message = '有新的品牌合作机会，请在商单中心查看！';
         showNotification(event.title, message);
+        showEventPopup(event.title, message); // ✅ 新增事件弹窗
     }
     
     // ========== 恢复：处理原始热搜事件（重要！） ==========
@@ -99,6 +102,7 @@ function handleRandomEvent(event) {
         const title = event.title || '🔥 话题热议中';
         startHotSearch(title);
         showNotification(event.title, event.desc);
+        showEventPopup(event.title, event.desc); // ✅ 新增事件弹窗
     }
     
     // ========== 处理争议事件（新功能） ==========
@@ -110,6 +114,7 @@ function handleRandomEvent(event) {
             targetWork.controversyEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
             showNotification(event.title, message);
+            showEventPopup(event.title, message); // ✅ 新增事件弹窗
             startControversyEffect(targetWork.id, event.effect.duration);
             if (event.effect.addWarning) {
                 gameState.warnings = Math.min(20, gameState.warnings + 1);
@@ -133,6 +138,7 @@ function handleRandomEvent(event) {
             gameState.worksList.splice(workIndex, 1);
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》因${event.desc}被删除`;
             showNotification(event.title, message);
+            showEventPopup(event.title, message); // ✅ 新增事件弹窗
             if (event.effect.addWarning) {
                 gameState.warnings = Math.min(20, gameState.warnings + 1);
                 showWarning(`内容违规，警告${gameState.warnings}/20次`);
@@ -174,7 +180,9 @@ function handleRandomEvent(event) {
                 startPublicOpinionCrisis('⚠️ 虚假商单被举报');
             }
             
-            showNotification('🚨 虚假商单被举报！', `罚款${fine}元，警告+3，粉丝开始流失！`);
+            message = `罚款${fine}元，警告+3，粉丝开始流失！`;
+            showNotification('🚨 虚假商单被举报！', message);
+            showEventPopup('虚假商单被举报', message); // ✅ 新增事件弹窗
             showWarning(`虚假商单被举报！警告${gameState.warnings}/20次`);
         } else {
             showNotification('举报风波', '有网友质疑你的内容，但未被证实');
@@ -190,6 +198,7 @@ function handleRandomEvent(event) {
         if (event.effect.warnings) gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
         if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
         showNotification(event.title, event.desc);
+        showEventPopup(event.title, event.desc); // ✅ 新增事件弹窗
     }
     
     if (!gameState.isBanned && gameState.warnings >= 20) banAccount('多次违反社区规定');
