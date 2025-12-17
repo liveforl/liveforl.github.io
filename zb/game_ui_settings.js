@@ -15,8 +15,13 @@ function showSettings() {
             <div>></div>
         </div>
         <div class="settings-item" onclick="changeAvatar()">
-            <div><div class="settings-label">修改头像</div><div class="settings-value">点击修改</div></div>
+            <div><div class="settings-label">修改头像文字</div><div class="settings-value">点击修改</div></div>
             <div>></div>
+        </div>
+        <!-- 新增上传头像功能 -->
+        <div class="settings-item" onclick="uploadAvatar()">
+            <div><div class="settings-label">上传头像图片</div><div class="settings-value" style="color: #667eea;">选择图片</div></div>
+            <div>📷</div>
         </div>
         <div class="settings-item" onclick="clearData()" style="background:#ff0050">
             <div><div class="settings-label">清除数据</div><div class="settings-value">谨慎操作</div></div>
@@ -104,7 +109,7 @@ function showQQGroup() {
                 <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">主播模拟器交流群</div>
                 <div style="font-size: 14px; color: #999; margin-bottom: 20px;">欢迎加入QQ群与其他玩家交流</div>
             </div>
-            <div style="background: #161823; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="background: #161823; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
                 <div style="font-size: 16px; color: #667eea; margin-bottom: 10px;">群号</div>
                 <div style="font-size: 32px; font-weight: bold; color: #fff; letter-spacing: 3px; margin-bottom: 10px;">816068043</div>
                 <div style="font-size: 12px; color: #999;">点击号码可复制</div>
@@ -183,16 +188,32 @@ function closeDevPasswordModal() {
     settingsClickCount = 0;
 }
 
-// ==================== 个人主页 ====================
+// ==================== 个人主页（全屏 + 移除等级 + 添加关注数） ====================
 function showProfile() {
     const content = document.getElementById('profilePageContent');
+    
+    // 头像预览HTML
+    const avatarPreview = gameState.avatarImage ? 
+        `<div style="width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto 10px">
+            <img src="${gameState.avatarImage}" style="width:100%;height:100%;object-fit:cover;">
+         </div>` :
+        `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px">
+            ${gameState.avatar || 'A'}
+         </div>`;
+    
+    // 添加关注数显示（确保gameState.following存在）
+    if (gameState.following === undefined) {
+        gameState.following = [];
+    }
+    
     content.innerHTML = `
         <div style="text-align:center;padding:20px">
-            <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px">${gameState.avatar}</div>
+            ${avatarPreview}
             <div style="font-size:20px;font-weight:bold;margin-bottom:5px">${gameState.username}</div>
             <div style="font-size:14px;color:#999;margin-bottom:20px">${gameState.userId}</div>
             <div style="display:flex;justify-content:space-around;margin-bottom:20px">
                 <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.fans}</div><div style="font-size:12px;color:#999">粉丝</div></div>
+                <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.following.length}</div><div style="font-size:12px;color:#999">关注</div></div>
                 <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.works}</div><div style="font-size:12px;color:#999">作品</div></div>
                 <div style="text-align:center"><div style="font-size:18px;font-weight:bold">${gameState.likes}</div><div style="font-size:12px;color:#999">获赞</div></div>
             </div>
@@ -201,6 +222,115 @@ function showProfile() {
     `;
     
     document.getElementById('profilePage').classList.add('active');
+    document.getElementById('mainContent').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+// ==================== 全屏用户主页（移除等级 + 数据缓存） ====================
+window.cachedUserProfile = null; // 缓存用户数据
+
+function showUserProfile(username, avatar) {
+    // 如果已缓存数据，直接使用缓存
+    if (window.cachedUserProfile && window.cachedUserProfile.username === username) {
+        renderUserProfile(window.cachedUserProfile);
+        return;
+    }
+    
+    // 从关注列表中查找用户数据
+    const fromFollowing = gameState.following.find(u => 
+        (typeof u === 'object' ? u.username : u) === username
+    );
+    
+    if (fromFollowing && typeof fromFollowing === 'object') {
+        // 如果关注列表中有完整数据，使用它
+        window.cachedUserProfile = fromFollowing;
+        renderUserProfile(fromFollowing);
+        return;
+    }
+    
+    // 生成新用户数据并缓存
+    const profileData = {
+        username: username,
+        avatar: avatar,
+        userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        joinDays: Math.floor(Math.random() * 365) + 1,
+        fanCount: Math.floor(Math.random() * 50000) + 100,
+        workCount: Math.floor(Math.random() * 500) + 10,
+        likeCount: Math.floor(Math.random() * 100000) + 1000,
+        following: Math.floor(Math.random() * 500) + 50, // 添加关注数
+        bio: getRandomUserBio()
+    };
+    
+    window.cachedUserProfile = profileData;
+    renderUserProfile(profileData);
+}
+
+function renderUserProfile(profileData) {
+    const content = document.getElementById('userProfilePageContent');
+    if (!content) {
+        console.error('用户主页内容容器未找到');
+        return;
+    }
+    
+    const avatarHtml = profileData.avatar ? 
+        `<div class="user-profile-avatar">${profileData.avatar}</div>` :
+        `<div class="user-profile-avatar">?</div>`;
+    
+    // ✅ 新增功能：判断关注状态
+    const isFollowing = gameState.following.some(u => 
+        (typeof u === 'object' ? u.username : u) === profileData.username
+    );
+    
+    const followBtnHtml = `<button class="btn" onclick="toggleFollow('${profileData.username}')" 
+                           style="width:100%;margin-top:15px;background:${isFollowing ? '#666' : '#667eea'};cursor:${isFollowing ? 'default' : 'pointer'};"
+                           ${isFollowing ? 'disabled' : ''}>
+                           ${isFollowing ? '✓ 已关注' : '➕ 关注'}
+                       </button>`;
+    
+    content.innerHTML = `
+        <div style="text-align:center;padding:20px">
+            ${avatarHtml}
+            <div class="user-profile-name">${profileData.username}</div>
+            <div class="user-profile-id">${profileData.userId}</div>
+            
+            <div class="user-profile-stats" style="margin-bottom: 20px;">
+                <div class="user-profile-stat">
+                    <div class="user-profile-stat-value">${formatNumber(profileData.fanCount)}</div>
+                    <div class="user-profile-stat-label">粉丝</div>
+                </div>
+                <div class="user-profile-stat">
+                    <div class="user-profile-stat-value">${formatNumber(profileData.following)}</div>
+                    <div class="user-profile-stat-label">关注</div>
+                </div>
+                <div class="user-profile-stat">
+                    <div class="user-profile-stat-value">${formatNumber(profileData.workCount)}</div>
+                    <div class="user-profile-stat-label">作品</div>
+                </div>
+                <div class="user-profile-stat">
+                    <div class="user-profile-stat-value">${formatNumber(profileData.likeCount)}</div>
+                    <div class="user-profile-stat-label">获赞</div>
+                </div>
+            </div>
+            
+            <div class="user-profile-info" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #999;">加入平台</span>
+                    <span style="font-weight: bold;">${profileData.joinDays}天</span>
+                </div>
+            </div>
+            
+            <div class="user-profile-bio">
+                <div class="user-profile-bio-title">简介</div>
+                <div class="user-profile-bio-content">${profileData.bio}</div>
+            </div>
+            
+            ${followBtnHtml}
+            
+            <button class="btn btn-secondary" onclick="closeFullscreenPage('userProfile')" style="margin-top: 10px;">关闭</button>
+        </div>
+    `;
+    
+    document.getElementById('userProfilePage').classList.add('active');
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
 }
@@ -346,11 +476,22 @@ function changeUserId() {
 }
 
 function changeAvatar() {
-    showPrompt('请输入头像文字（1个字符）', gameState.avatar, function(avatar) {
+    showPrompt('请输入头像文字（1个字符），留空则使用图片头像', gameState.avatar || '', function(avatar) {
         if (avatar && avatar.trim()) {
             gameState.avatar = avatar.trim().substring(0, 1);
+            gameState.avatarImage = ''; // 清空图片头像
             updateDisplay();
-            showNotification('修改成功', '头像已更新');
+            showNotification('修改成功', '头像文字已更新');
+        } else {
+            // 如果留空且有图片，则使用图片
+            if (gameState.avatarImage) {
+                gameState.avatar = '';
+                updateDisplay();
+                showNotification('修改成功', '已恢复图片头像');
+            } else {
+                showAlert('没有设置图片头像，请输入文字或先上传图片', '提示');
+            }
+            saveGame();
         }
     });
 }
@@ -375,9 +516,327 @@ function clearData() {
     });
 }
 
+// ==================== 新增：带自动压缩的的头像上传功能 ====================
+function uploadAvatar() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+            showAlert('请选择图片文件！', '错误');
+            document.body.removeChild(fileInput);
+            return;
+        }
+        
+        // 检查文件大小（限制5MB）
+        if (file.size > 5 * 1024 * 1024) {
+            showAlert('图片太大！请选择小于5MB的图片', '错误');
+            document.body.removeChild(fileInput);
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                // 压缩图片
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 计算压缩后的尺寸
+                let width = img.width;
+                let height = img.height;
+                const maxSize = 800; // 最大边长800px
+                
+                if (width > maxSize || height > maxSize) {
+                    const ratio = Math.min(maxSize / width, maxSize / height);
+                    width = Math.floor(width * ratio);
+                    height = Math.floor(height * ratio);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // 绘制压缩后的图片
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 转换为base64，质量0.8
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // 检查压缩后的大小
+                const base64Size = imageData.length * 0.75; // base64大小约为原图的75%
+                
+                let finalImageData = imageData;
+                if (base64Size > 2 * 1024 * 1024) {
+                    // 如果还太大，进一步降低质量到0.6
+                    finalImageData = canvas.toDataURL('image/jpeg', 0.6);
+                    
+                    // 再次检查
+                    const newBase64Size = finalImageData.length * 0.75;
+                    if (newBase64Size > 2 * 1024 * 1024) {
+                        // 如果仍然太大，提示用户
+                        showAlert('图片压缩后仍超过2MB，请选择更小的图片', '提示');
+                        document.body.removeChild(fileInput);
+                        return;
+                    }
+                }
+                
+                // 保存到游戏状态
+                gameState.avatarImage = finalImageData;
+                gameState.avatar = ''; // 清空文字头像
+                
+                // 更新显示
+                updateDisplay();
+                showNotification('上传成功', '头像已更新并压缩！');
+                saveGame();
+                
+                // 清理
+                document.body.removeChild(fileInput);
+            };
+            img.src = event.target.result;
+        };
+        reader.onerror = function() {
+            showAlert('读取图片失败！', '错误');
+            document.body.removeChild(fileInput);
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    document.body.appendChild(fileInput);
+    fileInput.click();
+}
+
 // ==================== 开发者模式相关变量 ====================
 let settingsClickCount = 0;
 let lastSettingsClickTime = 0;
+
+// ==================== 全屏关注列表页面 ====================
+function showFollowingList() {
+    if (!gameState.following || gameState.following.length === 0) {
+        showAlert('你还没有关注任何人', '关注列表');
+        return;
+    }
+    
+    // 隐藏主内容和底部导航
+    document.getElementById('mainContent').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+    
+    // 创建全屏关注列表页面
+    const followingPage = document.createElement('div');
+    followingPage.id = 'followingPage';
+    followingPage.className = 'fullscreen-page active';
+    followingPage.innerHTML = `
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFollowingPage()">‹</div>
+            <div class="fullscreen-title">关注列表 (${gameState.following.length})</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div class="fullscreen-content" style="padding: 10px;">
+            <div id="followingListContent"></div>
+        </div>
+    `;
+    
+    // 如果已存在，先移除
+    const existingPage = document.getElementById('followingPage');
+    if (existingPage) {
+        existingPage.remove();
+    }
+    
+    document.body.appendChild(followingPage);
+    
+    renderFollowingList();
+}
+
+// 渲染关注列表
+function renderFollowingList() {
+    const content = document.getElementById('followingListContent');
+    if (!content) return;
+    
+    // 生成关注列表HTML
+    const followingHtml = gameState.following.map((userData, index) => {
+        // 如果 userData 是字符串（旧数据格式），转换为对象
+        if (typeof userData === 'string') {
+            userData = {
+                username: userData,
+                avatar: userData.charAt(0),
+                userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                fanCount: Math.floor(Math.random() * 50000) + 100,
+                workCount: Math.floor(Math.random() * 500) + 10,
+                likeCount: Math.floor(Math.random() * 100000) + 1000,
+                joinDays: Math.floor(Math.random() * 365) + 1,
+                following: Math.floor(Math.random() * 500) + 50,
+                bio: getRandomUserBio()
+            };
+            // 更新数组中的数据
+            gameState.following[index] = userData;
+            saveGame();
+        }
+        
+        return `
+            <div class="work-item" style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;" 
+                     onclick="showUserProfileFromFollowing('${userData.username}', '${userData.avatar}')">
+                    <div class="comment-user-avatar">${userData.avatar}</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:bold;font-size:14px;">${userData.username}</div>
+                        <div style="font-size:11px;color:#999;">${userData.userId}</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" style="width:auto;padding:8px 15px;font-size:12px;background:#ff0050;" 
+                        onclick="toggleFollow('${userData.username}')">
+                    取消关注
+                </button>
+            </div>
+        `;
+    }).join('');
+    
+    content.innerHTML = followingHtml;
+}
+
+// 从关注列表打开用户主页
+function showUserProfileFromFollowing(username, avatar) {
+    // 先关闭关注列表
+    closeFollowingPage();
+    
+    // 查找用户数据
+    const userData = gameState.following.find(u => 
+        (typeof u === 'object' ? u.username : u) === username
+    );
+    
+    // 延迟执行，确保页面切换完成
+    setTimeout(() => {
+        if (typeof userData === 'object') {
+            // 如果有完整数据，直接渲染
+            renderUserProfile(userData);
+        } else {
+            // 如果是旧数据格式，生成新数据
+            const profileData = {
+                username: username,
+                avatar: avatar,
+                userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                fanCount: Math.floor(Math.random() * 50000) + 100,
+                workCount: Math.floor(Math.random() * 500) + 10,
+                likeCount: Math.floor(Math.random() * 100000) + 1000,
+                joinDays: Math.floor(Math.random() * 365) + 1,
+                following: Math.floor(Math.random() * 500) + 50,
+                bio: getRandomUserBio()
+            };
+            
+            // 更新关注列表中的数据
+            const index = gameState.following.findIndex(u => 
+                (typeof u === 'object' ? u.username : u) === username
+            );
+            if (index !== -1) {
+                gameState.following[index] = profileData;
+                saveGame();
+            }
+            
+            renderUserProfile(profileData);
+        }
+    }, 100);
+}
+
+// 关闭关注列表页面
+function closeFollowingPage() {
+    const followingPage = document.getElementById('followingPage');
+    if (followingPage) {
+        followingPage.remove();
+    }
+    
+    // 恢复主内容显示
+    document.getElementById('mainContent').style.display = 'block';
+    document.querySelector('.bottom-nav').style.display = 'flex';
+    
+    // 更新显示
+    updateDisplay();
+}
+
+// ==================== 关注/取消关注逻辑 ====================
+function toggleFollow(username) {
+    if (!gameState.following) {
+        gameState.following = [];
+    }
+    
+    // 查找用户数据
+    let userData = gameState.following.find(u => 
+        (typeof u === 'object' ? u.username : u) === username
+    );
+    
+    const index = gameState.following.findIndex(u => 
+        (typeof u === 'object' ? u.username : u) === username
+    );
+    
+    if (index > -1) {
+        // 取消关注
+        gameState.following.splice(index, 1);
+        showNotification('取消关注', `已取消关注 ${username}`);
+        
+        // 如果在用户主页，更新按钮
+        const profilePage = document.getElementById('userProfilePage');
+        if (profilePage && profilePage.classList.contains('active')) {
+            const userProfileContent = document.getElementById('userProfilePageContent');
+            if (userProfileContent) {
+                // 重新渲染用户主页
+                const currentUserData = window.cachedUserProfile;
+                if (currentUserData && currentUserData.username === username) {
+                    renderUserProfile(currentUserData);
+                }
+            }
+        }
+        
+        // 如果在关注列表页面，重新渲染
+        const followingPage = document.getElementById('followingPage');
+        if (followingPage && followingPage.classList.contains('active')) {
+            renderFollowingList();
+        }
+    } else {
+        // 关注用户
+        // 如果之前访问过，使用缓存数据
+        if (window.cachedUserProfile && window.cachedUserProfile.username === username) {
+            userData = window.cachedUserProfile;
+        } else {
+            // 生成新用户数据
+            userData = {
+                username: username,
+                avatar: username.charAt(0),
+                userId: 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                fanCount: Math.floor(Math.random() * 50000) + 100,
+                workCount: Math.floor(Math.random() * 500) + 10,
+                likeCount: Math.floor(Math.random() * 100000) + 1000,
+                joinDays: Math.floor(Math.random() * 365) + 1,
+                following: Math.floor(Math.random() * 500) + 50,
+                bio: getRandomUserBio()
+            };
+        }
+        
+        gameState.following.push(userData);
+        showNotification('关注成功', `已关注 ${username}`);
+        
+        // 如果在用户主页，更新按钮
+        const profilePage = document.getElementById('userProfilePage');
+        if (profilePage && profilePage.classList.contains('active')) {
+            const userProfileContent = document.getElementById('userProfilePageContent');
+            if (userProfileContent) {
+                renderUserProfile(userData);
+            }
+        }
+        
+        // 如果在关注列表页面，重新渲染
+        const followingPage = document.getElementById('followingPage');
+        if (followingPage && followingPage.classList.contains('active')) {
+            renderFollowingList();
+        }
+    }
+    
+    updateDisplay();
+    saveGame();
+}
 
 // ==================== 缺失的全局函数 ====================
 window.toggleWorkPrivacy = function() {
@@ -406,3 +865,14 @@ window.showDevPasswordModal = showDevPasswordModal;
 window.closeDevPasswordModal = closeDevPasswordModal;
 window.settingsClickCount = settingsClickCount;
 window.lastSettingsClickTime = lastSettingsClickTime;
+window.uploadAvatar = uploadAvatar;
+// 新增的函数
+window.showUserProfile = showUserProfile;
+window.renderUserProfile = renderUserProfile;
+window.cachedUserProfile = window.cachedUserProfile || null;
+// ✅ 新增功能：绑定关注函数
+window.showFollowingList = showFollowingList;
+window.toggleFollow = toggleFollow;
+window.renderFollowingList = renderFollowingList;
+window.showUserProfileFromFollowing = showUserProfileFromFollowing;
+window.closeFollowingPage = closeFollowingPage;

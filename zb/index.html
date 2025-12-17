@@ -63,6 +63,11 @@
                 <div class="stat-label">警告</div>
             </div>
             <div class="stat-item">
+                <div class="stat-value" id="followingCount">0</div>
+                <!-- ✅ 新增功能：关注数显示，可点击查看列表 -->
+                <div class="stat-label" onclick="showFollowingList()" style="cursor:pointer; text-decoration:underline;">关注</div>
+            </div>
+            <div class="stat-item">
                 <div class="stat-value" id="virtualTimeStat">0天</div>
                 <div class="stat-label">虚拟时间</div>
             </div>
@@ -196,6 +201,67 @@
             <div class="fullscreen-action" onclick="showSettings()">⚙️</div>
         </div>
         <div id="profilePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏用户主页 -->
+    <div id="userProfilePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeFullscreenPage('userProfile')">‹</div>
+            <div class="fullscreen-title">用户主页</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="userProfilePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 全屏评论详情页 -->
+    <div id="commentDetailPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeCommentDetail()">‹</div>
+            <div class="fullscreen-title">评论详情</div>
+            <div class="fullscreen-action" style="opacity:0; cursor:default;">占位</div>
+        </div>
+        <div id="commentDetailPageContent" class="fullscreen-content" style="padding-bottom: 120px;"></div>
+    </div>
+
+    <!-- 新增：四个全屏消息页面 -->
+    <!-- 全部消息全屏页 -->
+    <div id="messagesAllPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesAll')">‹</div>
+            <div class="fullscreen-title">全部消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('all')">清空</div>
+        </div>
+        <div id="messagesAllPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 点赞消息全屏页 -->
+    <div id="messagesLikePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesLike')">‹</div>
+            <div class="fullscreen-title">点赞消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('like')">清空</div>
+        </div>
+        <div id="messagesLikePageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 评论消息全屏页 -->
+    <div id="messagesCommentPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesComment')">‹</div>
+            <div class="fullscreen-title">评论消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('comment')">清空</div>
+        </div>
+        <div id="messagesCommentPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 转发消息全屏页 -->
+    <div id="messagesSharePage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeMessagesFullscreenPage('messagesShare')">‹</div>
+            <div class="fullscreen-title">转发消息</div>
+            <div class="fullscreen-action" onclick="clearMessagesByType('share')">清空</div>
+        </div>
+        <div id="messagesSharePageContent" class="fullscreen-content"></div>
     </div>
 
     <div class="bottom-nav">

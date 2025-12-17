@@ -3,7 +3,16 @@
 // ==================== 主界面更新 ====================
 function updateDisplay() {
     document.getElementById('usernameDisplay').textContent = gameState.username;
-    document.getElementById('userAvatar').textContent = gameState.avatar;
+    
+    // 头像显示逻辑（支持图片和文字）
+    const avatarEl = document.getElementById('userAvatar');
+    if (gameState.avatarImage) {
+        // 显示图片头像
+        avatarEl.innerHTML = `<img src="${gameState.avatarImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+        // 显示文字头像
+        avatarEl.textContent = gameState.avatar;
+    }
     
     const dateDisplay = document.getElementById('virtualDateDisplay');
     if (dateDisplay) {
@@ -12,17 +21,15 @@ function updateDisplay() {
         setTimeout(() => dateDisplay.classList.remove('updating'), 300);
     }
     
-    const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
-    const videoAndLiveWorks = publicWorks.filter(w => w.type === 'video' || w.type === 'live');
-    const totalViews = videoAndLiveWorks.reduce((sum, w) => sum + w.views, 0);
-    const totalLikes = publicWorks.reduce((sum, w) => sum + w.likes, 0);
-    
     document.getElementById('fansCount').textContent = formatNumber(gameState.fans);
-    document.getElementById('likesCount').textContent = formatNumber(totalLikes);
-    document.getElementById('viewsCount').textContent = formatNumber(totalViews);
-    document.getElementById('worksCount').textContent = publicWorks.length;
+    document.getElementById('likesCount').textContent = formatNumber(gameState.likes);
+    document.getElementById('viewsCount').textContent = formatNumber(gameState.views);
+    document.getElementById('worksCount').textContent = formatNumber(gameState.works);
     document.getElementById('moneyCount').textContent = formatNumber(Math.floor(gameState.money));
     document.getElementById('warningCount').textContent = `${gameState.warnings}/20`;
+    
+    // ✅ 新增功能：更新关注数显示
+    document.getElementById('followingCount').textContent = formatNumber(gameState.following ? gameState.following.length : 0);
     
     const virtualDate = getVirtualDate();
     const timeStat = document.getElementById('virtualTimeStat');
@@ -88,6 +95,11 @@ function updateDisplay() {
             }
         }
     }
+    
+    // ✅ 新增：更新导航栏消息小红点
+    if (typeof updateNavMessageBadge === 'function') {
+        updateNavMessageBadge();
+    }
 }
 
 // ==================== 数字动画 ====================
@@ -131,7 +143,7 @@ function switchTab(tab) {
     }
 }
 
-// ==================== 全屏页面关闭 ====================
+// ==================== 全屏页面关闭（修复版 - 只在关闭作品页时清除缓存） ====================
 function closeFullscreenPage(pageName) {
     document.querySelectorAll('.fullscreen-page').forEach(page => page.classList.remove('active'));
     
@@ -141,8 +153,14 @@ function closeFullscreenPage(pageName) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.querySelector('.nav-item').classList.add('active');
     
+    // 只在关闭作品页时清除用户数据缓存
     if (pageName === 'workDetail') {
         currentDetailWork = null;
+        window.cachedUserProfile = null; // 清除用户主页缓存
+    } else if (pageName === 'userProfile') {
+        // 关闭用户主页时不清除缓存，保留数据
+        // 注释掉清除缓存的代码
+        // window.cachedUserProfile = null;
     }
     
     document.querySelectorAll('.main-content-section').forEach(el => el.style.display = '');
@@ -338,3 +356,5 @@ window.showWarning = showWarning;
 window.showEventPopup = showEventPopup;
 window.switchTab = switchTab;
 window.closeFullscreenPage = closeFullscreenPage;
+window.animateNumberUpdate = animateNumberUpdate;
+window.updateNavMessageBadge = updateNavMessageBadge;

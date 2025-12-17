@@ -513,8 +513,9 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
             return;
         }
         
-        // 持续掉粉
-        const lossAmount = window.gameState.fakeAdPenalty.dailyFanLoss;
+        // ✅ 修复：每秒从1-500之间随机掉粉
+        const lossAmount = Math.floor(Math.random() * 500) + 1; // 1-500之间的随机数
+        
         window.gameState.fans = Math.max(0, window.gameState.fans - lossAmount);
         
         // ✅ 修改为每秒显示一次通知
@@ -583,7 +584,9 @@ window.resumeFakeAdPenalty = function() {
             return;
         }
         
-        const lossAmount = window.gameState.fakeAdPenalty.dailyFanLoss;
+        // ✅ 修复：每秒从1-500之间随机掉粉
+        const lossAmount = Math.floor(Math.random() * 500) + 1; // 1-500之间的随机数
+        
         window.gameState.fans = Math.max(0, window.gameState.fans - lossAmount);
         
         // ✅ 修改为每秒显示一次通知
@@ -657,7 +660,7 @@ window.checkAdOrderExposure = function() {
             }
             
             if (typeof window.showNotification === 'function') {
-                window.showNotification('🚨 虚假商单被曝光！', `被网友举报！罚款${fine}元，警告+3，粉丝开始流失！`);
+                window.showNotification('🚨 虚假商单被曝光！', `罚款${fine}元，警告+3，粉丝开始流失！`);
             }
             
             if (typeof window.showWarning === 'function') {
@@ -685,8 +688,14 @@ window.generateNegativeComments = function(count) {
     ];
     
     for (let i = 0; i < count; i++) {
+        const baseUser = users[Math.floor(Math.random() * users.length)];
+        const randomNum = Math.floor(Math.random() * 9999);
+        const username = baseUser + randomNum;
+        const avatarChar = baseUser.charAt(0);
+        
         comments.push({
-            user: users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random() * 999),
+            user: username,
+            avatar: avatarChar,
             content: contents[Math.floor(Math.random() * contents.length)],
             likes: Math.floor(Math.random() * 50) + 10,
             time: window.gameTimer,
@@ -700,7 +709,7 @@ window.generateNegativeComments = function(count) {
 // ==================== 修改评论生成函数以包含负面评论 ====================
 window.generateCommentsWithNegative = function(work, count, workTime) {
     const comments = [];
-    const normalUsers = ['小可爱123', '直播达人', '路人甲', '粉丝一号', '吃瓜群众', '热心网友', '匿名用户', '夜猫子'];
+    const normalUsers = ['小可爱', '直播达人', '路人甲', '粉丝一号', '吃瓜群众', '热心网友', '匿名用户', '夜猫子'];
     const normalContents = ['太棒了！', '支持主播！', '666', '拍得真好', '来了来了', '前排围观', '主播辛苦了', '加油加油', '很好看', '不错不错', '学习了', '收藏了', '转发支持', '期待更新', '主播最美', '最棒的主播', '今天状态真好', '这个内容有意思', '讲得很详细', '受益匪浅', '主播人真好', '互动很棒', '直播很有趣'];
     
     const negativeUsers = ['正义使者', '曝光侠', '打假专家', '愤怒的粉丝', '受害者', '维权人士', '监管员', '诚信卫士'];
@@ -716,6 +725,10 @@ window.generateCommentsWithNegative = function(work, count, workTime) {
         const isNegative = Math.random() < negativeRatio;
         const users = isNegative ? negativeUsers : normalUsers;
         const contents = isNegative ? negativeContents : normalContents;
+        const baseUser = users[Math.floor(Math.random() * users.length)];
+        const randomNum = Math.floor(Math.random() * 9999);
+        const username = baseUser + randomNum;
+        const avatarChar = baseUser.charAt(0);
         
         const maxOffset = Math.max(0, now - workTime);
         const randomFactor = Math.random() * Math.random();
@@ -723,7 +736,8 @@ window.generateCommentsWithNegative = function(work, count, workTime) {
         const commentTime = Math.min(workTime + offset, now);
         
         comments.push({ 
-            user: users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random() * 999), 
+            user: username,
+            avatar: avatarChar,
             content: contents[Math.floor(Math.random() * contents.length)], 
             likes: Math.floor(Math.random() * (isNegative ? 50 : 100)), 
             time: commentTime,

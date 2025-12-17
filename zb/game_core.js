@@ -105,6 +105,7 @@ let gameState = {
     username: '', 
     userId: '', 
     avatar: '', 
+    avatarImage: '', // 新增：存储base64图片数据
     fans: 0, 
     likes: 0, 
     views: 0, 
@@ -165,7 +166,14 @@ let gameState = {
     fakeAdPenaltyInterval: null,
     fakeAdBans: 0,
     monthsWithoutFakeAd: 0,
-    lastCheckMonth: -1
+    lastCheckMonth: -1,
+    
+    // ✅ 新增功能：关注列表和评论点赞状态
+    following: [], // 关注列表
+    commentLikes: {}, // 记录用户点赞过的评论 {workId_commentId: true}
+    
+    // ✅ 新增：消息中心
+    messages: [] // 消息列表：点赞、评论、转发等互动消息
 };
 
 // ==================== 成就列表 ====================
@@ -231,6 +239,16 @@ function initGame() {
     if (gameState.publicOpinionInterval === undefined) gameState.publicOpinionInterval = null;
     if (gameState.publicOpinionTitle === undefined) gameState.publicOpinionTitle = '';
     
+    // 初始化头像图片状态
+    if (gameState.avatarImage === undefined) gameState.avatarImage = '';
+    
+    // ✅ 新增功能：初始化状态和列表
+    if (gameState.following === undefined) gameState.following = [];
+    if (gameState.commentLikes === undefined) gameState.commentLikes = {};
+    
+    // ✅ 新增：初始化消息列表
+    if (gameState.messages === undefined) gameState.messages = [];
+    
     const saved = localStorage.getItem('streamerGameState');
     if (saved) {
         try {
@@ -272,6 +290,13 @@ function initGame() {
             gameState.banDropInterval = null; 
             gameState.hotSearchInterval = null;
             gameState.publicOpinionInterval = null; // ✅ 修复：重置定时器引用
+            
+            // ✅ 新增功能：确保新状态存在
+            if (gameState.following === undefined) gameState.following = [];
+            if (gameState.commentLikes === undefined) gameState.commentLikes = {};
+            
+            // ✅ 新增：确保消息列表存在
+            if (gameState.messages === undefined) gameState.messages = [];
             
             if (gameState.chartData) {
                 if (gameState.chartData.fans.length === 0) {
@@ -337,8 +362,8 @@ function initGame() {
                     getVirtualDaysPassed = originalGetVirtualDaysPassed;
                 }
                 
-                if (!gameState.banDropInterval) {
-                    gameState.banDropInterval = setInterval(() => {
+                if (!gameState.banInterval) {
+                    gameState.banInterval = setInterval(() => {
                         if (gameState.isBanned && gameState.fans > 0) {
                             const fanLoss = Math.floor(Math.random() * 90) + 10;
                             gameState.fans = Math.max(0, gameState.fans - fanLoss);
@@ -522,6 +547,9 @@ function initGame() {
         gameState.chartData.lastInteractionTotal = 0;
         
         gameState.devMode = false;
+        // ✅ 新增功能：初始化新状态
+        gameState.following = [];
+        gameState.commentLikes = {};
     }
     
     if (!gameState.userId) {
@@ -636,6 +664,7 @@ function resetGame() {
         username: '', 
         userId: '', 
         avatar: '', 
+        avatarImage: '', // 重置图片头像
         fans: 0, 
         likes: 0, 
         views: 0, 
@@ -696,7 +725,12 @@ function resetGame() {
         fakeAdPenaltyInterval: null,
         fakeAdBans: 0,
         monthsWithoutFakeAd: 0,
-        lastCheckMonth: -1
+        lastCheckMonth: -1,
+        // ✅ 新增功能：重置新状态
+        following: [],
+        commentLikes: {},
+        // ✅ 新增：重置消息列表
+        messages: []
     };
     
     gameTimer = 0;
@@ -782,5 +816,8 @@ window.stopGameTimer = stopGameTimer;
 window.getVirtualDaysPassed = getVirtualDaysPassed;
 window.formatVirtualDate = formatVirtualDate;
 window.getVirtualDate = getVirtualDate;
+window.saveGame = saveGame;
+window.formatNumber = formatNumber;
+window.formatTime = formatTime;
 
 console.log('游戏核心已加载，startGame函数:', typeof startGame);
