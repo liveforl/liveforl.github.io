@@ -49,7 +49,11 @@ const randomEvents = [
     { type: 'bad', title: '争议言论', desc: '你的言论引发争议', effect: { publicOpinion: true }, weight: 0.05 },
     
     // ========== 新增：举报事件 ==========
-    { type: 'bad', title: '网友举报', desc: '有网友发现你的商单存在问题，向平台举报', effect: { reportAd: true }, weight: 0.05 }
+    { type: 'bad', title: '网友举报', desc: '有网友发现你的商单存在问题，向平台举报', effect: { reportAd: true }, weight: 0.05 },
+    
+    // ========== 新增：私信相关事件 ==========
+    { type: 'neutral', title: '私信轰炸', desc: '有大量的粉丝给你发来私信', effect: { generatePrivateMessages: 3 } },
+    { type: 'bad', title: '黑粉骚扰', desc: '有黑粉在私信里辱骂你', effect: { generatePrivateMessages: 2, negative: true } }
 ];
 
 // ==================== 随机事件处理函数 ====================
@@ -187,6 +191,31 @@ function handleRandomEvent(event) {
         } else {
             showNotification('举报风波', '有网友质疑你的内容，但未被证实');
         }
+    }
+    
+    // ========== 处理私信生成事件 ==========
+    else if (event.effect.generatePrivateMessages) {
+        const count = event.effect.generatePrivateMessages || 1;
+        const isNegative = event.effect.negative || false;
+        
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                // 如果是负面事件，强制生成负面消息
+                if (isNegative) {
+                    const userData = generateRandomPrivateMessageUser();
+                    const conversation = gameState.privateMessageSystem.conversations.find(c => c.username === userData.username);
+                    if (conversation && Math.random() < 0.7) {
+                        // 70%概率生成负面消息
+                        generatePrivateMessage();
+                    }
+                } else {
+                    generatePrivateMessage();
+                }
+            }, i * 1000);
+        }
+        
+        showNotification(event.title, '有新的私信消息');
+        showEventPopup(event.title, event.desc);
     }
     
     // ========== 处理原有直接效果事件 ==========

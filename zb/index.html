@@ -264,6 +264,26 @@
         <div id="messagesSharePageContent" class="fullscreen-content"></div>
     </div>
 
+    <!-- 私信列表全屏页 -->
+    <div id="privateMessagesPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closePrivateMessageList()">‹</div>
+            <div class="fullscreen-title">陌生人私信</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="privateMessagesPageContent" class="fullscreen-content"></div>
+    </div>
+
+    <!-- 私信聊天全屏页 -->
+    <div id="privateChatPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closePrivateChat()">‹</div>
+            <div class="fullscreen-title" id="privateChatTitle">聊天</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="privateChatPageContent" class="fullscreen-content" style="padding-bottom: 80px;"></div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('home')">
             <div class="nav-icon">🏠</div>
@@ -302,13 +322,16 @@
 
 <!-- 按顺序加载脚本 -->
 <script src="game_core.js"></script>
-<script src="game_ui_core.js"></script>        <!-- 新增：核心UI -->
-<script src="game_ui_works.js"></script>       <!-- 新增：作品管理 -->
-<script src="game_ui_settings.js"></script>    <!-- 新增：设置相关 -->
+<script src="game_ui_core.js"></script>        <!-- 核心UI -->
+<script src="game_ui_works_core.js"></script>  <!-- 作品核心管理 -->
+<script src="game_ui_comments.js"></script>    <!-- 评论互动系统 -->
+<script src="game_ui_messages.js"></script>    <!-- 消息中心系统 -->
+<script src="game_ui_settings.js"></script>    <!-- 设置相关 -->
 <script src="game_ad_system.js"></script>
 <script src="game_features.js"></script>
 <script src="game_random_events.js"></script>
 <script src="game_events.js"></script>
 <script src="game_dev.js"></script>
+<script src="game_private_messages.js"></script>
 </body>
 </html>

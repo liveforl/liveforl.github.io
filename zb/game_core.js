@@ -173,7 +173,15 @@ let gameState = {
     commentLikes: {}, // 记录用户点赞过的评论 {workId_commentId: true}
     
     // ✅ 新增：消息中心
-    messages: [] // 消息列表：点赞、评论、转发等互动消息
+    messages: [], // 消息列表：点赞、评论、转发等互动消息
+
+    // ✅ 新增：私信系统状态
+    privateMessageSystem: {
+        conversations: [],
+        unreadCount: 0,
+        lastCheckTime: 0,
+        generationInterval: null
+    }
 };
 
 // ==================== 成就列表 ====================
@@ -225,6 +233,11 @@ function formatTime(timestamp) {
 }
 
 function saveGame() {
+    // 保存前清理私信
+    if (typeof cleanupPrivateMessages === 'function') {
+        cleanupPrivateMessages();
+    }
+    
     gameState.gameTimer = gameTimer;
     gameState.realStartTime = realStartTime;
     localStorage.setItem('streamerGameState', JSON.stringify(gameState));
@@ -248,6 +261,16 @@ function initGame() {
     
     // ✅ 新增：初始化消息列表
     if (gameState.messages === undefined) gameState.messages = [];
+    
+    // ✅ 新增：初始化私信系统
+    if (gameState.privateMessageSystem === undefined) {
+        gameState.privateMessageSystem = {
+            conversations: [],
+            unreadCount: 0,
+            lastCheckTime: 0,
+            generationInterval: null
+        };
+    }
     
     const saved = localStorage.getItem('streamerGameState');
     if (saved) {
@@ -297,6 +320,16 @@ function initGame() {
             
             // ✅ 新增：确保消息列表存在
             if (gameState.messages === undefined) gameState.messages = [];
+            
+            // ✅ 新增：确保私信系统存在
+            if (gameState.privateMessageSystem === undefined) {
+                gameState.privateMessageSystem = {
+                    conversations: [],
+                    unreadCount: 0,
+                    lastCheckTime: 0,
+                    generationInterval: null
+                };
+            }
             
             if (gameState.chartData) {
                 if (gameState.chartData.fans.length === 0) {
@@ -550,6 +583,13 @@ function initGame() {
         // ✅ 新增功能：初始化新状态
         gameState.following = [];
         gameState.commentLikes = {};
+        gameState.messages = [];
+        gameState.privateMessageSystem = {
+            conversations: [],
+            unreadCount: 0,
+            lastCheckTime: 0,
+            generationInterval: null
+        };
     }
     
     if (!gameState.userId) {
@@ -567,6 +607,11 @@ function initGame() {
     if (typeof updateDisplay === 'function') updateDisplay();
     if (typeof startWorkUpdates === 'function') startWorkUpdates();
     if (typeof startGameLoop === 'function') startGameLoop();
+    
+    // ✅ 初始化私信系统
+    if (typeof initPrivateMessageOnGameLoad === 'function') {
+        initPrivateMessageOnGameLoad();
+    }
     
     saveGame();
     
@@ -660,6 +705,11 @@ function resetGame() {
         window.exposureCheckInterval = null;
     }
     
+    // 清除私信生成定时器
+    if (typeof stopPrivateMessageGeneration === 'function') {
+        stopPrivateMessageGeneration();
+    }
+    
     gameState = {
         username: '', 
         userId: '', 
@@ -730,7 +780,14 @@ function resetGame() {
         following: [],
         commentLikes: {},
         // ✅ 新增：重置消息列表
-        messages: []
+        messages: [],
+        // ✅ 新增：重置私信系统
+        privateMessageSystem: {
+            conversations: [],
+            unreadCount: 0,
+            lastCheckTime: 0,
+            generationInterval: null
+        }
     };
     
     gameTimer = 0;
@@ -799,6 +856,11 @@ window.onload = function() {
 
 // ==================== 窗口关闭前保存 ====================
 window.addEventListener('beforeunload', function() {
+    // 保存前清理私信
+    if (typeof cleanupPrivateMessages === 'function') {
+        cleanupPrivateMessages();
+    }
+    
     stopGameTimer();
     saveGame();
 });
