@@ -166,7 +166,7 @@ function stopPrivateMessageGeneration() {
     }
 }
 
-// 更新私信UI
+// 更新私信UI（增强版 - 支持导航栏小红点）
 function updatePrivateMessageUI() {
     if (!gameState.privateMessageSystem) return;
     
@@ -186,12 +186,14 @@ function updatePrivateMessageUI() {
         }
     }
     
-    // 如果有打开私信列表，更新它
+    // 更新主页面消息导航栏的小红点（包含私信）
+    updateNavMessageBadge();
+    
+    // 如果有打开私信列表或聊天界面，更新它们
     if (document.getElementById('privateMessagesPage')?.classList.contains('active')) {
         renderPrivateMessageList();
     }
     
-    // 如果有打开聊天界面，更新它
     const chatPage = document.getElementById('privateChatPage');
     if (chatPage?.classList.contains('active')) {
         const username = chatPage.dataset.currentUser;
@@ -282,8 +284,9 @@ function openPrivateChat(username) {
     const system = gameState.privateMessageSystem;
     const conversation = system.conversations.find(c => c.username === username);
     if (conversation) {
+        // ✅ 修复：将未读数清零
+        system.unreadCount -= conversation.unreadCount;
         conversation.unreadCount = 0;
-        system.unreadCount = system.conversations.reduce((sum, c) => sum + c.unreadCount, 0);
         updatePrivateMessageUI();
         saveGame();
     }
@@ -396,6 +399,9 @@ function closePrivateMessageList() {
     document.getElementById('privateMessagesPage').classList.remove('active');
     document.getElementById('mainContent').style.display = 'block';
     document.querySelector('.bottom-nav').style.display = 'flex';
+    
+    // 更新显示
+    updateDisplay();
 }
 
 // 关闭聊天界面

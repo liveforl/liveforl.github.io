@@ -5,11 +5,8 @@ window.currentMessageFilter = 'all';
 window.currentCommentPage = 1;
 window.commentsPerPage = 10;
 
-// 全屏消息页
-function showMessagesFullscreen() {
-    const content = document.getElementById('messagesListTab');
-    if (!content) return;
-    
+// 更新消息页面顶部的小红点（新增函数）
+function updateMessageFilterBadges() {
     const unreadCounts = {
         all: gameState.messages ? gameState.messages.filter(msg => !msg.read).length : 0,
         like: gameState.messages ? gameState.messages.filter(msg => msg.type === 'like' && !msg.read).length : 0,
@@ -17,27 +14,64 @@ function showMessagesFullscreen() {
         share: gameState.messages ? gameState.messages.filter(msg => msg.type === 'share' && !msg.read).length : 0
     };
     
-    // 私信未读数
+    // 更新四个按钮的小红点
+    Object.keys(unreadCounts).forEach(type => {
+        const button = document.querySelector(`[onclick="openMessagesFullscreenPage('${type}')"]`);
+        if (!button) return;
+        
+        let badge = button.querySelector('.filter-badge');
+        const count = unreadCounts[type];
+        
+        if (count > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'filter-badge';
+                badge.style.cssText = `
+                    background: #ff0050;
+                    color: #fff;
+                    border-radius: 10px;
+                    padding: 2px 6px;
+                    font-size: 10px;
+                    margin-left: 4px;
+                    display: inline-block;
+                    min-width: 16px;
+                    text-align: center;
+                `;
+                button.appendChild(badge);
+            }
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'inline-block';
+        } else if (badge) {
+            badge.style.display = 'none';
+        }
+    });
+}
+
+// 全屏消息页
+function showMessagesFullscreen() {
+    const content = document.getElementById('messagesListTab');
+    if (!content) return;
+    
     const privateUnreadCount = gameState.privateMessageSystem ? gameState.privateMessageSystem.unreadCount : 0;
     
-    // 构建带下方私信横条的筛选栏
+    // 构建带下方私信横条的筛选栏（移除旧版数字显示）
     const filterButtons = `
         <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
             <button class="message-filter-btn active" onclick="openMessagesFullscreenPage('all')">
                 💬 全部消息
-                ${unreadCounts.all > 0 ? `<span class="nav-badge" style="display:inline-block;margin-left:4px;">${unreadCounts.all > 99 ? '99+' : unreadCounts.all}</span>` : ''}
+                <span class="filter-badge" style="display:none;"></span>
             </button>
             <button class="message-filter-btn" onclick="openMessagesFullscreenPage('like')">
                 ❤️ 点赞
-                ${unreadCounts.like > 0 ? `<span class="nav-badge" style="display:inline-block;margin-left:4px;">${unreadCounts.like > 99 ? '99+' : unreadCounts.like}</span>` : ''}
+                <span class="filter-badge" style="display:none;"></span>
             </button>
             <button class="message-filter-btn" onclick="openMessagesFullscreenPage('comment')">
                 💭 评论
-                ${unreadCounts.comment > 0 ? `<span class="nav-badge" style="display:inline-block;margin-left:4px;">${unreadCounts.comment > 99 ? '99+' : unreadCounts.comment}</span>` : ''}
+                <span class="filter-badge" style="display:none;"></span>
             </button>
             <button class="message-filter-btn" onclick="openMessagesFullscreenPage('share')">
                 🔄 转发
-                ${unreadCounts.share > 0 ? `<span class="nav-badge" style="display:inline-block;margin-left:4px;">${unreadCounts.share > 99 ? '99+' : unreadCounts.share}</span>` : ''}
+                <span class="filter-badge" style="display:none;"></span>
             </button>
         </div>
         
@@ -67,6 +101,9 @@ function showMessagesFullscreen() {
     `;
     
     content.innerHTML = filterButtons;
+    
+    // 立即更新小红点
+    updateMessageFilterBadges();
     
     // 更新导航栏消息小红点
     if (typeof updateNavMessageBadge === 'function') {
@@ -180,14 +217,24 @@ function markMessagesAsReadByType(type) {
     updateNavMessageBadge();
 }
 
-// 更新导航栏消息图标的小红点
+// 更新导航栏消息徽章（包含私信）- 动态实时版
 function updateNavMessageBadge() {
-    const unreadCount = gameState.messages ? gameState.messages.filter(msg => !msg.read).length : 0;
+    // 计算普通消息未读数
+    const normalUnread = gameState.messages ? gameState.messages.filter(msg => !msg.read).length : 0;
+    
+    // 计算私信未读数
+    const privateUnread = gameState.privateMessageSystem ? gameState.privateMessageSystem.unreadCount : 0;
+    
+    // 总未读数
+    const totalUnread = normalUnread + privateUnread;
+    
     const navItem = document.querySelector('.nav-item:nth-child(3)');
     if (!navItem) return;
     
     let badge = navItem.querySelector('.nav-badge');
-    if (unreadCount > 0) {
+    
+    // 如果总未读数大于0，显示徽章
+    if (totalUnread > 0) {
         if (!badge) {
             badge = document.createElement('div');
             badge.className = 'nav-badge';
@@ -207,9 +254,10 @@ function updateNavMessageBadge() {
             navItem.style.position = 'relative';
             navItem.appendChild(badge);
         }
-        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
         badge.style.display = 'block';
     } else if (badge) {
+        // 如果总未读数为0，隐藏徽章
         badge.style.display = 'none';
     }
 }
@@ -233,12 +281,31 @@ function clearMessagesByType(type) {
     });
 }
 
-// 全部已读
+// 全部已读（修复版 - 同时处理私信）
 function markAllRead() {
+    // 标记普通消息已读
     gameState.messages.forEach(msg => msg.read = true);
     gameState.notifications.forEach(n => n.read = true);
+    
+    // ✅ 修复：同时标记所有私信为已读
+    if (gameState.privateMessageSystem && gameState.privateMessageSystem.conversations) {
+        gameState.privateMessageSystem.conversations.forEach(conv => {
+            conv.unreadCount = 0;
+        });
+        gameState.privateMessageSystem.unreadCount = 0;
+    }
+    
+    // 立即更新UI
     updateNavMessageBadge();
-    if (typeof showMessagesFullscreen === 'function') showMessagesFullscreen();
+    updatePrivateMessageUI();
+    updateMessageFilterBadges(); // ✅ 新增：更新顶部四个按钮的小红点
+    
+    // 如果当前在消息页面，刷新显示
+    if (typeof showMessagesFullscreen === 'function') {
+        showMessagesFullscreen();
+    }
+    
+    saveGame();
     showNotification('操作成功', '所有消息已标记为已读');
 }
 
@@ -257,6 +324,71 @@ function openUserProfileFromComment(username, avatar) {
         window.showUserProfile(username, avatar);
     }, 100);
 }
+
+// ==================== 新增：消息实时更新系统 ====================
+
+// 启动消息实时更新
+function startMessagesRealtimeUpdate() {
+    if (window.messagesUpdateInterval) {
+        clearInterval(window.messagesUpdateInterval);
+    }
+    
+    window.messagesUpdateInterval = setInterval(() => {
+        // 检查是否在消息全屏页面
+        const activePage = document.querySelector('.fullscreen-page.active');
+        if (activePage && activePage.id.startsWith('messages')) {
+            // 获取当前消息类型
+            const pageId = activePage.id; // messagesAllPage, messagesLikePage等
+            const type = pageId.replace('messages', '').replace('Page', '').toLowerCase();
+            
+            // 重新渲染当前页面
+            renderMessagesFullscreenPage(type);
+        }
+        
+        // ✅ 更新消息页面的四个按钮小红点
+        updateMessageFilterBadges();
+        
+        // 更新导航栏消息徽章
+        updateNavMessageBadge();
+    }, 1000); // 每秒检查一次
+}
+
+// 停止消息实时更新
+function stopMessagesRealtimeUpdate() {
+    if (window.messagesUpdateInterval) {
+        clearInterval(window.messagesUpdateInterval);
+        window.messagesUpdateInterval = null;
+    }
+}
+
+// 页面切换时自动停止/启动更新
+const originalSwitchTab = window.switchTab;
+window.switchTab = function(tab) {
+    // 先执行原始逻辑
+    originalSwitchTab(tab);
+    
+    // 如果切换到消息页，启动更新
+    if (tab === 'messages') {
+        startMessagesRealtimeUpdate();
+    } else {
+        // 切换到其他页面时停止更新（节省性能）
+        stopMessagesRealtimeUpdate();
+    }
+};
+
+// 打开全屏消息页时启动更新
+const originalOpenMessagesFullscreenPage = window.openMessagesFullscreenPage;
+window.openMessagesFullscreenPage = function(type) {
+    originalOpenMessagesFullscreenPage(type);
+    startMessagesRealtimeUpdate();
+};
+
+// 关闭全屏消息页时停止更新
+const originalCloseMessagesFullscreenPage = window.closeMessagesFullscreenPage;
+window.closeMessagesFullscreenPage = function(pageName) {
+    originalCloseMessagesFullscreenPage(pageName);
+    stopMessagesRealtimeUpdate();
+};
 
 // 绑定全局函数
 window.showMessagesFullscreen = showMessagesFullscreen;

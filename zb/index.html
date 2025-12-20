@@ -333,5 +333,22 @@
 <script src="game_events.js"></script>
 <script src="game_dev.js"></script>
 <script src="game_private_messages.js"></script>
+
+<script>
+// 游戏完全加载后启动所有实时更新
+document.addEventListener('DOMContentLoaded', function() {
+    // 启动作品实时更新
+    if (typeof startWorkUpdates === 'function') {
+        startWorkUpdates();
+    }
+    
+    // 启动私信生成系统
+    if (typeof startPrivateMessageGeneration === 'function') {
+        startPrivateMessageGeneration();
+    }
+    
+    console.log('所有实时更新系统已启动！');
+});
+</script>
 </body>
 </html>
