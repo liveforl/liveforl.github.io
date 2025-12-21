@@ -47,11 +47,9 @@ const privateMessageTemplates = {
 
 // 生成随机用户名
 function generateRandomPrivateMessageUser() {
-    const names = [
-        '小可爱', '犀利评论家', '路人甲', '铁粉一号', '吃瓜群众',
+    const names = ['小可爱', '犀利评论家', '路人甲', '铁粉一号', '吃瓜群众',
         '热心网友', '匿名用户', '夜猫子', '正义使者', '老粉丝',
-        '新关注者', '键盘侠', '小学生', '大学生', '打工人'
-    ];
+        '新关注者', '键盘侠', '小学生', '大学生', '打工人'];
     const avatarChars = ['萌', '酷', '帅', '美', '憨', '神', '迷', '暖', '冷', '呆'];
     
     return {
@@ -132,13 +130,10 @@ function generatePrivateMessage() {
     updatePrivateMessageUI();
     saveGame();
     
-    // 触发通知（如果是负面消息，增加警告）
+    // 触发通知（如果是负面消息）
     if (!messageData.isPositive) {
         showNotification('📩 负面私信', `${userData.username}: ${messageData.content.substring(0, 20)}...`);
-        // 有一定概率增加警告
-        if (Math.random() < 0.2) {
-            gameState.warnings = Math.min(20, gameState.warnings + 1);
-        }
+        // ✅ 已移除：负面私信不再增加警告次数
     }
 }
 
