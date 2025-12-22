@@ -64,7 +64,6 @@
             </div>
             <div class="stat-item">
                 <div class="stat-value" id="followingCount">0</div>
-                <!-- ✅ 新增功能：关注数显示，可点击查看列表 -->
                 <div class="stat-label" onclick="showFollowingList()" style="cursor:pointer; text-decoration:underline;">关注</div>
             </div>
             <div class="stat-item">
@@ -284,6 +283,16 @@
         <div id="privateChatPageContent" class="fullscreen-content" style="padding-bottom: 80px;"></div>
     </div>
 
+    <!-- ✅ 新增：系统消息全屏页 -->
+    <div id="systemMessagesPage" class="fullscreen-page">
+        <div class="fullscreen-header">
+            <div class="back-btn" onclick="closeSystemMessagesList()">‹</div>
+            <div class="fullscreen-title">系统消息</div>
+            <div class="fullscreen-action" style="opacity:0;">占位</div>
+        </div>
+        <div id="systemMessagesPageContent" class="fullscreen-content"></div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('home')">
             <div class="nav-icon">🏠</div>
@@ -333,6 +342,8 @@
 <script src="game_events.js"></script>
 <script src="game_dev.js"></script>
 <script src="game_private_messages.js"></script>
+<!-- ✅ 新增：系统消息模块 -->
+<script src="game_system_messages.js"></script>
 
 <script>
 // 游戏完全加载后启动所有实时更新
@@ -345,6 +356,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 启动私信生成系统
     if (typeof startPrivateMessageGeneration === 'function') {
         startPrivateMessageGeneration();
+    }
+    
+    // ✅ 新增：启动系统消息定时器
+    if (typeof startSystemMessagesTimer === 'function') {
+        startSystemMessagesTimer();
+        console.log('系统消息定时器已启动');
     }
     
     console.log('所有实时更新系统已启动！');

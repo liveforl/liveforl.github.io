@@ -181,6 +181,13 @@ let gameState = {
         unreadCount: 0,
         lastCheckTime: 0,
         generationInterval: null
+    },
+    
+    // ✅ 新增：系统消息状态
+    systemMessages: {
+        unreadCount: 0,
+        messages: [],
+        hotSearchActiveWorks: []
     }
 };
 
@@ -272,6 +279,15 @@ function initGame() {
         };
     }
     
+    // ✅ 新增：初始化系统消息状态
+    if (gameState.systemMessages === undefined) {
+        gameState.systemMessages = {
+            unreadCount: 0,
+            messages: [],
+            hotSearchActiveWorks: []
+        };
+    }
+    
     const saved = localStorage.getItem('streamerGameState');
     if (saved) {
         try {
@@ -328,6 +344,15 @@ function initGame() {
                     unreadCount: 0,
                     lastCheckTime: 0,
                     generationInterval: null
+                };
+            }
+            
+            // ✅ 新增：确保系统消息状态存在
+            if (gameState.systemMessages === undefined) {
+                gameState.systemMessages = {
+                    unreadCount: 0,
+                    messages: [],
+                    hotSearchActiveWorks: []
                 };
             }
             
@@ -545,12 +570,20 @@ function initGame() {
             });
             console.log('作品状态恢复完成');
             
-            // ==================== 关键修复：恢复虚假商单惩罚 ====================
+            // ==================== 关键修复：游戏加载时恢复虚假商单惩罚 ====================
             if (typeof window.resumeFakeAdPenalty === 'function') {
                 console.log('正在恢复虚假商单惩罚定时器...');
                 setTimeout(() => {
                     window.resumeFakeAdPenalty();
                 }, 1000); // 延迟1秒确保所有状态同步
+            }
+            
+            // ✅ 新增：恢复热搜效果
+            if (typeof window.resumeHotSearchEffects === 'function') {
+                console.log('正在恢复热搜效果...');
+                setTimeout(() => {
+                    window.resumeHotSearchEffects();
+                }, 1500);
             }
             
         } catch (error) {
@@ -590,6 +623,12 @@ function initGame() {
             lastCheckTime: 0,
             generationInterval: null
         };
+        // ✅ 新增：初始化系统消息状态
+        gameState.systemMessages = {
+            unreadCount: 0,
+            messages: [],
+            hotSearchActiveWorks: []
+        };
     }
     
     if (!gameState.userId) {
@@ -611,6 +650,11 @@ function initGame() {
     // ✅ 初始化私信系统
     if (typeof initPrivateMessageOnGameLoad === 'function') {
         initPrivateMessageOnGameLoad();
+    }
+    
+    // ✅ 新增：初始化系统消息系统
+    if (typeof initSystemMessages === 'function') {
+        initSystemMessages();
     }
     
     saveGame();
@@ -710,6 +754,11 @@ function resetGame() {
         stopPrivateMessageGeneration();
     }
     
+    // ✅ 新增：清除系统消息定时器
+    if (typeof stopSystemMessagesTimer === 'function') {
+        stopSystemMessagesTimer();
+    }
+    
     gameState = {
         username: '', 
         userId: '', 
@@ -779,14 +828,18 @@ function resetGame() {
         // ✅ 新增功能：重置新状态
         following: [],
         commentLikes: {},
-        // ✅ 新增：重置消息列表
         messages: [],
-        // ✅ 新增：重置私信系统
         privateMessageSystem: {
             conversations: [],
             unreadCount: 0,
             lastCheckTime: 0,
             generationInterval: null
+        },
+        // ✅ 新增：重置系统消息状态
+        systemMessages: {
+            unreadCount: 0,
+            messages: [],
+            hotSearchActiveWorks: []
         }
     };
     
@@ -859,6 +912,11 @@ window.addEventListener('beforeunload', function() {
     // 保存前清理私信
     if (typeof cleanupPrivateMessages === 'function') {
         cleanupPrivateMessages();
+    }
+    
+    // ✅ 新增：停止系统消息定时器
+    if (typeof stopSystemMessagesTimer === 'function') {
+        stopSystemMessagesTimer();
     }
     
     stopGameTimer();

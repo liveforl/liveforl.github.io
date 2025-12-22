@@ -1,5 +1,8 @@
 // ==================== 随机事件数据 ====================
 const randomEvents = [
+    // ========== 新增：热搜邀请类事件（新功能） ==========
+    { type: 'neutral', title: '热搜邀请', desc: '平台向你发出热搜话题邀请', effect: { hotSearchInvite: true }, weight: 3 }, 
+    
     // ========== 新增：视频推荐类事件（新功能） ==========
     { type: 'good', title: '视频爆了！', desc: '你的视频被推荐到首页，播放量暴涨', effect: { recommendVideo: true, duration: 1 } }, 
     { type: 'good', title: '病毒传播', desc: '你的视频成为病毒式传播', effect: { recommendVideo: true, duration: 1 } }, 
@@ -61,8 +64,22 @@ function handleRandomEvent(event) {
     let message = event.desc;
     let targetWork = null;
     
+    // ========== 处理热搜邀请事件（新功能） ==========
+    if (event.effect.hotSearchInvite) {
+        // 直接调用系统消息模块的函数
+        if (typeof generateHotSearchInvite === 'function') {
+            generateHotSearchInvite();
+        } else {
+            console.error('generateHotSearchInvite函数未找到');
+        }
+        // 显示通知
+        showNotification(event.title, '你收到了一个热搜话题邀请，请在消息中心查看');
+        showEventPopup(event.title, '热搜邀请已发送至系统消息'); // ✅ 新增事件弹窗
+        return; // 热搜邀请由系统消息模块处理，这里不再处理
+    }
+    
     // ========== 处理视频推荐事件（新功能） ==========
-    if (event.effect.recommendVideo) {
+    else if (event.effect.recommendVideo) {
         const videos = gameState.worksList.filter(w => w.type === 'video' && !w.isPrivate);
         if (videos.length > 0) {
             targetWork = videos[Math.floor(Math.random() * videos.length)];
