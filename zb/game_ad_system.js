@@ -33,7 +33,7 @@ window.generateAdOrder = function() {
         const randomIndex = Math.floor(Math.random() * availableOrders.length);
         const ad = availableOrders.splice(randomIndex, 1)[0];
         
-        // 高风险商单有更高的实际奖励
+        // 高风险商单反检查能力更强（检查概率与actualRisk反向相关）
         const riskMultiplier = 1 + (ad.actualRisk * 2); // 风险越高，奖励越高
         const actualReward = Math.floor(ad.baseReward * riskMultiplier * (0.8 + Math.random() * 0.4));
         
@@ -46,8 +46,6 @@ window.generateAdOrder = function() {
             method: null, 
             time: window.gameTimer, 
             status: 'pending',
-            isExposed: false,  // 是否被举报曝光
-            isChecked: false,  // 是否被平台检查
             checkRisk: checkRisk  // ✅ 修改：实际被检查出来的风险（反向计算）
         });
     }
@@ -339,6 +337,11 @@ window.publishAd = function() {
         window.checkHighAdCountPenalty();
     }
     
+    // ✅ 修复：重置不更新状态（关键修复）
+    if (typeof window.resetInactivityDropState === 'function') {
+        window.resetInactivityDropState();
+    }
+    
     if (typeof window.updateDisplay === 'function') {
         window.updateDisplay();
     }
@@ -346,12 +349,17 @@ window.publishAd = function() {
     saveGame();
 };
 
-// ==================== 月底商单检查 ====================
+// ==================== 月底商单检查（修复版：支持所有月份）=======================
 window.checkMonthlyAdOrders = function() {
     if (!window.gameState || window.gameState.isBanned) return;
     
     const currentDate = getVirtualDate();
-    if (currentDate.day !== 30) return; // 只在每月30号检查
+    
+    // ✅ 修复：根据月份动态获取最后一天
+    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const daysInMonth = monthDays[currentDate.month - 1]; // month是1-12，数组索引是0-11
+    
+    if (currentDate.day !== daysInMonth) return; // 只在每月最后一天检查
     
     console.log(`执行月底商单检查，当前虚拟时间: ${formatVirtualDate(true)}`);
     
@@ -457,7 +465,7 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
         
         // 更新惩罚状态（合并）
         window.gameState.fakeAdPenalty.endTime = mergedEndTime;
-        window.gameState.fakeAdPenalty.dailyFanLoss = maxDailyLoss;
+        window.gameState.fakeAdPenalty.dailyFanLoss = maxDailyFanLoss;
         
         // 合并暴露的作品ID（去重）
         const existingIds = window.gameState.fakeAdPenalty.exposedWorkIds || [];
@@ -709,8 +717,11 @@ window.generateNegativeComments = function(count) {
 // ==================== 修改评论生成函数以包含负面评论 ====================
 window.generateCommentsWithNegative = function(work, count, workTime) {
     const comments = [];
-    const normalUsers = ['小可爱', '直播达人', '路人甲', '粉丝一号', '吃瓜群众', '热心网友', '匿名用户', '夜猫子'];
-    const normalContents = ['太棒了！', '支持主播！', '666', '拍得真好', '来了来了', '前排围观', '主播辛苦了', '加油加油', '很好看', '不错不错', '学习了', '收藏了', '转发支持', '期待更新', '主播最美', '最棒的主播', '今天状态真好', '这个内容有意思', '讲得很详细', '受益匪浅', '主播人真好', '互动很棒', '直播很有趣'];
+    const normalUsers = ['小可爱', '直播达人', '路人甲', '粉丝一号', '吃瓜群众', '热心网友', '匿名用户', '夜猫子', 
+                   '快乐小天使', '追星族', '游戏迷', '文艺青年', '美食家', '旅行达人', '摄影师', '音乐人'];
+    const normalContents = ['太棒了！', '支持主播！', '666', '拍得真好', '来了来了', '前排围观', '主播辛苦了', '加油加油', 
+                      '很好看', '不错不错', '学习了', '收藏了', '转发支持', '期待更新', '主播最美', '最棒的主播', 
+                      '今天状态真好', '这个内容有意思', '讲得很详细', '受益匪浅', '主播人真好', '互动很棒', '直播很有趣'];
     
     const negativeUsers = ['正义使者', '曝光侠', '打假专家', '愤怒的粉丝', '受害者', '维权人士', '监管员', '诚信卫士'];
     const negativeContents = ['假广告！退钱！', '这种虚假商单也接？取关了！', '举报了，欺骗粉丝', '难怪最近内容质量下降', '失望，居然接假商单', '平台应该封禁这种主播', '虚假广告害人不浅', '再也不相信你了', '为了钱什么都干', '可耻的虚假宣传'];
@@ -899,6 +910,11 @@ window.publishBrandAd = function() {
     
     // 检查成就
     checkAdAchievements();
+    
+    // ✅ 修复：重置不更新状态（关键修复）
+    if (typeof window.resetInactivityDropState === 'function') {
+        window.resetInactivityDropState();
+    }
 };
 
 // ==================== 高商单数惩罚机制（保持原有逻辑） ====================
@@ -992,7 +1008,7 @@ function checkAdAchievements() {
         { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', target: () => window.gameState.rejectedAdOrders >= 5 },
         { id: 25, name: '商单大师', desc: '完成50个商单且未违规', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && window.gameState.warnings < 5 },
         // 新增成就
-        { id: 26, name: '赌徒', desc: '完成10个虚假商单', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate && w.adOrder && !w.adOrder.real).length >= 10 },
+        { id: 26, name: '赌徒', desc: '完成10个虚假商单', target: () => window.gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length >= 10 },
         { id: 27, name: '身败名裂', desc: '因虚假商单被封号3次', target: () => window.gameState.fakeAdBans >= 3 },
         { id: 28, name: '诚信经营', desc: '连续3个月无虚假商单', target: () => window.gameState.monthsWithoutFakeAd >= 3 }
     ];

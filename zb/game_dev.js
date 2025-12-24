@@ -257,6 +257,11 @@ function showDevOptions() {
             <span class="dev-btn-icon">🔄</span>
             <span class="dev-btn-text">重置警告</span>
           </button>
+          <!-- 新增：修改时间按钮 -->
+          <button class="dev-btn dev-btn-edit" onclick="devChangeGameTime()">
+            <span class="dev-btn-icon">📅</span>
+            <span class="dev-btn-text">修改时间</span>
+          </button>
         </div>
       </div>
 
@@ -481,6 +486,83 @@ function devClearEvents() {
   saveGame();
 }
 
+// 新增：修改游戏时间
+function devChangeGameTime() {
+  const currentDate = getVirtualDate();
+  showPrompt(`请输入目标日期 (格式: YYYY-MM-DD)\n注意: 游戏开始于2025年1月1日\n当前时间: ${currentDate.year}年${currentDate.month}月${currentDate.day}日`, 
+    `${currentDate.year}-${currentDate.month}-${currentDate.day}`, 
+    function(dateStr) {
+      if (!dateStr || !dateStr.trim()) return;
+      
+      // 解析日期
+      const parts = dateStr.trim().split('-');
+      if (parts.length !== 3) {
+        showAlert('日期格式错误！请使用 YYYY-MM-DD 格式', '错误');
+        return;
+      }
+      
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      const day = parseInt(parts[2]);
+      
+      // 验证日期合法性
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        showAlert('日期格式错误！请输入有效的数字', '错误');
+        return;
+      }
+      
+      if (year < 2025 || year > 2100) {
+        showAlert('年份超出范围！请输入2025-2100之间的年份', '错误');
+        return;
+      }
+      
+      if (month < 1 || month > 12) {
+        showAlert('月份无效！请输入1-12之间的月份', '错误');
+        return;
+      }
+      
+      // 获取当月天数（游戏中使用的非闰年天数）
+      const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      const daysInMonth = monthDays[month - 1];
+      
+      if (day < 1 || day > daysInMonth) {
+        showAlert(`日期无效！${month}月只有${daysInMonth}天`, '错误');
+        return;
+      }
+      
+      // 计算从游戏开始到目标日期的总天数
+      let totalDays = 0;
+      
+      // 计算年份差
+      const yearDiff = year - 2025;
+      totalDays += yearDiff * 365;
+      
+      // 计算月份差（目标月份之前的天数）
+      for (let i = 0; i < month - 1; i++) {
+        totalDays += monthDays[i];
+      }
+      
+      // 加上目标日
+      totalDays += (day - 1);
+      
+      // 设置新的游戏时间
+      gameTimer = totalDays * VIRTUAL_DAY_MS;
+      window.gameTimer = gameTimer;
+      gameState.gameTimer = gameTimer;
+      
+      // 更新时间相关的状态
+      gameState.lastWorkTime = gameTimer; // 避免立即触发掉粉
+      gameState.lastUpdateTime = gameTimer;
+      
+      console.log(`[开发者] 时间跳转: ${currentDate.year}-${currentDate.month}-${currentDate.day} -> ${year}-${month}-${day}`);
+      
+      updateDisplay();
+      showNotification('修改成功', `游戏时间已跳转到 ${year}年${month}月${day}日`);
+      saveGame();
+    }
+  );
+}
+
 function devClearDevMode() {
   // ✅ 已修改：替换浏览器弹窗
   showConfirm('确定要清除开发者模式吗？这将隐藏开发者选项且不可恢复。', function(confirmed) {
@@ -526,3 +608,5 @@ window.devClearEvents = devClearEvents;
 window.devStartCountdownTracker = devStartCountdownTracker;
 window.devUpdateCountdowns = devUpdateCountdowns;
 window.devUpdateSpecialStatusCountdowns = devUpdateSpecialStatusCountdowns;
+// 新增
+window.devChangeGameTime = devChangeGameTime;

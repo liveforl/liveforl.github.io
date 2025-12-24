@@ -64,6 +64,14 @@ function handleRandomEvent(event) {
     let message = event.desc;
     let targetWork = null;
     
+    // 初始化事件计数器
+    if (!gameState.eventCount) {
+        gameState.eventCount = 0;
+    }
+    
+    // 每次触发事件都增加计数器
+    gameState.eventCount++;
+    
     // ========== 处理热搜邀请事件（新功能） ==========
     if (event.effect.hotSearchInvite) {
         // 直接调用系统消息模块的函数
@@ -88,6 +96,20 @@ function handleRandomEvent(event) {
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
             showNotification(event.title, message);
             showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 检查幸运儿成就
+            const luckyAchievement = achievements.find(a => a.id === 15);
+            if (luckyAchievement && !luckyAchievement.unlocked) {
+                if (gameState.eventCount >= 50) {
+                    luckyAchievement.unlocked = true;
+                    gameState.achievements.push(15);
+                    showAchievementPopup(luckyAchievement);
+                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    // 重新检查传奇主播
+                    checkAchievements();
+                }
+            }
+            
             startRecommendEffect(targetWork.id, event.effect.duration);
         } else {
             showNotification(event.title, '你还没有可推荐的视频作品');
@@ -104,6 +126,19 @@ function handleRandomEvent(event) {
             message = `动态《${targetWork.content.substring(0, 20)}...》登上热搜！`;
             showNotification(event.title, message);
             showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 检查幸运儿成就
+            const luckyAchievement = achievements.find(a => a.id === 15);
+            if (luckyAchievement && !luckyAchievement.unlocked) {
+                if (gameState.eventCount >= 50) {
+                    luckyAchievement.unlocked = true;
+                    gameState.achievements.push(15);
+                    showAchievementPopup(luckyAchievement);
+                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    checkAchievements();
+                }
+            }
+            
             startPostHotEffect(targetWork.id, event.effect.duration);
         } else {
             showNotification(event.title, '你还没有可上热搜的动态');
@@ -116,6 +151,18 @@ function handleRandomEvent(event) {
         message = '有新的品牌合作机会，请在商单中心查看！';
         showNotification(event.title, message);
         showEventPopup(event.title, message); // ✅ 新增事件弹窗
+        
+        // ✅ 检查幸运儿成就
+        const luckyAchievement = achievements.find(a => a.id === 15);
+        if (luckyAchievement && !luckyAchievement.unlocked) {
+            if (gameState.eventCount >= 50) {
+                luckyAchievement.unlocked = true;
+                gameState.achievements.push(15);
+                showAchievementPopup(luckyAchievement);
+                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                checkAchievements();
+            }
+        }
     }
     
     // ========== 恢复：处理原始热搜事件（重要！） ==========
@@ -124,6 +171,18 @@ function handleRandomEvent(event) {
         startHotSearch(title);
         showNotification(event.title, event.desc);
         showEventPopup(event.title, event.desc); // ✅ 新增事件弹窗
+        
+        // ✅ 检查幸运儿成就
+        const luckyAchievement = achievements.find(a => a.id === 15);
+        if (luckyAchievement && !luckyAchievement.unlocked) {
+            if (gameState.eventCount >= 50) {
+                luckyAchievement.unlocked = true;
+                gameState.achievements.push(15);
+                showAchievementPopup(luckyAchievement);
+                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                checkAchievements();
+            }
+        }
     }
     
     // ========== 处理争议事件（新功能） ==========
@@ -136,6 +195,19 @@ function handleRandomEvent(event) {
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
             showNotification(event.title, message);
             showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 检查幸运儿成就
+            const luckyAchievement = achievements.find(a => a.id === 15);
+            if (luckyAchievement && !luckyAchievement.unlocked) {
+                if (gameState.eventCount >= 50) {
+                    luckyAchievement.unlocked = true;
+                    gameState.achievements.push(15);
+                    showAchievementPopup(luckyAchievement);
+                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    checkAchievements();
+                }
+            }
+            
             startControversyEffect(targetWork.id, event.effect.duration);
             if (event.effect.addWarning) {
                 gameState.warnings = Math.min(20, gameState.warnings + 1);
@@ -160,6 +232,19 @@ function handleRandomEvent(event) {
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》因${event.desc}被删除`;
             showNotification(event.title, message);
             showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 检查幸运儿成就
+            const luckyAchievement = achievements.find(a => a.id === 15);
+            if (luckyAchievement && !luckyAchievement.unlocked) {
+                if (gameState.eventCount >= 50) {
+                    luckyAchievement.unlocked = true;
+                    gameState.achievements.push(15);
+                    showAchievementPopup(luckyAchievement);
+                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    checkAchievements();
+                }
+            }
+            
             if (event.effect.addWarning) {
                 gameState.warnings = Math.min(20, gameState.warnings + 1);
                 showWarning(`内容违规，警告${gameState.warnings}/20次`);
@@ -204,6 +289,37 @@ function handleRandomEvent(event) {
             message = `罚款${fine}元，警告+3，粉丝开始流失！`;
             showNotification('🚨 虚假商单被举报！', message);
             showEventPopup('虚假商单被举报', message); // ✅ 新增事件弹窗
+            
+            // ✅ 检查负面成就
+            // 赌徒成就（完成10个虚假商单）
+            const gamblerAchievement = achievements.find(a => a.id === 26);
+            if (gamblerAchievement && !gamblerAchievement.unlocked) {
+                const fakeAdWorks = gameState.worksList.filter(w => 
+                    w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate
+                );
+                if (fakeAdWorks.length >= 10) {
+                    gamblerAchievement.unlocked = true;
+                    gameState.achievements.push(26);
+                    showAchievementPopup(gamblerAchievement);
+                    showNotification('🏆 负面成就解锁', `赌徒：完成10个虚假商单`);
+                    checkAchievements();
+                }
+            }
+            
+            // 身败名裂成就（因虚假商单被封号3次）
+            const disgraceAchievement = achievements.find(a => a.id === 27);
+            if (disgraceAchievement && !disgraceAchievement.unlocked) {
+                if (!gameState.fakeAdBans) gameState.fakeAdBans = 0;
+                gameState.fakeAdBans += 1;
+                if (gameState.fakeAdBans >= 3) {
+                    disgraceAchievement.unlocked = true;
+                    gameState.achievements.push(27);
+                    showAchievementPopup(disgraceAchievement);
+                    showNotification('🏆 负面成就解锁', `身败名裂：因虚假商单被封号3次`);
+                    checkAchievements();
+                }
+            }
+            
             showWarning(`虚假商单被举报！警告${gameState.warnings}/20次`);
         } else {
             showNotification('举报风波', '有网友质疑你的内容，但未被证实');
@@ -233,6 +349,18 @@ function handleRandomEvent(event) {
         
         showNotification(event.title, '有新的私信消息');
         showEventPopup(event.title, event.desc);
+        
+        // ✅ 检查幸运儿成就
+        const luckyAchievement = achievements.find(a => a.id === 15);
+        if (luckyAchievement && !luckyAchievement.unlocked) {
+            if (gameState.eventCount >= 50) {
+                luckyAchievement.unlocked = true;
+                gameState.achievements.push(15);
+                showAchievementPopup(luckyAchievement);
+                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                checkAchievements();
+            }
+        }
     }
     
     // ========== 处理原有直接效果事件 ==========
@@ -243,6 +371,19 @@ function handleRandomEvent(event) {
         if (event.effect.money) gameState.money = Math.max(0, gameState.money + event.effect.money);
         if (event.effect.warnings) gameState.warnings = Math.min(20, gameState.warnings + event.effect.warnings);
         if (event.effect.publicOpinion) startPublicOpinionCrisis(event.title);
+        
+        // ✅ 检查幸运儿成就
+        const luckyAchievement = achievements.find(a => a.id === 15);
+        if (luckyAchievement && !luckyAchievement.unlocked) {
+            if (gameState.eventCount >= 50) {
+                luckyAchievement.unlocked = true;
+                gameState.achievements.push(15);
+                showAchievementPopup(luckyAchievement);
+                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                checkAchievements();
+            }
+        }
+        
         showNotification(event.title, event.desc);
         showEventPopup(event.title, event.desc); // ✅ 新增事件弹窗
     }

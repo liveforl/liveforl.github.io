@@ -6,6 +6,7 @@ window.currentWorksPage = 1;
 window.worksPerPage = 10;
 window.currentWorksCategory = 'all';
 window.currentDetailWork = null;
+window.commentsPerPage = 10;
 
 // 作品自动更新
 function startWorkUpdates() {
@@ -282,7 +283,7 @@ function showWorksFullscreen() {
             <div class="category-tab" data-category="live" onclick="filterWorksByCategory('live')">直播</div>
         </div>
         <div id="filteredWorksList" style="padding: 0 10px;"></div>
-        <div id="worksPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px 10px; background: #161823; margin: 10px; border-radius: 10px; border: 1px solid #333;"></div>
+        <div id="worksPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px 10px; background: #161823; margin: 10px; border-radius: 10px; border: 1px solid #333; flex-wrap: wrap; max-width: 100%;"></div>
     `;
     
     content.innerHTML = categoryTabs;
@@ -369,45 +370,108 @@ function renderWorksPagination(totalPages, totalWorks) {
     if (!paginationEl) return;
     
     const currentPage = window.currentWorksPage;
-    let paginationHtml = '';
     
-    const prevDisabled = currentPage === 1;
-    paginationHtml += `<button class="page-btn ${prevDisabled ? 'disabled' : ''}" onclick="changeWorksPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''}>‹</button>`;
+    // 清理之前的分页内容
+    paginationEl.innerHTML = '';
     
-    const maxButtons = 7;
-    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    // 创建分页容器（启用flex-wrap）
+    paginationEl.style.display = 'flex';
+    paginationEl.style.justifyContent = 'center';
+    paginationEl.style.alignItems = 'center';
+    paginationEl.style.flexWrap = 'wrap';
+    paginationEl.style.gap = '5px';
     
-    if (endPage - startPage < maxButtons - 1) {
-        startPage = Math.max(1, endPage - maxButtons + 1);
+    // 上一页按钮
+    const prevBtn = document.createElement('button');
+    prevBtn.className = `page-btn ${currentPage === 1 ? 'disabled' : ''}`;
+    prevBtn.innerHTML = '‹';
+    prevBtn.onclick = () => changeWorksPage(currentPage - 1);
+    if (currentPage === 1) prevBtn.disabled = true;
+    paginationEl.appendChild(prevBtn);
+    
+    // 计算要显示的页码范围
+    const maxVisibleButtons = 5; // 最大可见页码按钮数
+    let startPage, endPage;
+    
+    if (totalPages <= maxVisibleButtons) {
+        // 如果总页数小于等于最大可见按钮数，显示所有页码
+        startPage = 1;
+        endPage = totalPages;
+    } else {
+        // 计算起始和结束页码
+        const halfVisible = Math.floor(maxVisibleButtons / 2);
+        startPage = Math.max(1, currentPage - halfVisible);
+        endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
+        
+        // 调整起始页码，确保显示的页码数量正确
+        if (endPage - startPage + 1 < maxVisibleButtons) {
+            startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+        }
     }
     
+    // 显示第一页
     if (startPage > 1) {
-        paginationHtml += `<button class="page-btn" onclick="changeWorksPage(1)">1</button>`;
+        const firstBtn = document.createElement('button');
+        firstBtn.className = 'page-btn';
+        firstBtn.innerHTML = '1';
+        firstBtn.onclick = () => changeWorksPage(1);
+        paginationEl.appendChild(firstBtn);
+        
+        // 如果第一页和起始页之间有间隔，显示省略号
         if (startPage > 2) {
-            paginationHtml += `<span style="color: #666; padding: 0 5px;">...</span>`;
+            const dots = document.createElement('span');
+            dots.style.color = '#666';
+            dots.style.padding = '0 5px';
+            dots.innerHTML = '...';
+            paginationEl.appendChild(dots);
         }
     }
     
+    // 显示中间的页码
     for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changeWorksPage(${i})">${i}</button>`;
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        pageBtn.innerHTML = i;
+        pageBtn.onclick = () => changeWorksPage(i);
+        paginationEl.appendChild(pageBtn);
     }
     
+    // 显示最后一页
     if (endPage < totalPages) {
+        // 如果结束页和最后一页之间有间隔，显示省略号
         if (endPage < totalPages - 1) {
-            paginationHtml += `<span style="color: #666; padding: 0 5px;">...</span>`;
+            const dots = document.createElement('span');
+            dots.style.color = '#666';
+            dots.style.padding = '0 5px';
+            dots.innerHTML = '...';
+            paginationEl.appendChild(dots);
         }
-        paginationHtml += `<button class="page-btn" onclick="changeWorksPage(${totalPages})">${totalPages}</button>`;
+        
+        const lastBtn = document.createElement('button');
+        lastBtn.className = 'page-btn';
+        lastBtn.innerHTML = totalPages;
+        lastBtn.onclick = () => changeWorksPage(totalPages);
+        paginationEl.appendChild(lastBtn);
     }
     
-    const nextDisabled = currentPage === totalPages;
-    paginationHtml += `<button class="page-btn ${nextDisabled ? 'disabled' : ''}" onclick="changeWorksPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''}>›</button>`;
+    // 下一页按钮
+    const nextBtn = document.createElement('button');
+    nextBtn.className = `page-btn ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextBtn.innerHTML = '›';
+    nextBtn.onclick = () => changeWorksPage(currentPage + 1);
+    if (currentPage === totalPages) nextBtn.disabled = true;
+    paginationEl.appendChild(nextBtn);
     
+    // 页码信息显示
     const startItem = totalWorks > 0 ? (currentPage - 1) * window.worksPerPage + 1 : 0;
     const endItem = Math.min(currentPage * window.worksPerPage, totalWorks);
-    paginationHtml += `<span style="margin-left: 10px; font-size: 12px; color: #999;">${startItem}-${endItem} / ${totalWorks}</span>`;
-    
-    paginationEl.innerHTML = paginationHtml;
+    const infoSpan = document.createElement('span');
+    infoSpan.style.marginLeft = '10px';
+    infoSpan.style.fontSize = '12px';
+    infoSpan.style.color = '#999';
+    infoSpan.style.whiteSpace = 'nowrap';
+    infoSpan.innerHTML = `${startItem}-${endItem} / ${totalWorks}`;
+    paginationEl.appendChild(infoSpan);
 }
 
 function changeWorksPage(page) {
@@ -518,7 +582,7 @@ function showUserProfile(username, avatar) {
             <div class="close-btn" onclick="closeModal()">✕</div>
         </div>
         <div style="padding: 20px; text-align: center;">
-            <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 15px;">
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold; margin: 0 auto 15px;">
                 ${avatar}
             </div>
             <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">

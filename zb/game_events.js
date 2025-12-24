@@ -12,7 +12,9 @@ function startHotSearch(title) {
             if (typeof showNotification === 'function') {
                 showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝`);
             }
-            if (typeof updateDisplay === 'function') updateDisplay();
+            if (typeof updateDisplay === 'function') {
+                updateDisplay();
+            }
         }
     }, 1000);
     showNotification('🎉 热搜上榜', `恭喜！${title}，将持续${gameState.hotSearchDaysCount}虚拟天！`);
@@ -182,14 +184,18 @@ function updateChartData() {
     gameState.chartData.currentIndex = dayIndex;
     gameState.chartData.currentDay = virtualDays;
     
-    // 确保只记录递增的累积值（防止意外下降）
-    const prevFans = gameState.chartData.fans[dayIndex] || 0;
+    // ==================== 核心修复：粉丝数据真实记录（移除Math.max） ====================
+    // 只保留点赞和播放量的累积最大值逻辑，粉丝数改为真实记录
     const prevLikes = gameState.chartData.likes[dayIndex] || 0;
     const prevViews = gameState.chartData.views[dayIndex] || 0;
     
-    gameState.chartData.fans[dayIndex] = Math.max(prevFans, gameState.fans);
+    // 粉丝数直接记录当前值（可能上升也可能下降）
+    gameState.chartData.fans[dayIndex] = gameState.fans;
+    
+    // 点赞和播放量使用Math.max确保累积值不下降
     gameState.chartData.likes[dayIndex] = Math.max(prevLikes, gameState.likes);
     gameState.chartData.views[dayIndex] = Math.max(prevViews, gameState.views);
+    // ============================================================================
     
     // ==================== 核心修改：互动改为每日增量 ====================
     // 计算今日新增互动数 = 当前累积值 - 昨日记录基准
@@ -204,9 +210,13 @@ function updateChartData() {
     updateChartsRealtime();
     updateChartStatsRealtime();
     
-    // 每月检查商单（在月底）
+    // ✅ 修复：每月检查商单（在月底）
     const currentDate = getVirtualDate();
-    if (currentDate.day === 30 && typeof window.checkMonthlyAdOrders === 'function') {
+    // 获取当月的天数
+    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const daysInMonth = monthDays[currentDate.month - 1];
+    
+    if (currentDate.day === daysInMonth && typeof window.checkMonthlyAdOrders === 'function') {
         window.checkMonthlyAdOrders();
     }
 }
@@ -431,48 +441,213 @@ function startGameLoop() {
     }
 }
 
-// ==================== 成就检查 ====================
+// ==================== 成就检查（核心修复版） ====================
 function checkAchievements() {
+    // ==================== 核心修复：遍历所有成就并检查 ====================
     achievements.forEach(achievement => {
         if (!achievement.unlocked) {
             let unlocked = false;
+            
+            // 安全处理：确保gameState数据存在
+            if (!gameState) return;
+            
             switch (achievement.id) {
-                case 1: unlocked = gameState.fans >= 1; break;
-                case 2: unlocked = gameState.fans >= 1000; break;
-                case 3: unlocked = gameState.fans >= 100000; break;
-                case 4: unlocked = gameState.fans >= 10000000; break;
-                case 5: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.views >= 1000000); break;
-                case 6: unlocked = gameState.likes >= 100000; break;
-                case 7: unlocked = gameState.worksList.filter(w => !w.isPrivate).length >= 100; break;
-                case 8: unlocked = gameState.worksList.filter(w => w.type === 'live' && !w.isPrivate).some(w => w.views >= 1000); break;
-                case 9: unlocked = gameState.money >= 1; break;
-                case 10: unlocked = gameState.money >= 1000000; break;
-                case 11: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.shares >= 10000); break;
-                case 12: unlocked = gameState.worksList.filter(w => !w.isPrivate).some(w => w.comments >= 5000); break;
-                // 修复：使用虚拟时间计算全勤主播成就（30虚拟天）
-                case 13: unlocked = (gameTimer - gameState.gameStartTime) >= 30 * VIRTUAL_DAY_MS; break;
-                case 14: unlocked = achievement.unlocked || false; break;
-                case 15: unlocked = gameState.notifications.length >= 50; break;
-                case 21: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 1; break;
-                case 22: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 10; break;
-                case 23: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).some(w => w.revenue >= 50000); break;
-                case 24: unlocked = gameState.rejectedAdOrders >= 5; break;
-                case 25: unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && gameState.warnings < 5; break;
+                // 基础粉丝类成就
+                case 1: 
+                    unlocked = (gameState.fans || 0) >= 1; 
+                    break;
+                    
+                case 2: 
+                    unlocked = (gameState.fans || 0) >= 1000; 
+                    break;
+                    
+                case 3: 
+                    unlocked = (gameState.fans || 0) >= 100000; 
+                    break;
+                    
+                case 4: 
+                    unlocked = (gameState.fans || 0) >= 10000000; 
+                    break;
+                
+                // 爆款制造机
+                case 5: 
+                    const videoWorks = gameState.worksList.filter(w => !w.isPrivate && (w.type === 'video' || w.type === 'live'));
+                    unlocked = videoWorks.some(w => (w.views || 0) >= 1000000);
+                    break;
+                
+                // 点赞狂魔
+                case 6: 
+                    unlocked = (gameState.likes || 0) >= 100000; 
+                    break;
+                
+                // 高产创作者
+                case 7: 
+                    unlocked = gameState.worksList.filter(w => !w.isPrivate).length >= 100; 
+                    break;
+                
+                // 直播新星
+                case 8: 
+                    const liveWorks = gameState.worksList.filter(w => !w.isPrivate && w.type === 'live');
+                    unlocked = liveWorks.some(w => (w.views || 0) >= 1000);
+                    break;
+                
+                // 收益第一桶金
+                case 9: 
+                    unlocked = (gameState.money || 0) >= 1; 
+                    break;
+                
+                // 百万富翁
+                case 10: 
+                    unlocked = (gameState.money || 0) >= 1000000; 
+                    break;
+                
+                // 话题之王
+                case 11: 
+                    const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
+                    unlocked = publicWorks.some(w => (w.shares || 0) >= 10000);
+                    break;
+                
+                // 评论互动达人
+                case 12: 
+                    const publicWorksForComments = gameState.worksList.filter(w => !w.isPrivate);
+                    unlocked = publicWorksForComments.some(w => (w.comments || 0) >= 5000);
+                    break;
+                
+                // 全勤主播
+                case 13: 
+                    const now = Date.now();
+                    // 使用游戏开始后的真实天数
+                    unlocked = Math.max(0, Math.floor((now - gameState.gameStartTime) / (24 * 60 * 60 * 1000))) >= 30;
+                    break;
+                
+                // 逆风翻盘 - 特殊成就
+                case 14: 
+                    // 由申诉功能触发，无需自动检查
+                    break;
+                
+                // 幸运儿
+                case 15: 
+                    if (!gameState.eventCount) gameState.eventCount = 0;
+                    unlocked = gameState.eventCount >= 50;
+                    break;
+                
+                // 社交达人
+                case 16: 
+                    if (!gameState.following) gameState.following = [];
+                    unlocked = gameState.following.length >= 1000;
+                    break;
+                
+                // 夜猫子
+                case 17: 
+                    if (!gameState.liveHistory) gameState.liveHistory = [];
+                    unlocked = gameState.liveHistory.some(live => {
+                        // 使用虚拟时间的小时（6AM是第6小时，3AM是第3小时）
+                        const hour = Math.floor((live.startVirtualTime % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS);
+                        return hour === 3; // 凌晨3点
+                    });
+                    break;
+                
+                // 早起鸟儿
+                case 18: 
+                    if (!gameState.liveHistory) gameState.liveHistory = [];
+                    unlocked = gameState.liveHistory.some(live => {
+                        const hour = Math.floor((live.startVirtualTime % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS);
+                        return hour === 6; // 早上6点
+                    });
+                    break;
+                
+                // 宠粉狂魔
+                case 19: 
+                    if (!gameState.commentRepliesCount) gameState.commentRepliesCount = 0;
+                    unlocked = gameState.commentRepliesCount >= 1000;
+                    break;
+                
+                // 传奇主播
+                case 20: 
+                    const otherAchievements = achievements.filter(a => a.id !== 20);
+                    unlocked = otherAchievements.every(a => a.unlocked);
+                    break;
+                
+                // 商单新人
+                case 21: 
+                    unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 1;
+                    break;
+                
+                // 广告达人
+                case 22: 
+                    unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 10;
+                    break;
+                
+                // 百万单王
+                case 23: 
+                    const adWorks = gameState.worksList.filter(w => w.isAd && !w.isPrivate);
+                    unlocked = adWorks.some(w => (w.revenue || 0) >= 50000);
+                    break;
+                
+                // 火眼金睛
+                case 24: 
+                    unlocked = (gameState.rejectedAdOrders || 0) >= 5;
+                    break;
+                
+                // 商单大师 - 需要同时满足两个条件
+                case 25: 
+                    unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && (gameState.warnings || 0) < 5;
+                    break;
+                
+                // 赌徒（负面成就）
+                case 26: 
+                    const fakeAdCount = gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length;
+                    unlocked = fakeAdCount >= 10;
+                    break;
+                
+                // 身败名裂（负面成就）
+                case 27: 
+                    if (!gameState.fakeAdBans) gameState.fakeAdBans = 0;
+                    unlocked = gameState.fakeAdBans >= 3;
+                    break;
+                
+                // 诚信经营（负面成就）
+                case 28: 
+                    unlocked = (gameState.monthsWithoutFakeAd || 0) >= 3;
+                    break;
             }
+            
+            // 解锁成就
             if (unlocked) {
                 achievement.unlocked = true;
-                gameState.achievements.push(achievement.id);
                 
-                // 显示弹窗通知（新增）
+                // 避免重复添加
+                if (!gameState.achievements.includes(achievement.id)) {
+                    gameState.achievements.push(achievement.id);
+                }
+                
+                // 显示成就弹窗
                 if (typeof showAchievementPopup === 'function') {
                     showAchievementPopup(achievement);
                 }
                 
                 // 保留原有的通知中心消息
                 showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
+                
+                console.log(`✅ 成就解锁: ${achievement.name} (ID: ${achievement.id})`);
+                
+                // ✅ 检查传奇主播成就（递归检查）
+                if (achievement.id !== 20 && !achievements.find(a => a.id === 20).unlocked) {
+                    const legendaryAchievement = achievements.find(a => a.id === 20);
+                    const otherAchievements = achievements.filter(a => a.id !== 20);
+                    const allUnlocked = otherAchievements.every(a => a.unlocked);
+                    
+                    if (allUnlocked && !legendaryAchievement.unlocked) {
+                        legendaryAchievement.unlocked = true;
+                        gameState.achievements.push(20);
+                        showAchievementPopup(legendaryAchievement);
+                        showNotification('🏆 传奇成就', '恭喜解锁所有成就！');
+                    }
+                }
             }
         }
     });
+    // ==================== 修复结束 ====================
 }
 
 // ==================== Chart.js图表系统（修复版） ====================
@@ -495,8 +670,18 @@ function drawChart(canvasId, data, color, label) {
         // 计算天数标签
         const dayNumber = currentDay - (59 - i);
         
-        labels.push(dayNumber >= 0 ? `第${dayNumber}天` : '');
-        displayData.push(data[dataIndex] || 0);
+        // ==================== 修复：未来天数显示为null，不画线 ====================
+        // 如果是未来的天数（dayNumber < 0），标签为空，数据设为null
+        if (dayNumber < 0) {
+            labels.push('');
+            displayData.push(null); // 未来天数设为null，不画线
+        } else {
+            labels.push(`第${dayNumber}天`);
+            // 如果数据为0，也设为null，避免画直线
+            const value = data[dataIndex] || 0;
+            displayData.push(value > 0 ? value : null);
+        }
+        // =========================================================================
     }
     
     // 销毁旧图表
@@ -521,7 +706,10 @@ function drawChart(canvasId, data, color, label) {
                 pointHoverRadius: 5,
                 pointBackgroundColor: color,
                 pointBorderColor: '#fff',
-                pointBorderWidth: 2
+                pointBorderWidth: 2,
+                // ==================== 修复：断开null值，不连接 ====================
+                spanGaps: false, // 关键：null值处断开，不画线
+                // =========================================================================
             }]
         },
         options: {
@@ -599,3 +787,4 @@ window.drawChart = drawChart;
 window.updateChartsRealtime = updateChartsRealtime;
 window.updateChartStatsRealtime = updateChartStatsRealtime;
 window.checkInactivityPenalty = checkInactivityPenalty;
+window.checkAchievements = checkAchievements; // ✅ 导出成就检查函数

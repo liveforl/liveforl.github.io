@@ -178,7 +178,20 @@ function startLive() {
 }
 
 function startLiveStream() {
-    let liveData = { viewers: Math.floor(Math.random() * 1000) + 100, likes: 0, comments: 0, shares: 0, revenue: 0, duration: 0 };
+    let liveData = { 
+        viewers: Math.floor(Math.random() * 1000) + 100, 
+        likes: 0, 
+        comments: 0, 
+        shares: 0, 
+        revenue: 0, 
+        duration: 0,
+        startTime: Date.now(), // ✅ 记录真实时间用于成就判断
+        startVirtualTime: gameTimer // ✅ 记录虚拟时间用于其他逻辑
+    };
+    
+    // ✅ 记录直播历史
+    if (!gameState.liveHistory) gameState.liveHistory = [];
+    
     gameState.liveInterval = setInterval(() => {
         if (!gameState.liveStatus) { 
             clearInterval(gameState.liveInterval); 
@@ -190,17 +203,14 @@ function startLiveStream() {
         if (Math.random() < 0.3) {
             const likeGain = Math.floor(Math.random() * 50) + 10;
             liveData.likes += likeGain;
-            gameState.interactions.likesGiven += likeGain;
         }
         if (Math.random() < 0.1) {
             const commentGain = Math.floor(Math.random() * 10) + 1;
             liveData.comments += commentGain;
-            gameState.interactions.comments += commentGain;
         }
         if (Math.random() < 0.05) {
             const shareGain = Math.floor(Math.random() * 5) + 1;
             liveData.shares += shareGain;
-            gameState.interactions.shares += shareGain;
         }
         if (Math.random() < 0.2) {
             const revenue = Math.floor(Math.random() * 100) + 10;
@@ -245,24 +255,73 @@ function endLiveStream() {
         gameState.currentLive.comments = liveData.comments;
         gameState.currentLive.shares = liveData.shares;
         gameState.currentLive.revenue = liveData.revenue;
+        
+        // ✅ 记录直播历史用于成就判断
+        const endTime = Date.now();
+        const liveRecord = {
+            startTime: liveData.startTime,
+            endTime: endTime,
+            duration: liveData.duration,
+            views: totalViews,
+            peakViewers: Math.max(liveData.viewers, 100),
+            // 计算虚拟时间的小时数
+            startVirtualHour: Math.floor((liveData.startVirtualTime % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS),
+            endVirtualHour: Math.floor((gameTimer % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS)
+        };
+        
+        if (!gameState.liveHistory) gameState.liveHistory = [];
+        gameState.liveHistory.push(liveRecord);
+        
         gameState.worksList.push(gameState.currentLive);
         gameState.works++;
         gameState.views += totalViews;
         gameState.likes += liveData.likes;
         
+        // ✅ 修复：累加互动数（不包括播放量）
         gameState.totalInteractions += liveData.comments + liveData.likes + liveData.shares;
         
-        if (totalViews >= 1000) {
-            const achievement = achievements.find(a => a.id === 8);
-            if (achievement && !achievement.unlocked) {
-                achievement.unlocked = true;
-                gameState.achievements.push(8);
-                showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
+        // ✅ 检查夜猫子成就（凌晨3点直播）
+        if (gameState.liveHistory.some(live => live.startVirtualHour === 3)) {
+            const nightOwlAchievement = achievements.find(a => a.id === 17);
+            if (nightOwlAchievement && !nightOwlAchievement.unlocked) {
+                nightOwlAchievement.unlocked = true;
+                gameState.achievements.push(17);
+                showAchievementPopup(nightOwlAchievement);
+                showNotification('🏆 成就解锁', `夜猫子：凌晨3点还在直播`);
             }
         }
+        
+        // ✅ 检查早起鸟儿成就（早上6点直播）
+        if (gameState.liveHistory.some(live => live.startVirtualHour === 6)) {
+            const earlyBirdAchievement = achievements.find(a => a.id === 18);
+            if (earlyBirdAchievement && !earlyBirdAchievement.unlocked) {
+                earlyBirdAchievement.unlocked = true;
+                gameState.achievements.push(18);
+                showAchievementPopup(earlyBirdAchievement);
+                showNotification('🏆 成就解锁', `早起鸟儿：早上6点开始直播`);
+            }
+        }
+        
+        // ✅ 检查直播新星成就
+        if (totalViews >= 1000) {
+            const liveStarAchievement = achievements.find(a => a.id === 8);
+            if (liveStarAchievement && !liveStarAchievement.unlocked) {
+                liveStarAchievement.unlocked = true;
+                gameState.achievements.push(8);
+                showAchievementPopup(liveStarAchievement);
+                showNotification('🏆 成就解锁', `${liveStarAchievement.name}：${liveStarAchievement.desc}`);
+            }
+        }
+        
         showNotification('直播结束', `本次直播获得${totalViews.toLocaleString()}观看，打赏收入${liveData.revenue}元`);
     }
-    gameState.lastUpdateTime = gameTimer;
+    
+    // ✅ 检查并触发一次成就检查
+    if (typeof checkAchievements === 'function') {
+        checkAchievements();
+    }
+    
+    gameState.lastWorkTime = gameTimer;
     closeFullscreenPage('workDetail');
     updateDisplay();
 }
@@ -540,6 +599,7 @@ function startTrafficProcess(workId) {
         gameState.fans += fanBoost;
         work.comments += commentBoost;
         
+        // ✅ 修复：只统计主动互动行为
         gameState.totalInteractions += commentBoost + shareBoost;
         
         const oldRevenue = work.revenue || 0;
@@ -681,9 +741,5 @@ window.showCharts = showCharts;
 window.stopChartsRefresh = stopChartsRefresh;
 window.resetInactivityDropState = resetInactivityDropState;
 
-// 新增：缺失的全局函数
-window.toggleWorkPrivacy = function() {
-    if (currentDetailWork) {
-        togglePrivate(currentDetailWork.id);
-    }
-};
+// ==================== 已删除的旧版 showWorkDetail 函数和其他重复代码 ====================
+// 这些代码已被移除，因为它们在 game_ui_works_core.js 中有更新更完整的实现

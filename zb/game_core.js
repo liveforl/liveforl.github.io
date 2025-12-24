@@ -188,7 +188,20 @@ let gameState = {
         unreadCount: 0,
         messages: [],
         hotSearchActiveWorks: []
-    }
+    },
+    
+    // ✅ 新增：宠粉狂魔成就相关计数
+    commentRepliesCount: 0, // 回复评论总数
+    liveHistory: [], // 直播历史记录
+    
+    // ✅ 新增：社交达人成就计数
+    followingCount: 0, // 关注人数（冗余字段，实际用following.length）
+    
+    // ✅ 新增：全勤主播成就相关
+    daysWithoutUpdate: 0, // 连续不更新的天数（用于反向计算）
+    
+    // ✅ 新增：成就解锁状态
+    unlockedAchievements: [] // 已解锁成就的ID列表（与achievements数组配合使用）
 };
 
 // ==================== 成就列表 ====================
@@ -212,7 +225,17 @@ const achievements = [
     { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false },
     { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false },
     { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💖', unlocked: false },
-    { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false }
+    { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false },
+    
+    // ✅ 添加负面成就到主成就列表
+    { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false },
+    { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false },
+    { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💵', unlocked: false },
+    { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👀', unlocked: false },
+    { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '🏆', unlocked: false },
+    { id: 26, name: '赌徒', desc: '完成10个虚假商单', icon: '🎰', unlocked: false },
+    { id: 27, name: '身败名裂', desc: '因虚假商单被封号3次', icon: '💀', unlocked: false },
+    { id: 28, name: '诚信经营', desc: '连续3个月无虚假商单', icon: '✅', unlocked: false }
 ];
 
 // ==================== 违规关键词 ====================
@@ -288,6 +311,11 @@ function initGame() {
         };
     }
     
+    // ✅ 新增：初始化成就相关状态
+    if (gameState.commentRepliesCount === undefined) gameState.commentRepliesCount = 0;
+    if (gameState.liveHistory === undefined) gameState.liveHistory = [];
+    if (gameState.unlockedAchievements === undefined) gameState.unlockedAchievements = [];
+    
     const saved = localStorage.getItem('streamerGameState');
     if (saved) {
         try {
@@ -310,7 +338,14 @@ function initGame() {
                 gameState.gameTimer = gameTimer;
                 gameState.lastUpdateTime = gameState.lastUpdateTime || 0;
                 gameState.lastWorkTime = gameState.lastWorkTime || gameState.gameStartTime || 0;
-                gameState.gameStartTime = gameState.gameStartTime || 0;
+                
+                // ✅ 修复：只在存档有时间数据时才设置，否则设为当前时间
+                if (!gameState.gameStartTime || gameState.gameStartTime <= 0) {
+                    gameState.gameStartTime = now; // 修复：设置为当前时间
+                } else {
+                    gameState.gameStartTime = gameState.gameStartTime;
+                }
+                
                 gameState.isDroppingFansFromInactivity = gameState.isDroppingFansFromInactivity || false;
                 gameState.inactivityDropInterval = gameState.inactivityDropInterval || null;
                 gameState.inactivityWarningShown = gameState.inactivityWarningShown || false;
@@ -320,6 +355,11 @@ function initGame() {
             } else {
                 gameTimer = gameState.gameTimer || 0;
                 window.gameTimer = gameTimer; // ✅ 修复1：加载存档时同步
+                
+                // ✅ 修复：加载存档时确保gameStartTime有效
+                if (!gameState.gameStartTime || gameState.gameStartTime <= 0) {
+                    gameState.gameStartTime = Date.now(); // 修复：设置为当前时间
+                }
             }
             
             realStartTime = Date.now();
@@ -355,6 +395,11 @@ function initGame() {
                     hotSearchActiveWorks: []
                 };
             }
+            
+            // ✅ 新增：确保成就相关状态存在
+            if (gameState.commentRepliesCount === undefined) gameState.commentRepliesCount = 0;
+            if (gameState.liveHistory === undefined) gameState.liveHistory = [];
+            if (gameState.unlockedAchievements === undefined) gameState.unlockedAchievements = [];
             
             if (gameState.chartData) {
                 if (gameState.chartData.fans.length === 0) {
@@ -599,7 +644,10 @@ function initGame() {
         gameState.gameTimer = 0;
         gameState.lastUpdateTime = 0;
         gameState.lastWorkTime = 0;
-        gameState.gameStartTime = 0;
+        
+        // ✅ 关键修复：游戏开始时正确初始化gameStartTime
+        gameState.gameStartTime = Date.now(); // 设置为当前时间，防止全勤主播立即解锁
+        
         realStartTime = Date.now();
         
         for (let i = 0; i < 60; i++) {
@@ -629,6 +677,11 @@ function initGame() {
             messages: [],
             hotSearchActiveWorks: []
         };
+        
+        // ✅ 新增：初始化成就相关状态
+        gameState.commentRepliesCount = 0;
+        gameState.liveHistory = [];
+        gameState.unlockedAchievements = [];
     }
     
     if (!gameState.userId) {
@@ -691,8 +744,16 @@ function startGame() {
     gameState.gameTimer = 0;
     gameState.lastUpdateTime = 0;
     gameState.lastWorkTime = 0;
-    gameState.gameStartTime = 0;
+    
+    // ✅ 关键修复：确保gameStartTime在游戏开始时被正确设置
+    gameState.gameStartTime = Date.now(); // 设置为当前时间
+    
     realStartTime = Date.now();
+    
+    // 确保直播历史存在
+    if (!gameState.liveHistory) {
+        gameState.liveHistory = [];
+    }
     
     initGame();
 }
@@ -754,7 +815,7 @@ function resetGame() {
         stopPrivateMessageGeneration();
     }
     
-    // ✅ 新增：清除系统消息定时器
+    // ✅ 新增：停止系统消息定时器
     if (typeof stopSystemMessagesTimer === 'function') {
         stopSystemMessagesTimer();
     }
@@ -840,7 +901,12 @@ function resetGame() {
             unreadCount: 0,
             messages: [],
             hotSearchActiveWorks: []
-        }
+        },
+        
+        // ✅ 新增：重置成就相关状态
+        commentRepliesCount: 0,
+        liveHistory: [],
+        unlockedAchievements: []
     };
     
     gameTimer = 0;

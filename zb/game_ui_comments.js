@@ -330,10 +330,10 @@ function showCommentDetail(workId, commentIndex) {
             <div class="comment-content">${reply.content}</div>
             <div class="comment-actions">
                 <span class="comment-action ${reply.isLiked ? 'liked' : ''}" 
-                      onclick="likeReply('${workId}', ${commentIndex}, ${idx})">
+                      onclick="likeReply('${work.id}', ${commentIndex}, ${idx})">
                     ${reply.isLiked ? '❤️' : '🤍'} ${reply.likes}
                 </span>
-                <span class="comment-action" onclick="replyToReply('${workId}', ${commentIndex}, ${idx})">回复</span>
+                <span class="comment-action" onclick="replyToReply('${work.id}', ${commentIndex}, ${idx})">回复</span>
             </div>
         </div>
     `).join('');
@@ -400,12 +400,29 @@ function submitReply(workId, commentIndex) {
     mainComment.replyCount = (mainComment.replyCount || 0) + 1;
     
     work.comments += 1;
+    // ✅ 修复：累加互动数
     gameState.totalInteractions += 1;
+    
+    // ✅ 修复：累加宠粉狂魔成就计数
+    if (!gameState.commentRepliesCount) gameState.commentRepliesCount = 0;
+    gameState.commentRepliesCount += 1;
     
     input.value = '';
     
     showNotification('回复成功', '你的回复已发布');
     showCommentDetail(workId, commentIndex);
+    
+    // ✅ 检查宠粉狂魔成就
+    if (gameState.commentRepliesCount >= 1000) {
+        const fanLoveAchievement = achievements.find(a => a.id === 19);
+        if (fanLoveAchievement && !fanLoveAchievement.unlocked) {
+            fanLoveAchievement.unlocked = true;
+            gameState.achievements.push(19);
+            showAchievementPopup(fanLoveAchievement);
+            showNotification('🏆 成就解锁', `宠粉狂魔：回复1000条评论`);
+        }
+    }
+    
     updateDisplay();
     saveGame();
 }
@@ -464,10 +481,27 @@ function replyToReply(workId, commentIndex, replyIndex) {
         mainComment.replyCount += 1;
         
         work.comments += 1;
+        // ✅ 修复：累加互动数
         gameState.totalInteractions += 1;
+        
+        // ✅ 修复：累加宠粉狂魔成就计数
+        if (!gameState.commentRepliesCount) gameState.commentRepliesCount = 0;
+        gameState.commentRepliesCount += 1;
         
         showNotification('回复成功', '你的回复已发布');
         showCommentDetail(workId, commentIndex);
+        
+        // ✅ 检查宠粉狂魔成就
+        if (gameState.commentRepliesCount >= 1000) {
+            const fanLoveAchievement = achievements.find(a => a.id === 19);
+            if (fanLoveAchievement && !fanLoveAchievement.unlocked) {
+                fanLoveAchievement.unlocked = true;
+                gameState.achievements.push(19);
+                showAchievementPopup(fanLoveAchievement);
+                showNotification('🏆 成就解锁', `宠粉狂魔：回复1000条评论`);
+            }
+        }
+        
         updateDisplay();
         saveGame();
     });

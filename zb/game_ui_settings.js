@@ -150,6 +150,7 @@ function handleDevSettingsClick() {
     if (now - lastSettingsClickTime > 3000) {
         settingsClickCount = 0;
     }
+    
     lastSettingsClickTime = now;
     
     settingsClickCount++;
@@ -336,36 +337,42 @@ function renderUserProfile(profileData) {
 }
 
 // ==================== 显示所有作品 ====================
+// 彻底修复版：直接跳转到作品标签页，不依赖 event 对象
 function showAllWorks() {
-    const worksHtml = gameState.worksList.map(work => {
-        const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
-        const adBadge = work.isAd ? '<span style="background:#ff0050;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">商单</span>' : '';
-        const trafficBadge = isTrafficActive ? '<span style="background:#667eea;color:white;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:5px;">推广中</span>' : '';
-        const privacyBadge = work.isPrivate ? '<span style="background:#999;color:white;padding:2px 6px;border-radius:3px;font-size:10px;">🔒 私密</span>' : '';
+    // 关闭个人主页（全屏页面）
+    if (typeof closeFullscreenPage === 'function') {
+        closeFullscreenPage('profile');
+    }
+    
+    // 延迟执行，确保关闭动画完成
+    setTimeout(() => {
+        // 手动设置作品标签为活动状态
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        const worksTab = document.querySelector('.nav-item:nth-child(2)'); // 作品标签是第二个
+        if (worksTab) {
+            worksTab.classList.add('active');
+        }
         
-        return `
-            <div class="work-item" onclick="showWorkDetail(${JSON.stringify(work).replace(/"/g, '&quot;')})">
-                <div class="work-header">
-                    <span class="work-type">${work.type === 'video' ? '🎬 视频' : work.type === 'live' ? '📱 直播' : '📝 动态'} ${privacyBadge}</span>
-                    <span class="work-time">${formatTime(work.time)} ${adBadge} ${trafficBadge}</span>
-                </div>
-                <div class="work-content" style="${work.isPrivate ? 'opacity: 0.7;' : ''}">${work.content}</div>
-                <div class="work-stats">
-                    <span>${work.type === 'post' ? '👁️' : '▶️'} ${work.views.toLocaleString()}</span>
-                    <span>❤️ ${work.likes.toLocaleString()}</span>
-                    <span>💬 ${work.comments.toLocaleString()}</span>
-                    <span>🔄 ${work.shares.toLocaleString()}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    const content = document.getElementById('worksPageContent');
-    content.innerHTML = worksHtml.length === 0 ? 
-        '<div style="text-align:center;color:#999;padding:20px;">还没有作品，快去创作吧！</div>' : worksHtml;
-    
-    document.getElementById('worksPage').classList.add('active');
-    document.getElementById('profilePage').classList.remove('active');
+        // 显示主内容区域
+        document.getElementById('mainContent').style.display = 'block';
+        document.querySelector('.bottom-nav').style.display = 'flex';
+        
+        // 隐藏所有主内容区块
+        document.querySelectorAll('.main-content-section').forEach(el => el.style.display = 'none');
+        
+        // 显示作品内容区域
+        document.getElementById('worksContent').style.display = 'block';
+        
+        // 调用作品全屏显示函数
+        if (typeof showWorksFullscreen === 'function') {
+            showWorksFullscreen();
+        }
+        
+        // 更新显示
+        if (typeof updateDisplay === 'function') {
+            updateDisplay();
+        }
+    }, 100);
 }
 
 // ==================== 成就显示 ====================
@@ -385,7 +392,7 @@ function showAchievementsHelp() {
             <p style="margin-bottom: 15px;">🏆 完成成就可以获得游戏内的荣誉标识</p>
             <p style="margin-bottom: 15px;">📊 每个成就都有对应的进度条，完成目标即可解锁</p>
             <p style="margin-bottom: 15px;">💡 部分成就需要特定条件才能解锁，请多尝试不同玩法</p>
-            <p style="color: #667eea;">🎯 努力成为传奇主播吧！</p>
+            <p style="color: #667aea;">🎯 努力成为传奇主播吧！</p>
         </div>
     `);
 }
@@ -395,44 +402,211 @@ function showAchievementsFullscreen() {
     const content = document.getElementById('achievementsListTab');
     if (!content) return;
     
+    // ==================== 修复版：特殊成就进度显示 ====================
     const progressMap = {
-        1: { current: () => gameState.fans, target: 1 },
-        2: { current: () => gameState.fans, target: 1000 },
-        3: { current: () => gameState.fans, target: 100000 },
-        4: { current: () => gameState.fans, target: 10000000 },
-        5: { current: () => Math.max(...gameState.worksList.filter(w => !w.isPrivate).map(w => w.views), 0), target: 1000000 },
-        6: { current: () => gameState.likes, target: 100000 },
+        // 基础成就
+        1: { current: () => gameState.fans || 0, target: 1 },
+        2: { current: () => gameState.fans || 0, target: 1000 },
+        3: { current: () => gameState.fans || 0, target: 100000 },
+        4: { current: () => gameState.fans || 0, target: 10000000 },
+        
+        // 爆款制造机
+        5: { 
+            current: () => {
+                const videoWorks = gameState.worksList.filter(w => !w.isPrivate && (w.type === 'video' || w.type === 'live'));
+                return videoWorks.length > 0 ? Math.max(...videoWorks.map(w => w.views), 0) : 0;
+            }, 
+            target: 1000000 
+        },
+        
+        // 点赞狂魔
+        6: { current: () => gameState.likes || 0, target: 100000 },
+        
+        // 高产创作者
         7: { current: () => gameState.worksList.filter(w => !w.isPrivate).length, target: 100 },
-        8: { current: () => Math.max(...gameState.worksList.filter(w => w.type === 'live' && !w.isPrivate).map(w => w.views), 0), target: 1000 },
-        9: { current: () => gameState.money, target: 1 },
-        10: { current: () => gameState.money, target: 1000000 },
-        11: { current: () => Math.max(...gameState.worksList.filter(w => !w.isPrivate).map(w => w.shares), 0), target: 10000 },
-        12: { current: () => Math.max(...gameState.worksList.filter(w => !w.isPrivate).map(w => w.comments), 0), target: 5000 },
-        13: { current: () => Math.floor((Date.now() - gameState.gameStartTime) / (24 * 60 * 60 * 1000)), target: 30 },
+        
+        // 直播新星
+        8: { 
+            current: () => {
+                const liveWorks = gameState.worksList.filter(w => !w.isPrivate && w.type === 'live');
+                return liveWorks.length > 0 ? Math.max(...liveWorks.map(w => w.views), 0) : 0;
+            }, 
+            target: 1000 
+        },
+        
+        // 收益第一桶金
+        9: { current: () => gameState.money || 0, target: 1 },
+        
+        // 百万富翁
+        10: { current: () => gameState.money || 0, target: 1000000 },
+        
+        // 话题之王
+        11: { 
+            current: () => {
+                const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
+                return publicWorks.length > 0 ? Math.max(...publicWorks.map(w => w.shares || 0), 0) : 0;
+            }, 
+            target: 10000 
+        },
+        
+        // 评论互动达人
+        12: { 
+            current: () => {
+                const publicWorks = gameState.worksList.filter(w => !w.isPrivate);
+                return publicWorks.length > 0 ? Math.max(...publicWorks.map(w => w.comments || 0), 0) : 0;
+            }, 
+            target: 5000 
+        },
+        
+        // 全勤主播 - 修复版：正确计算真实天数
+        13: { 
+            current: () => {
+                // 只有当gameStartTime被正确设置时才计算，否则返回0
+                if (!gameState.gameStartTime || gameState.gameStartTime <= 0) {
+                    return 0;
+                }
+                const now = Date.now();
+                const days = Math.floor((now - gameState.gameStartTime) / (24 * 60 * 60 * 1000));
+                return Math.max(0, days);
+            }, 
+            target: 30 
+        },
+        
+        // 逆风翻盘 - 特殊成就，显示申诉次数
+        14: { 
+            current: () => {
+                // 显示申诉成功次数（此成就只需要一次）
+                return 0; // 无法获取申诉次数，显示0/1表示未达成
+            }, 
+            target: 1 
+        },
+        
+        // 幸运儿
+        15: { 
+            current: () => gameState.eventCount || 0, 
+            target: 50 
+        },
+        
+        // 社交达人
+        16: { current: () => (gameState.following && gameState.following.length) || 0, target: 1000 },
+        
+        // 夜猫子 - 新增：显示凌晨3点直播次数
+        17: { 
+            current: () => {
+                if (!gameState.liveHistory) return 0;
+                return gameState.liveHistory.filter(live => live.startVirtualHour === 3).length;
+            }, 
+            target: 1 
+        },
+        
+        // 早起鸟儿 - 新增：显示早上6点直播次数
+        18: { 
+            current: () => {
+                if (!gameState.liveHistory) return 0;
+                return gameState.liveHistory.filter(live => live.startVirtualHour === 6).length;
+            }, 
+            target: 1 
+        },
+        
+        // 宠粉狂魔
+        19: { current: () => gameState.commentRepliesCount || 0, target: 1000 },
+        
+        // 传奇主播 - 新增：显示已解锁成就进度
+        20: { 
+            current: () => {
+                const otherAchievements = achievements.filter(a => a.id !== 20);
+                return otherAchievements.filter(a => a.unlocked).length;
+            }, 
+            target: () => {
+                const otherAchievements = achievements.filter(a => a.id !== 20);
+                return otherAchievements.length;
+            }
+        },
+        
+        // 商单新人
         21: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 1 },
+        
+        // 广告达人
         22: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 10 },
-        23: { current: () => Math.max(...gameState.worksList.filter(w => w.isAd && !w.isPrivate).map(w => w.revenue), 0), target: 50000 },
-        24: { current: () => gameState.rejectedAdOrders, target: 5 },
-        25: { current: () => gameState.worksList.filter(w => w.isAd && !w.isPrivate).length, target: 50 }
+        
+        // 百万单王
+        23: { 
+            current: () => {
+                const adWorks = gameState.worksList.filter(w => w.isAd && !w.isPrivate);
+                const revenues = adWorks.map(w => w.revenue || 0);
+                return revenues.length > 0 ? Math.max(...revenues) : 0;
+            }, 
+            target: 50000 
+        },
+        
+        // 火眼金睛
+        24: { current: () => gameState.rejectedAdOrders || 0, target: 5 },
+        
+        // 商单大师 - 需要同时满足两个条件
+        25: { 
+            current: () => {
+                const adWorksCount = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length;
+                const warningsCount = gameState.warnings || 0;
+                // 如果条件满足返回target，否则返回当前进度
+                if (adWorksCount >= 50 && warningsCount < 5) return 50;
+                return Math.min(adWorksCount, 49); // 显示到49/50
+            }, 
+            target: 50 
+        },
+        
+        // 赌徒
+        26: { current: () => gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length, target: 10 },
+        
+        // 身败名裂 - 新增：显示因虚假商单被封号次数
+        27: { 
+            current: () => {
+                return gameState.fakeAdBans || 0;
+            }, 
+            target: 3 
+        },
+        
+        // 诚信经营
+        28: { current: () => gameState.monthsWithoutFakeAd || 0, target: 3 }
     };
+    // ==================== 修复结束 ====================
     
     const achievementHtml = achievements.map(achievement => {
         const progress = progressMap[achievement.id];
         let progressHtml = '';
-        if (progress && !achievement.unlocked) {
-            const current = progress.current();
-            const percentage = Math.min(100, Math.floor((current / progress.target) * 100));
-            progressHtml = `
-                <div class="achievement-progress">
-                    <div class="achievement-progress-bar" style="width: ${percentage}%"></div>
-                </div>
-                <div class="achievement-progress-text">
-                    ${current.toLocaleString()} / ${progress.target.toLocaleString()} (${percentage}%)
-                </div>
-            `;
-        } else if (achievement.unlocked) {
+        
+        // 检查是否为已解锁状态
+        if (achievement.unlocked) {
             progressHtml = '<div style="color: #667eea; font-size: 12px; margin-top: 5px;">✅ 已完成</div>';
-        } else {
+        } 
+        // 检查是否有进度映射且为正常数值型进度
+        else if (progress && typeof progress.current === 'function') {
+            try {
+                const current = progress.current();
+                const target = typeof progress.target === 'function' ? progress.target() : progress.target;
+                
+                // 安全校验：确保数值有效
+                if (typeof current === 'number' && typeof target === 'number' && target > 0) {
+                    const actualCurrent = Math.min(current, target); // 防止超过100%
+                    const percentage = Math.min(100, Math.floor((actualCurrent / target) * 100));
+                    
+                    progressHtml = `
+                        <div class="achievement-progress">
+                            <div class="achievement-progress-bar" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="achievement-progress-text">
+                            ${actualCurrent.toLocaleString()} / ${target.toLocaleString()} (${percentage}%)
+                        </div>
+                    `;
+                } else {
+                    progressHtml = '<div style="color: #999; font-size: 12px; margin-top: 5px;">🔒 未解锁</div>';
+                }
+            } catch (e) {
+                console.error(`成就 ${achievement.id} 进度计算失败:`, e);
+                progressHtml = '<div style="color: #999; font-size: 12px; margin-top: 5px;">🔒 未解锁</div>';
+            }
+        } 
+        // 特殊成就或无进度条成就
+        else {
             progressHtml = '<div style="color: #999; font-size: 12px; margin-top: 5px;">🔒 未解锁</div>';
         }
         
