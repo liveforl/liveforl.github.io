@@ -175,10 +175,22 @@ function showModal(content) {
 
 function closeModal() { 
     document.getElementById('modal').style.display = 'none'; 
+    // ✅ 停止通知中心实时更新（如果有）
+    stopNotificationsRealtimeUpdate();
 }
 
-// ==================== 通知系统 ====================
+// ==================== 通知系统（增强版：自动清理 + 实时更新） ====================
+
+// 通知中心实时更新相关变量
+let notificationsUpdateInterval = null;
+window.isNotificationCenterOpen = false;
+
 function showNotification(title, content) {
+    // ✅ 自动清理通知：限制数量最多100条
+    if (gameState.notifications.length >= 100) {
+        gameState.notifications = gameState.notifications.slice(-99); // 保留最新的99条
+    }
+    
     const notification = { id: Date.now(), title: title, content: content, time: gameTimer, read: false }; 
     gameState.notifications.push(notification);
     updateNotificationBadge();
@@ -193,11 +205,92 @@ function updateNotificationBadge() {
     } else badge.style.display = 'none';
 }
 
+// ✅ 增强版：显示通知中心（带实时动态更新）
 function showNotifications() {
+    // 标记所有通知为已读
     gameState.notifications.forEach(n => n.read = true);
     updateNotificationBadge();
-    const notificationHtml = gameState.notifications.slice(-20).reverse().map(notification => `<div class="comment-item"><div class="comment-header"><span class="comment-user">${notification.title}</span><span class="comment-time">${formatTime(notification.time)}</span></div><div class="comment-content">${notification.content}</div></div>`).join('');
-    showModal(`<div class="modal-header"><div class="modal-title">通知中心</div><div class="close-btn" onclick="closeModal()">✕</div></div><div style="max-height:60vh;overflow-y:auto">${gameState.notifications.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml}</div>`);
+    
+    // 设置标志位
+    window.isNotificationCenterOpen = true;
+    
+    // 渲染函数
+    function renderNotifications() {
+        const notificationHtml = gameState.notifications.slice(-20).reverse().map(notification => 
+            `<div class="comment-item">
+                <div class="comment-header">
+                    <span class="comment-user">${notification.title}</span>
+                    <span class="comment-time">${formatTime(notification.time)}</span>
+                </div>
+                <div class="comment-content">${notification.content}</div>
+            </div>`
+        ).join('');
+        
+        // 检查模态框是否仍然存在且是通知中心
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modalContent');
+        if (modal && modal.style.display === 'block' && content && content.innerHTML.includes('通知中心')) {
+            const listContainer = content.querySelector('div[style*="max-height"]');
+            if (listContainer) {
+                listContainer.innerHTML = gameState.notifications.length === 0 ? 
+                    '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml;
+            }
+        } else {
+            // 如果模态框已关闭，停止更新
+            stopNotificationsRealtimeUpdate();
+        }
+    }
+    
+    // 初始渲染
+    const initialHtml = gameState.notifications.slice(-20).reverse().map(notification => 
+        `<div class="comment-item">
+            <div class="comment-header">
+                <span class="comment-user">${notification.title}</span>
+                <span class="comment-time">${formatTime(notification.time)}</span>
+            </div>
+            <div class="comment-content">${notification.content}</div>
+        </div>`
+    ).join('');
+    
+    // 使用自定义关闭函数
+    const closeBtnHtml = `<div class="close-btn" onclick="closeNotificationsModal()">✕</div>`;
+    
+    showModal(`<div class="modal-header"><div class="modal-title">通知中心</div>${closeBtnHtml}</div><div style="max-height:60vh;overflow-y:auto">${gameState.notifications.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : initialHtml}</div>`);
+    
+    // 启动实时更新
+    startNotificationsRealtimeUpdate(renderNotifications);
+}
+
+// ✅ 独立关闭通知中心模态框
+function closeNotificationsModal() {
+    closeModal();
+    stopNotificationsRealtimeUpdate();
+}
+
+// ✅ 启动通知中心实时更新
+function startNotificationsRealtimeUpdate(renderFunc) {
+    // 停止之前的更新
+    if (notificationsUpdateInterval) {
+        clearInterval(notificationsUpdateInterval);
+    }
+    
+    // 每秒更新一次
+    notificationsUpdateInterval = setInterval(() => {
+        if (window.isNotificationCenterOpen) {
+            renderFunc();
+        } else {
+            stopNotificationsRealtimeUpdate();
+        }
+    }, 1000);
+}
+
+// ✅ 停止通知中心实时更新
+function stopNotificationsRealtimeUpdate() {
+    if (notificationsUpdateInterval) {
+        clearInterval(notificationsUpdateInterval);
+        notificationsUpdateInterval = null;
+    }
+    window.isNotificationCenterOpen = false;
 }
 
 // ==================== 游戏内弹窗系统 ====================
@@ -351,6 +444,9 @@ window.handlePromptCallback = handlePromptCallback;
 window.showNotification = showNotification;
 window.updateNotificationBadge = updateNotificationBadge;
 window.showNotifications = showNotifications;
+window.closeNotificationsModal = closeNotificationsModal;
+window.startNotificationsRealtimeUpdate = startNotificationsRealtimeUpdate;
+window.stopNotificationsRealtimeUpdate = stopNotificationsRealtimeUpdate;
 window.showAchievementPopup = showAchievementPopup;
 window.showWarning = showWarning;
 window.showEventPopup = showEventPopup;

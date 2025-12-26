@@ -45,27 +45,28 @@ function createVideo() {
         comments: comments, 
         shares: shares, 
         time: gameTimer,
-        revenue: Math.floor(views / 1000), 
         isPrivate: false,
         isRecommended: false,
         recommendEndTime: null,
         recommendInterval: null,
         isControversial: false,
         controversyEndTime: null,
-        controversyInterval: null
+        controversyInterval: null,
+        isHot: false,
+        hotEndTime: null,
+        hotInterval: null
     };
     
     gameState.worksList.push(work);
     gameState.works++;
     gameState.views += views;
     gameState.likes += likes;
-    gameState.money += work.revenue;
+    gameState.money += Math.floor(views / 1000);
     const newFans = Math.floor(views / 1000 * (Math.random() * 2 + 0.5));
     gameState.fans += newFans;
     
     const interactionBoost = comments + likes + shares;
     gameState.totalInteractions += interactionBoost;
-    gameState.activeFans += Math.floor(newFans * 0.6);
     
     resetInactivityDropState();
     
@@ -129,7 +130,6 @@ function createPost() {
     
     const interactionBoost = comments + likes + shares;
     gameState.totalInteractions += interactionBoost;
-    gameState.activeFans += Math.floor(newFans * 0.4);
     
     resetInactivityDropState();
     
@@ -185,11 +185,10 @@ function startLiveStream() {
         shares: 0, 
         revenue: 0, 
         duration: 0,
-        startTime: Date.now(), // ✅ 记录真实时间用于成就判断
-        startVirtualTime: gameTimer // ✅ 记录虚拟时间用于其他逻辑
+        startTime: Date.now(),
+        startVirtualTime: gameTimer
     };
     
-    // ✅ 记录直播历史
     if (!gameState.liveHistory) gameState.liveHistory = [];
     
     gameState.liveInterval = setInterval(() => {
@@ -256,7 +255,6 @@ function endLiveStream() {
         gameState.currentLive.shares = liveData.shares;
         gameState.currentLive.revenue = liveData.revenue;
         
-        // ✅ 记录直播历史用于成就判断
         const endTime = Date.now();
         const liveRecord = {
             startTime: liveData.startTime,
@@ -264,7 +262,6 @@ function endLiveStream() {
             duration: liveData.duration,
             views: totalViews,
             peakViewers: Math.max(liveData.viewers, 100),
-            // 计算虚拟时间的小时数
             startVirtualHour: Math.floor((liveData.startVirtualTime % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS),
             endVirtualHour: Math.floor((gameTimer % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS)
         };
@@ -277,10 +274,8 @@ function endLiveStream() {
         gameState.views += totalViews;
         gameState.likes += liveData.likes;
         
-        // ✅ 修复：累加互动数（不包括播放量）
         gameState.totalInteractions += liveData.comments + liveData.likes + liveData.shares;
         
-        // ✅ 检查夜猫子成就（凌晨3点直播）
         if (gameState.liveHistory.some(live => live.startVirtualHour === 3)) {
             const nightOwlAchievement = achievements.find(a => a.id === 17);
             if (nightOwlAchievement && !nightOwlAchievement.unlocked) {
@@ -291,7 +286,6 @@ function endLiveStream() {
             }
         }
         
-        // ✅ 检查早起鸟儿成就（早上6点直播）
         if (gameState.liveHistory.some(live => live.startVirtualHour === 6)) {
             const earlyBirdAchievement = achievements.find(a => a.id === 18);
             if (earlyBirdAchievement && !earlyBirdAchievement.unlocked) {
@@ -302,7 +296,6 @@ function endLiveStream() {
             }
         }
         
-        // ✅ 检查直播新星成就
         if (totalViews >= 1000) {
             const liveStarAchievement = achievements.find(a => a.id === 8);
             if (liveStarAchievement && !liveStarAchievement.unlocked) {
@@ -316,7 +309,6 @@ function endLiveStream() {
         showNotification('直播结束', `本次直播获得${totalViews.toLocaleString()}观看，打赏收入${liveData.revenue}元`);
     }
     
-    // ✅ 检查并触发一次成就检查
     if (typeof checkAchievements === 'function') {
         checkAchievements();
     }
@@ -331,7 +323,10 @@ function toggleLive() {
     else endLiveStream();
 }
 
-// ==================== 流量购买（改为全屏） ====================
+// ==================== 全局变量：购买流量排序状态 ====================
+window.currentTrafficSort = 'latest';
+
+// ==================== 流量购买（改为全屏 + 添加排序） ====================
 function showBuyTraffic() {
     const availableWorks = gameState.worksList.filter(w => w.type === 'video' || w.type === 'post');
     if (availableWorks.length === 0) { 
@@ -341,31 +336,22 @@ function showBuyTraffic() {
     
     window.selectedWorkIds = [];
     window.selectedTrafficDays = 1;
+    window.currentTrafficSort = 'latest'; // 重置为默认排序
     
-    const worksHtml = availableWorks.map(work => {
-        const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
-        const statusText = isTrafficActive ? '（推广中）' : '';
-        
-        return `
-            <div class="work-item traffic-select-item" onclick="toggleTrafficSelection(${work.id})" data-work-id="${work.id}">
-                <div style="display: flex; align-items: flex-start; gap: 10px;">
-                    <div class="traffic-checkbox" id="checkbox-${work.id}" style="width: 20px; height: 20px; border: 2px solid #667eea; border-radius: 5px; flex-shrink: 0; margin-top: 2px;"></div>
-                    <div style="flex: 1;">
-                        <div class="work-header">
-                            <span class="work-type">${work.type === 'video' ? '🎬 视频' : '📝 动态'}</span>
-                            <span class="work-time">${formatTime(work.time)}</span>
-                        </div>
-                        <div class="work-content" style="font-size: 14px;">${work.content.substring(0, 50)}${work.content.length > 50 ? '...' : ''} ${statusText}</div>
-                        <div class="work-stats" style="font-size: 11px;">
-                            <span>▶️ ${work.views.toLocaleString()}</span>
-                            <span>❤️ ${work.likes.toLocaleString()}</span>
-                            <span>💬 ${work.comments.toLocaleString()}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
+    // 创建排序选择器
+    const sortSelector = `
+        <div style="margin-bottom: 15px; padding: 10px; background: #161823; border-radius: 10px;">
+            <div class="input-label">选择排序方式</div>
+            <select id="trafficSortSelect" onchange="sortTrafficWorks(this.value)" style="width: 100%; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; padding: 10px; font-size: 14px;">
+                <option value="latest">📅 最新发布</option>
+                <option value="oldest">📅 最早发布</option>
+                <option value="mostViews">▶️ 最多播放</option>
+                <option value="mostLikes">❤️ 最多点赞</option>
+                <option value="mostComments">💬 最多评论</option>
+                <option value="mostShares">🔄 最多转发</option>
+            </select>
+        </div>
+    `;
     
     const daysOptions = Array.from({length: 30}, (_, i) => {
         const day = i + 1;
@@ -378,10 +364,11 @@ function showBuyTraffic() {
             <div class="input-label">选择推广天数</div>
             <div class="days-selector">${daysOptions}</div>
         </div>
+        ${sortSelector}
         <div style="margin-bottom: 15px;">
             <div class="input-label">选择要推广的作品（可多选）</div>
             <div style="max-height: 40vh; overflow-y: auto; border-radius: 10px; background: #161823; padding: 10px;">
-                ${worksHtml}
+                <div id="trafficWorksList"></div>
             </div>
             <div id="selectedCount" style="margin-top: 10px; font-size: 14px; color: #667eea;">已选择：0个作品</div>
         </div>
@@ -391,12 +378,66 @@ function showBuyTraffic() {
         <button class="btn" id="confirmTrafficBtn" onclick="confirmBuyTraffic()">批量购买并启动推广</button>
     `;
     
+    // 初始渲染作品列表
+    renderTrafficWorksList(availableWorks);
     updateTrafficTotalPrice();
     updateSelectedCount();
     
     document.getElementById('buyTrafficPage').classList.add('active');
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
+}
+
+// 购买流量界面的作品排序函数
+function sortTrafficWorks(sortType) {
+    window.currentTrafficSort = sortType;
+    const availableWorks = gameState.worksList.filter(w => w.type === 'video' || w.type === 'post');
+    const sortedWorks = getSortedWorks(availableWorks, sortType);
+    renderTrafficWorksList(sortedWorks);
+    
+    // 显示通知
+    const sortNames = {
+        'latest': '最新发布',
+        'oldest': '最早发布',
+        'mostViews': '最多播放',
+        'mostLikes': '最多点赞',
+        'mostComments': '最多评论',
+        'mostShares': '最多转发'
+    };
+    showNotification('排序已切换', `当前按${sortNames[sortType] || '最新发布'}显示`);
+}
+
+// 渲染购买流量界面的作品列表
+function renderTrafficWorksList(works) {
+    const container = document.getElementById('trafficWorksList');
+    if (!container) return;
+    
+    const worksHtml = works.map(work => {
+        const isTrafficActive = gameState.trafficWorks[work.id] && gameState.trafficWorks[work.id].isActive;
+        const statusText = isTrafficActive ? '（推广中）' : '';
+        
+        return `
+            <div class="work-item traffic-select-item" onclick="toggleTrafficSelection(${work.id})" data-work-id="${work.id}">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <div class="traffic-checkbox" id="checkbox-${work.id}" style="width: 20px; height: 20px; border: 2px solid #667eea; border-radius: 5px; flex-shrink: 0; margin-top: 2px;"></div>
+                    <div style="flex: 1;">
+                        <div class="work-header">
+                            <span class="work-type">${work.type === 'video' ? '🎬 视频' : '📝 动态'} ${statusText}</span>
+                            <span class="work-time">${formatTime(work.time)}</span>
+                        </div>
+                        <div class="work-content" style="font-size: 14px;">${work.content.substring(0, 50)}${work.content.length > 50 ? '...' : ''}</div>
+                        <div class="work-stats" style="font-size: 11px;">
+                            <span>▶️ ${work.views.toLocaleString()}</span>
+                            <span>❤️ ${work.likes.toLocaleString()}</span>
+                            <span>💬 ${work.comments.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = worksHtml;
 }
 
 function toggleTrafficSelection(workId) {
@@ -425,7 +466,9 @@ function updateTrafficTotalPrice() {
     const selectedCount = window.selectedWorkIds.length;
     const totalPrice = selectedCount * days * 1000;
     const priceEl = document.getElementById('trafficPriceDisplay');
-    if (priceEl) priceEl.textContent = `${totalPrice.toLocaleString()}元`;
+    if (priceEl) {
+        priceEl.textContent = `${totalPrice.toLocaleString()}元`;
+    }
 }
 
 function updateSelectedCount() {
@@ -599,7 +642,6 @@ function startTrafficProcess(workId) {
         gameState.fans += fanBoost;
         work.comments += commentBoost;
         
-        // ✅ 修复：只统计主动互动行为
         gameState.totalInteractions += commentBoost + shareBoost;
         
         const oldRevenue = work.revenue || 0;
@@ -740,6 +782,10 @@ window.checkViolation = checkViolation;
 window.showCharts = showCharts;
 window.stopChartsRefresh = stopChartsRefresh;
 window.resetInactivityDropState = resetInactivityDropState;
+window.window = window;
+window.sortTrafficWorks = sortTrafficWorks;
+window.renderTrafficWorksList = renderTrafficWorksList;
+window.currentTrafficSort = window.currentTrafficSort || 'latest';
 
 // ==================== 已删除的旧版 showWorkDetail 函数和其他重复代码 ====================
 // 这些代码已被移除，因为它们在 game_ui_works_core.js 中有更新更完整的实现

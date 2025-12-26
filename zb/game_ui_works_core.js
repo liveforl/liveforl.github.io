@@ -5,8 +5,58 @@ window.worksUpdateInterval = null;
 window.currentWorksPage = 1;
 window.worksPerPage = 10;
 window.currentWorksCategory = 'all';
+window.currentWorksSort = 'latest'; // 默认按最新发布排序
 window.currentDetailWork = null;
 window.commentsPerPage = 10;
+
+// 作品排序函数
+function getSortedWorks(works, sortType) {
+    const sorted = [...works];
+    switch(sortType) {
+        case 'latest':
+            return sorted.sort((a, b) => (b.time || 0) - (a.time || 0));
+        case 'oldest':
+            return sorted.sort((a, b) => (a.time || 0) - (b.time || 0));
+        case 'mostViews':
+            return sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+        case 'mostLikes':
+            return sorted.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        case 'mostComments':
+            return sorted.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+        case 'mostShares':
+            return sorted.sort((a, b) => (b.shares || 0) - (a.shares || 0));
+        default:
+            return sorted.sort((a, b) => (b.time || 0) - (a.time || 0));
+    }
+}
+
+// 切换作品排序
+function changeWorksSort(sortType) {
+    window.currentWorksSort = sortType;
+    
+    // 更新排序按钮状态
+    const sortSelect = document.getElementById('worksSortSelect');
+    if (sortSelect) {
+        sortSelect.value = sortType;
+    }
+    
+    // 重置到第一页
+    window.currentWorksPage = 1;
+    
+    // 重新渲染作品列表
+    renderWorksPage();
+    
+    // 显示通知
+    const sortNames = {
+        'latest': '最新发布',
+        'oldest': '最早发布',
+        'mostViews': '最多播放',
+        'mostLikes': '最多点赞',
+        'mostComments': '最多评论',
+        'mostShares': '最多转发'
+    };
+    showNotification('排序已切换', `当前按${sortNames[sortType] || '最新发布'}显示`);
+}
 
 // 作品自动更新
 function startWorkUpdates() {
@@ -274,6 +324,7 @@ function showWorksFullscreen() {
     
     window.currentWorksPage = 1;
     window.currentWorksCategory = 'all';
+    window.currentWorksSort = 'latest'; // 重置为默认排序
     
     const categoryTabs = `
         <div style="display: flex; padding: 10px; gap: 10px; background: #161823; border-radius: 10px; margin: 10px;">
@@ -281,6 +332,16 @@ function showWorksFullscreen() {
             <div class="category-tab" data-category="video" onclick="filterWorksByCategory('video')">视频</div>
             <div class="category-tab" data-category="post" onclick="filterWorksByCategory('post')">动态</div>
             <div class="category-tab" data-category="live" onclick="filterWorksByCategory('live')">直播</div>
+        </div>
+        <div style="display: flex; padding: 0 10px; margin-bottom: 15px;">
+            <select id="worksSortSelect" onchange="changeWorksSort(this.value)" style="flex: 1; background: #222; border: 1px solid #333; color: #fff; border-radius: 8px; padding: 10px; font-size: 14px;">
+                <option value="latest">📅 最新发布</option>
+                <option value="oldest">📅 最早发布</option>
+                <option value="mostViews">▶️ 最多播放</option>
+                <option value="mostLikes">❤️ 最多点赞</option>
+                <option value="mostComments">💬 最多评论</option>
+                <option value="mostShares">🔄 最多转发</option>
+            </select>
         </div>
         <div id="filteredWorksList" style="padding: 0 10px;"></div>
         <div id="worksPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px 10px; background: #161823; margin: 10px; border-radius: 10px; border: 1px solid #333; flex-wrap: wrap; max-width: 100%;"></div>
@@ -305,6 +366,9 @@ function renderWorksPage() {
     if (window.currentWorksCategory !== 'all') {
         filteredWorks = gameState.worksList.filter(work => work.type === window.currentWorksCategory);
     }
+    
+    // 应用排序
+    filteredWorks = getSortedWorks(filteredWorks, window.currentWorksSort);
     
     const totalWorks = filteredWorks.length;
     const totalPages = Math.max(1, Math.ceil(totalWorks / window.worksPerPage));
@@ -479,7 +543,10 @@ function changeWorksPage(page) {
         ? gameState.worksList 
         : gameState.worksList.filter(work => work.type === window.currentWorksCategory);
     
-    const totalPages = Math.max(1, Math.ceil(filteredWorks.length / window.worksPerPage));
+    // 应用排序
+    const sortedWorks = getSortedWorks(filteredWorks, window.currentWorksSort);
+    
+    const totalPages = Math.max(1, Math.ceil(sortedWorks.length / window.worksPerPage));
     
     if (page < 1 || page > totalPages) return;
     
@@ -685,3 +752,6 @@ window.getRandomUserBio = getRandomUserBio;
 window.generateRandomUsername = generateRandomUsername;
 window.generateStableCommentId = generateStableCommentId;
 window.currentDetailWork = currentDetailWork;
+window.changeWorksSort = changeWorksSort;
+window.getSortedWorks = getSortedWorks;
+window.currentWorksSort = window.currentWorksSort || 'latest';
