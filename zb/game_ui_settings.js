@@ -23,6 +23,17 @@ function showSettings() {
             <div><div class="settings-label">上传头像图片</div><div class="settings-value" style="color: #667eea;">选择图片</div></div>
             <div>📷</div>
         </div>
+        
+        <!-- 新增：存档导出导入功能 -->
+        <div class="settings-item" onclick="exportSaveData()">
+            <div><div class="settings-label">📤 导出存档</div><div class="settings-value">下载到本地</div></div>
+            <div>></div>
+        </div>
+        <div class="settings-item" onclick="handleImportClick()">
+            <div><div class="settings-label">📥 导入存档</div><div class="settings-value">从文件导入</div></div>
+            <div>></div>
+        </div>
+        
         <div class="settings-item" onclick="clearData()" style="background:#ff0050">
             <div><div class="settings-label">清除数据</div><div class="settings-value">谨慎操作</div></div>
         </div>
@@ -258,7 +269,7 @@ function showUserProfile(username, avatar) {
         fanCount: Math.floor(Math.random() * 50000) + 100,
         workCount: Math.floor(Math.random() * 500) + 10,
         likeCount: Math.floor(Math.random() * 100000) + 1000,
-        following: Math.floor(Math.random() * 500) + 50, // 添加关注数
+        following: Math.floor(Math.random() * 500) + 50,
         bio: getRandomUserBio()
     };
     
@@ -690,6 +701,314 @@ function clearData() {
     });
 }
 
+// ==================== 新增：存档导出功能 ====================
+function exportSaveData() {
+    try {
+        // 停止游戏计时器，确保导出时数据一致
+        if (typeof stopGameTimer === 'function') {
+            stopGameTimer();
+        }
+        
+        // 清理私信（避免数据过大）
+        if (typeof cleanupPrivateMessages === 'function') {
+            cleanupPrivateMessages();
+        }
+        
+        // 获取最新的游戏状态
+        gameState.gameTimer = gameTimer;
+        gameState.realStartTime = realStartTime;
+        
+        // 生成文件名，包含用户名和日期
+        const currentDate = getVirtualDate();
+        const fileName = `主播模拟器存档_${gameState.username}_${currentDate.year}年${currentDate.month}月${currentDate.day}日_${Date.now()}.json`;
+        
+        // 创建JSON数据
+        const saveData = JSON.stringify(gameState, null, 2);
+        
+        // 创建Blob对象
+        const blob = new Blob([saveData], { type: 'application/json' });
+        
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        
+        // 触发下载
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 释放URL对象
+        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+        
+        showNotification('导出成功', `存档已保存到本地: ${fileName}`);
+        
+        // 重新启动游戏计时器
+        if (typeof startGameTimer === 'function') {
+            startGameTimer();
+        }
+        
+        // 如果当前在设置页面，刷新显示
+        if (document.getElementById('settingsPage').classList.contains('active')) {
+            showSettings();
+        }
+        
+    } catch (error) {
+        console.error('导出存档失败:', error);
+        showAlert('导出失败：' + error.message, '错误');
+        
+        // 确保计时器重新启动
+        if (typeof startGameTimer === 'function') {
+            startGameTimer();
+        }
+    }
+}
+
+// ==================== 处理导入按钮点击（打开文件选择器） ====================
+function handleImportClick() {
+    // 创建文件选择器
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.style.display = 'none';
+    
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // 验证文件类型
+        if (!file.name.endsWith('.json')) {
+            showAlert('请选择JSON格式的存档文件！', '错误');
+            document.body.removeChild(fileInput);
+            return;
+        }
+        
+        // 读取文件
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                importSaveData(event.target.result, file.name);
+            } catch (error) {
+                console.error('读取文件失败:', error);
+                showAlert('读取文件失败：' + error.message, '错误');
+            }
+        };
+        
+        reader.onerror = function() {
+            showAlert('文件读取失败，请重试！', '错误');
+        };
+        
+        reader.readAsText(file);
+        document.body.removeChild(fileInput);
+    };
+    
+    document.body.appendChild(fileInput);
+    fileInput.click();
+}
+
+// ==================== 导入存档数据 ====================
+function importSaveData(fileContent, fileName) {
+    try {
+        // 解析JSON
+        const importedData = JSON.parse(fileContent);
+        
+        // 验证存档格式
+        if (!importedData || typeof importedData !== 'object') {
+            throw new Error('无效的存档格式');
+        }
+        
+        // 验证必要字段
+        const requiredFields = ['username', 'userId', 'fans', 'worksList'];
+        for (const field of requiredFields) {
+            if (!(field in importedData)) {
+                throw new Error(`存档缺少必要字段: ${field}`);
+            }
+        }
+        
+        // 确认导入（会覆盖当前进度）
+        showConfirm(`确定要导入存档 "${importedData.username}" 吗？\n这将覆盖您当前的游戏进度！`, function(confirmed) {
+            if (!confirmed) return;
+            
+            try {
+                // 停止当前游戏计时器
+                if (typeof stopGameTimer === 'function') {
+                    stopGameTimer();
+                }
+                
+                // 清理所有定时器
+                if (gameState.liveInterval) clearInterval(gameState.liveInterval);
+                if (gameState.banInterval) clearInterval(gameState.banInterval);
+                if (gameState.banDropInterval) clearInterval(gameState.banDropInterval);
+                if (gameState.hotSearchInterval) clearInterval(gameState.hotSearchInterval);
+                if (gameState.publicOpinionInterval) clearInterval(gameState.publicOpinionInterval);
+                if (gameState.inactivityDropInterval) clearInterval(gameState.inactivityDropInterval);
+                if (gameState.highAdCountDropInterval) clearInterval(gameState.highAdCountDropInterval);
+                
+                // 清理私信生成定时器
+                if (typeof stopPrivateMessageGeneration === 'function') {
+                    stopPrivateMessageGeneration();
+                }
+                
+                // ✅ 新增：停止系统消息定时器
+                if (typeof stopSystemMessagesTimer === 'function') {
+                    stopSystemMessagesTimer();
+                }
+                
+                // 清理商单相关定时器
+                if (gameState.fakeAdPenaltyInterval) {
+                    clearInterval(gameState.fakeAdPenaltyInterval);
+                }
+                if (window.monthlyCheckInterval) {
+                    clearInterval(window.monthlyCheckInterval);
+                }
+                if (window.exposureCheckInterval) {
+                    clearInterval(window.exposureCheckInterval);
+                }
+                
+                // 清理作品更新定时器
+                if (window.chartRefreshInterval) {
+                    clearInterval(window.chartRefreshInterval);
+                }
+                if (window.devCountdownInterval) {
+                    clearInterval(window.devCountdownInterval);
+                }
+                if (window.worksUpdateInterval) {
+                    clearInterval(window.worksUpdateInterval);
+                }
+                if (window.messagesUpdateInterval) {
+                    clearInterval(window.messagesUpdateInterval);
+                }
+                
+                // 清理所有推广定时器
+                Object.keys(gameState.trafficWorks).forEach(workId => {
+                    const trafficData = gameState.trafficWorks[workId];
+                    if (trafficData && trafficData.interval) {
+                        clearInterval(trafficData.interval);
+                    }
+                });
+                
+                // 清理作品相关定时器
+                gameState.worksList.forEach(work => {
+                    if (work.recommendInterval) clearInterval(work.recommendInterval);
+                    if (work.controversyInterval) clearInterval(work.controversyInterval);
+                    if (work.hotInterval) clearInterval(work.hotInterval);
+                });
+                
+                // 重置charts对象
+                window.charts = { fans: null, likes: null, views: null, interactions: null };
+                
+                // 应用导入的存档
+                gameState = importedData;
+                
+                // 确保必要的属性存在
+                if (!gameState.following) gameState.following = [];
+                if (!gameState.commentLikes) gameState.commentLikes = {};
+                if (!gameState.messages) gameState.messages = [];
+                if (!gameState.privateMessageSystem) {
+                    gameState.privateMessageSystem = {
+                        conversations: [],
+                        unreadCount: 0,
+                        lastCheckTime: 0,
+                        generationInterval: null
+                    };
+                }
+                if (!gameState.systemMessages) {
+                    gameState.systemMessages = {
+                        unreadCount: 0,
+                        messages: [],
+                        hotSearchActiveWorks: []
+                    };
+                }
+                if (!gameState.commentRepliesCount) gameState.commentRepliesCount = 0;
+                if (!gameState.liveHistory) gameState.liveHistory = [];
+                if (!gameState.unlockedAchievements) gameState.unlockedAchievements = [];
+                
+                // 同步计时器
+                gameTimer = gameState.gameTimer || 0;
+                window.gameTimer = gameTimer;
+                realStartTime = Date.now();
+                
+                // 更新存档中的成就状态
+                achievements.forEach(achievement => {
+                    achievement.unlocked = gameState.achievements && gameState.achievements.includes(achievement.id);
+                });
+                
+                // 清理私信（保留最近100条）
+                if (typeof cleanupPrivateMessages === 'function') {
+                    cleanupPrivateMessages();
+                }
+                
+                // 显示成功提示
+                showNotification('导入成功', `存档 "${gameState.username}" 已加载！`);
+                
+                // 保存到本地存储
+                saveGame();
+                
+                // 关闭设置页面
+                closeFullscreenPage('settings');
+                
+                // 更新显示
+                if (typeof updateDisplay === 'function') {
+                    updateDisplay();
+                }
+                
+                // 重新初始化各种定时器
+                if (typeof startGameTimer === 'function') {
+                    startGameTimer();
+                }
+                
+                if (typeof startWorkUpdates === 'function') {
+                    startWorkUpdates();
+                }
+                
+                // 恢复私信系统
+                if (typeof initPrivateMessageOnGameLoad === 'function') {
+                    initPrivateMessageOnGameLoad();
+                }
+                
+                // ✅ 新增：恢复系统消息
+                if (typeof startSystemMessagesTimer === 'function') {
+                    startSystemMessagesTimer();
+                }
+                
+                // 启动月度检查
+                if (typeof window.startMonthlyCheck === 'function') {
+                    window.startMonthlyCheck();
+                }
+                
+                // 启动曝光检查
+                if (typeof window.startExposureCheck === 'function') {
+                    window.startExposureCheck();
+                }
+                
+                // 恢复开发者模式
+                if (gameState.devMode) {
+                    document.getElementById('devFloatButton').style.display = 'block';
+                    if (typeof devStartCountdownTracker === 'function') {
+                        devStartCountdownTracker();
+                    }
+                }
+                
+            } catch (error) {
+                console.error('导入存档失败:', error);
+                showAlert('导入失败：' + error.message, '错误');
+                
+                // 尝试恢复当前游戏
+                try {
+                    saveGame();
+                    if (typeof updateDisplay === 'function') updateDisplay();
+                } catch (e) {
+                    console.error('恢复当前游戏失败:', e);
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('导入存档解析失败:', error);
+        showAlert('存档文件格式错误：' + error.message, '错误');
+    }
+}
+
 // ==================== 新增：带自动压缩的的头像上传功能 ====================
 function uploadAvatar() {
     const fileInput = document.createElement('input');
@@ -1050,3 +1369,8 @@ window.toggleFollow = toggleFollow;
 window.renderFollowingList = renderFollowingList;
 window.showUserProfileFromFollowing = showUserProfileFromFollowing;
 window.closeFollowingPage = closeFollowingPage;
+
+// ✅ 新增：存档导入导出函数
+window.exportSaveData = exportSaveData;
+window.handleImportClick = handleImportClick;
+window.importSaveData = importSaveData;

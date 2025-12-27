@@ -224,7 +224,7 @@ function acceptHotSearchInvite(messageId, contentType) {
     closeSystemMessagesList();
 }
 
-// ==================== 启动热搜作品效果（爆炸式增长） ====================
+// ==================== 启动热搜作品效果（优化版 - 降低频率和幅度） ====================
 function startHotSearchWorkEffect(workId) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isHotSearchWork) {
@@ -236,6 +236,7 @@ function startHotSearchWorkEffect(workId) {
         clearInterval(work.hotSearchInterval);
     }
     
+    // 改为每3秒更新一次，降低更新频率
     work.hotSearchInterval = setInterval(() => {
         // 检查是否到期
         if (gameTimer >= work.hotSearchData.endTime) {
@@ -243,12 +244,13 @@ function startHotSearchWorkEffect(workId) {
             return;
         }
         
-        // 爆炸式增长（比正常作品高5-10倍）
-        const viewsBoost = Math.floor(Math.random() * 15000) + 10000;
-        const likesBoost = Math.floor(Math.random() * 3000) + 1500;
-        const commentsBoost = Math.floor(Math.random() * 800) + 400;
-        const sharesBoost = Math.floor(Math.random() * 300) + 150;
-        const fanBoost = Math.floor(Math.random() * 2000) + 1000;
+        // 降低数据增长幅度，改为类似流量推广的水平
+        // 但保持粉丝增长不变（用户要求）
+        const viewsBoost = Math.floor(Math.random() * 4000) + 1000; // 从10000-25000改为1000-5000
+        const likesBoost = Math.floor(Math.random() * 400) + 100; // 从1500-4500改为100-500
+        const commentsBoost = Math.floor(Math.random() * 50) + 10; // 从400-1200改为10-60
+        const sharesBoost = Math.floor(Math.random() * 30) + 5; // 从150-450改为5-35
+        const fanBoost = Math.floor(Math.random() * 2000) + 1000; // 粉丝增长保持不变
         
         work.views += viewsBoost;
         if (work.type === 'video' || work.type === 'live') {
@@ -263,9 +265,9 @@ function startHotSearchWorkEffect(workId) {
         // 更新总互动数
         gameState.totalInteractions += likesBoost + commentsBoost + sharesBoost;
         
-        // 收益翻倍
+        // 收益计算改为正常模式（与流量推广一致）
         const oldRevenue = work.revenue || 0;
-        const newRevenue = Math.floor(work.views / 500); // 播放量/500，比正常/1000翻倍
+        const newRevenue = Math.floor(work.views / 1000); // 从/500改为/1000
         const revenueBoost = newRevenue - oldRevenue;
         if (revenueBoost > 0) {
             work.revenue = newRevenue;
@@ -276,10 +278,11 @@ function startHotSearchWorkEffect(workId) {
         updateDisplay();
         
         // 每15秒显示一次增长通知（避免刷屏）
-        if (Math.random() < 0.067) { // 约15秒一次
+        // 3秒间隔，概率0.2约15秒一次，改为0.05更合理
+        if (Math.random() < 0.05) {
             showNotification('🔥 热搜爆发', `${work.hotSearchData.topic} 正在爆火中！`);
         }
-    }, 1000);
+    }, 3000); // 从1000ms改为3000ms，降低更新频率
     
     // 立即显示开始通知
     showNotification('🔥 热搜启动', `${work.hotSearchData.topic} 开始获得爆炸式增长！`);
