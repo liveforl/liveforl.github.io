@@ -5,27 +5,66 @@ window.currentMessageFilter = 'all';
 window.currentCommentPage = 1;
 window.commentsPerPage = 10;
 
-// 更新消息页面顶部的小红点（修复版 - 包含系统消息）
+// ==================== 新增：更新消息中心横条的小红点和小蓝点（核心修复） ====================
+function updateMessageCenterBars() {
+    const content = document.getElementById('messagesListTab');
+    if (!content) return;
+    
+    // 计算未读数
+    const privateUnreadCount = gameState.privateMessageSystem ? gameState.privateMessageSystem.unreadCount : 0;
+    const systemUnreadCount = gameState.systemMessages ? gameState.systemMessages.unreadCount : 0;
+    
+    // 查找私信横条的徽章元素
+    const privateBadge = content.querySelector('#privateMessageBar .private-unread-badge');
+    if (privateBadge) {
+        if (privateUnreadCount > 0) {
+            privateBadge.textContent = privateUnreadCount > 99 ? '99+' : privateUnreadCount;
+            privateBadge.style.display = 'inline-block';
+        } else {
+            privateBadge.style.display = 'none';
+        }
+    }
+    
+    // 查找系统消息横条的徽章元素
+    const systemBadge = content.querySelector('#systemMessageBar .system-unread-badge');
+    if (systemBadge) {
+        if (systemUnreadCount > 0) {
+            systemBadge.textContent = systemUnreadCount > 99 ? '99+' : systemUnreadCount;
+            systemBadge.style.display = 'inline-block';
+        } else {
+            systemBadge.style.display = 'none';
+        }
+    }
+}
+
+// 更新消息页面顶部的小红点（增强版）
 function updateMessageFilterBadges() {
-    const normalUnread = {
-        all: gameState.messages ? gameState.messages.filter(msg => !msg.read).length : 0,
-        like: gameState.messages ? gameState.messages.filter(msg => msg.type === 'like' && !msg.read).length : 0,
-        comment: gameState.messages ? gameState.messages.filter(msg => msg.type === 'comment' && !msg.read).length : 0,
-        share: gameState.messages ? gameState.messages.filter(msg => msg.type === 'share' && !msg.read).length : 0
+    // 如果开启了消息免打扰，直接隐藏所有小红点
+    if (gameState.doNotDisturb) {
+        document.querySelectorAll('.filter-badge').forEach(badge => {
+            if (badge.parentNode) {
+                badge.parentNode.removeChild(badge);
+            }
+        });
+        return;
+    }
+    
+    if (!gameState.messages) gameState.messages = [];
+    
+    const unreadCount = {
+        all: gameState.messages.filter(msg => !msg.read).length,
+        like: gameState.messages.filter(msg => msg.type === 'like' && !msg.read).length,
+        comment: gameState.messages.filter(msg => msg.type === 'comment' && !msg.read).length,
+        share: gameState.messages.filter(msg => msg.type === 'share' && !msg.read).length
     };
     
-    // ✅ 新增：系统消息未读数
-    const systemUnread = gameState.systemMessages ? gameState.systemMessages.unreadCount : 0;
-    
-    // 更新四个按钮的小红点
-    Object.keys(normalUnread).forEach(type => {
+    Object.keys(unreadCount).forEach(type => {
         const button = document.querySelector(`[onclick="openMessagesFullscreenPage('${type}')"]`);
         if (!button) return;
         
         let badge = button.querySelector('.filter-badge');
-        const count = normalUnread[type];
+        const count = unreadCount[type];
         
-        // 移除旧的badge
         if (badge && badge.parentNode) {
             badge.parentNode.removeChild(badge);
         }
@@ -43,25 +82,36 @@ function updateMessageFilterBadges() {
                 display: inline-block;
                 min-width: 16px;
                 text-align: center;
+                font-weight: bold;
+                box-shadow: 0 2px 4px rgba(255, 0, 80, 0.3);
             `;
-            badge.textContent = count > 99 ? '99+' : count;
+            badge.textContent = count > 30 ? '30+' : count;
             button.appendChild(badge);
         }
     });
 }
 
-// 更新导航栏消息徽章（包含私信 + 系统消息）- 动态实时版
+// 更新导航栏消息徽章
 function updateNavMessageBadge() {
+    // 如果开启了消息免打扰，直接隐藏导航栏徽章
+    if (gameState.doNotDisturb) {
+        const badge = document.querySelector('.nav-item:nth-child(3) .nav-badge');
+        if (badge && badge.parentNode) {
+            badge.parentNode.removeChild(badge);
+        }
+        return;
+    }
+    
     // 计算普通消息未读数
     const normalUnread = gameState.messages ? gameState.messages.filter(msg => !msg.read).length : 0;
     
     // 计算私信未读数
     const privateUnread = gameState.privateMessageSystem ? gameState.privateMessageSystem.unreadCount : 0;
     
-    // ✅ 新增：系统消息未读数
+    // 系统消息未读数
     const systemUnread = gameState.systemMessages ? gameState.systemMessages.unreadCount : 0;
     
-    // 总未读数（包含所有类型）
+    // 总未读数
     const totalUnread = normalUnread + privateUnread + systemUnread;
     
     const navItem = document.querySelector('.nav-item:nth-child(3)');
@@ -69,7 +119,6 @@ function updateNavMessageBadge() {
     
     let badge = navItem.querySelector('.nav-badge');
     
-    // 如果总未读数大于0，显示徽章
     if (totalUnread > 0) {
         if (!badge) {
             badge = document.createElement('div');
@@ -86,6 +135,8 @@ function updateNavMessageBadge() {
                 min-width: 16px;
                 text-align: center;
                 z-index: 10;
+                font-weight: bold;
+                box-shadow: 0 2px 4px rgba(255, 0, 80, 0.3);
             `;
             navItem.style.position = 'relative';
             navItem.appendChild(badge);
@@ -93,22 +144,18 @@ function updateNavMessageBadge() {
         badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
         badge.style.display = 'block';
     } else if (badge) {
-        // 如果总未读数为0，隐藏徽章
         badge.style.display = 'none';
     }
 }
 
-// 全屏消息页（添加系统消息入口横条）
+// 全屏消息页
 function showMessagesFullscreen() {
     const content = document.getElementById('messagesListTab');
     if (!content) return;
     
     const privateUnreadCount = gameState.privateMessageSystem ? gameState.privateMessageSystem.unreadCount : 0;
-    
-    // ✅ 新增：系统消息未读数
     const systemUnreadCount = gameState.systemMessages ? gameState.systemMessages.unreadCount : 0;
     
-    // 构建带系统消息入口横条的筛选栏
     const filterButtons = `
         <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
             <button class="message-filter-btn active" onclick="openMessagesFullscreenPage('all')">
@@ -129,8 +176,8 @@ function showMessagesFullscreen() {
             </button>
         </div>
         
-        <!-- 新增的私信横条 -->
-        <div style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 8px; cursor: pointer; border: 1px solid #333; transition: all 0.3s;" 
+        <!-- 私信横条 -->
+        <div id="privateMessageBar" style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 8px; cursor: pointer; border: 1px solid #333; transition: all 0.3s;" 
              onclick="showPrivateMessageList()"
              onmouseover="this.style.borderColor='#667eea';"
              onmouseout="this.style.borderColor='#333';">
@@ -140,17 +187,24 @@ function showMessagesFullscreen() {
                     <div style="font-weight: bold; font-size: 14px;">来自陌生人的私信</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    ${privateUnreadCount > 0 ? 
-                        `<span class="private-unread-badge" style="display: block;">${privateUnreadCount > 99 ? '99+' : privateUnreadCount}</span>` : 
-                        `<span class="private-unread-badge" style="display: none;">0</span>`
-                    }
+                    <span class="private-unread-badge" style="
+                        background: #ff0050;
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 2px 8px;
+                        font-size: 10px;
+                        font-weight: bold;
+                        ${privateUnreadCount > 0 ? 'display: inline-block;' : 'display: none;'}
+                    ">
+                        ${privateUnreadCount > 99 ? '99+' : privateUnreadCount}
+                    </span>
                     <div style="color: #999; font-size: 18px;">›</div>
                 </div>
             </div>
         </div>
         
-        <!-- ✅ 新增：系统消息入口横条 -->
-        <div style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 15px; cursor: pointer; border: 1px solid #333; transition: all 0.3s; position: relative;" 
+        <!-- 系统消息横条 -->
+        <div id="systemMessageBar" style="background: #161823; border-radius: 10px; padding: 15px; margin-bottom: 15px; cursor: pointer; border: 1px solid #333; transition: all 0.3s; position: relative;" 
              onclick="showSystemMessagesList()"
              onmouseover="this.style.borderColor='#00f2ea';"
              onmouseout="this.style.borderColor='#333';">
@@ -160,12 +214,18 @@ function showMessagesFullscreen() {
                     <div style="font-weight: bold; font-size: 14px;">平台系统消息</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    ${systemUnreadCount > 0 ? 
-                        `<span style="background: #00f2ea; color: #000; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: bold;">
-                            ${systemUnreadCount > 99 ? '99+' : systemUnreadCount}
-                        </span>` : 
-                        `<span style="display: none;"></span>`
-                    }
+                    <span class="system-unread-badge" style="
+                        background: #00f2ea;
+                        color: #000;
+                        border-radius: 10px;
+                        padding: 2px 8px;
+                        font-size: 10px;
+                        font-weight: bold;
+                        margin-left: 5px;
+                        ${systemUnreadCount > 0 ? 'display: inline-block;' : 'display: none;'}
+                    ">
+                        ${systemUnreadCount > 99 ? '99+' : systemUnreadCount}
+                    </span>
                     <div style="color: #999; font-size: 18px;">›</div>
                 </div>
             </div>
@@ -177,18 +237,9 @@ function showMessagesFullscreen() {
     
     content.innerHTML = filterButtons;
     
-    // 立即更新小红点
+    // 更新小红点
     updateMessageFilterBadges();
-    
-    // 更新导航栏消息小红点
-    if (typeof updateNavMessageBadge === 'function') {
-        updateNavMessageBadge();
-    }
-    
-    // ✅ 启动系统消息定时器
-    if (typeof startSystemMessagesTimer === 'function') {
-        startSystemMessagesTimer();
-    }
+    updateNavMessageBadge();
 }
 
 // 打开全屏消息页面
@@ -201,10 +252,12 @@ function openMessagesFullscreenPage(type) {
     document.getElementById(`messages${type.charAt(0).toUpperCase() + type.slice(1)}Page`).classList.add('active');
     
     renderMessagesFullscreenPage(type);
-    
     markMessagesAsReadByType(type);
     
-    updateNavMessageBadge();
+    // 立即更新导航栏徽章（根据免打扰状态）
+    if (typeof updateNavMessageBadge === 'function') {
+        updateNavMessageBadge();
+    }
 }
 
 // 关闭全屏消息页面
@@ -222,6 +275,7 @@ function closeMessagesFullscreenPage(pageName) {
         document.querySelector('.nav-item').classList.add('active');
     }
     
+    // ✅ 关键修复：返回消息中心时，重新渲染并更新横条红点/蓝点
     if (typeof showMessagesFullscreen === 'function') {
         showMessagesFullscreen();
     }
@@ -235,11 +289,14 @@ function renderMessagesFullscreenPage(type) {
     const content = document.getElementById(contentId);
     if (!content) return;
     
-    let messages = gameState.messages || [];
+    if (!gameState.messages) gameState.messages = [];
+    
+    let messages = gameState.messages;
     if (type !== 'all') {
         messages = messages.filter(msg => msg.type === type);
     }
     
+    // 从50条改为100条，显示更多历史消息
     messages = messages.slice(-100).reverse();
     
     if (messages.length === 0) {
@@ -259,8 +316,12 @@ function renderMessagesFullscreenPage(type) {
             share: '转发了你的作品'
         };
         
+        // 确保显示作品类型图标
+        const work = gameState.worksList.find(w => w.id === msg.workId);
+        const workTypeIcon = work ? (work.type === 'video' ? '🎬' : work.type === 'live' ? '📱' : '📝') : '📹';
+        
         return `
-            <div class="comment-item" style="${!msg.read ? 'border-left: 3px solid #667eea;' : ''}; margin-bottom: 10px;">
+            <div class="comment-item ${!msg.read ? 'new-message' : ''}" style="${!msg.read ? 'border-left: 3px solid #667aea;' : ''}; margin-bottom: 10px;">
                 <div class="comment-header">
                     <div class="comment-user-avatar">${msg.user ? msg.user.charAt(0) : '👤'}</div>
                     <span class="comment-user" onclick="openUserProfileFromMessage('${msg.user || '匿名用户'}', '${msg.user ? msg.user.charAt(0) : '👤'}', '${type}')">${msg.user || '匿名用户'}</span>
@@ -269,8 +330,9 @@ function renderMessagesFullscreenPage(type) {
                 <div class="comment-content">
                     ${typeIcons[msg.type] || '🔔'} ${typeTexts[msg.type] || '互动了你的作品'}
                 </div>
-                <div style="font-size: 11px; color: #999; margin-top: 5px; padding: 8px; background: #1a1a1a; border-radius: 5px;">
-                    作品：${msg.workContent || '未知作品'}
+                <div style="font-size: 11px; color: #999; margin-top: 5px; padding: 8px; background: #1a1a1a; border-radius: 5px; display: flex; align-items: center; gap: 5px;">
+                    <span>${workTypeIcon}</span>
+                    <span>作品：${msg.workContent || '未知作品'}</span>
                 </div>
             </div>
         `;
@@ -279,13 +341,17 @@ function renderMessagesFullscreenPage(type) {
     content.innerHTML = messagesHtml;
 }
 
-// 标记消息为已读
+// 标记消息为已读（批量处理）
 function markMessagesAsReadByType(type) {
     if (!gameState.messages || gameState.messages.length === 0) return;
     
+    let updated = false;
     gameState.messages.forEach(msg => {
         if (type === 'all' || msg.type === type) {
-            msg.read = true;
+            if (!msg.read) {
+                msg.read = true;
+                updated = true;
+            }
         }
     });
     
@@ -293,55 +359,12 @@ function markMessagesAsReadByType(type) {
         gameState.notifications.forEach(n => n.read = true);
     }
     
-    saveGame();
-    updateNavMessageBadge();
-}
-
-// 更新导航栏消息徽章（包含私信）- 动态实时版
-function updateNavMessageBadge() {
-    // 计算普通消息未读数
-    const normalUnread = gameState.messages ? gameState.messages.filter(msg => !msg.read).length : 0;
-    
-    // 计算私信未读数
-    const privateUnread = gameState.privateMessageSystem ? gameState.privateMessageSystem.unreadCount : 0;
-    
-    // ✅ 新增：系统消息未读数
-    const systemUnread = gameState.systemMessages ? gameState.systemMessages.unreadCount : 0;
-    
-    // 总未读数（包含所有类型）
-    const totalUnread = normalUnread + privateUnread + systemUnread;
-    
-    const navItem = document.querySelector('.nav-item:nth-child(3)');
-    if (!navItem) return;
-    
-    let badge = navItem.querySelector('.nav-badge');
-    
-    // 如果总未读数大于0，显示徽章
-    if (totalUnread > 0) {
-        if (!badge) {
-            badge = document.createElement('div');
-            badge.className = 'nav-badge';
-            badge.style.cssText = `
-                position: absolute;
-                top: 2px;
-                right: 8px;
-                background: #ff0050;
-                color: #fff;
-                border-radius: 10px;
-                padding: 2px 6px;
-                font-size: 10px;
-                min-width: 16px;
-                text-align: center;
-                z-index: 10;
-            `;
-            navItem.style.position = 'relative';
-            navItem.appendChild(badge);
+    if (updated) {
+        saveGame();
+        // 立即更新导航栏徽章（根据免打扰状态）
+        if (typeof updateNavMessageBadge === 'function') {
+            updateNavMessageBadge();
         }
-        badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
-        badge.style.display = 'block';
-    } else if (badge) {
-        // 如果总未读数为0，隐藏徽章
-        badge.style.display = 'none';
     }
 }
 
@@ -349,28 +372,56 @@ function updateNavMessageBadge() {
 function clearMessagesByType(type) {
     if (!gameState.messages || gameState.messages.length === 0) return;
     
-    showConfirm(`确定要清空${type === 'all' ? '所有' : type === 'like' ? '点赞' : type === 'comment' ? '评论' : '转发'}消息吗？`, function(confirmed) {
+    const typeNames = {
+        all: '所有',
+        like: '点赞',
+        comment: '评论',
+        share: '转发'
+    };
+    
+    showConfirm(`确定要清空${typeNames[type] || '所有'}消息吗？此操作不可恢复！`, function(confirmed) {
         if (confirmed) {
+            const beforeCount = gameState.messages.length;
+            
             if (type === 'all') {
                 gameState.messages = [];
             } else {
                 gameState.messages = gameState.messages.filter(msg => msg.type !== type);
             }
-            saveGame();
-            updateNavMessageBadge();
-            renderMessagesFullscreenPage(type);
-            showNotification('清空成功', '消息已清空');
+            
+            const afterCount = gameState.messages.length;
+            
+            if (afterCount < beforeCount) {
+                saveGame();
+                showNotification('清空成功', `已清空${beforeCount - afterCount}条消息`);
+                
+                // 立即更新UI（根据免打扰状态）
+                if (typeof renderMessagesFullscreenPage === 'function') {
+                    renderMessagesFullscreenPage(type);
+                }
+                if (typeof updateNavMessageBadge === 'function') {
+                    updateNavMessageBadge();
+                }
+                if (typeof updateMessageFilterBadges === 'function') {
+                    updateMessageFilterBadges();
+                }
+            }
         }
-    });
+    }, '清空确认');
 }
 
-// 全部已读（修复版 - 同时处理私信和系统消息）
+// 全部已读
 function markAllRead() {
     // 标记普通消息已读
-    gameState.messages.forEach(msg => msg.read = true);
-    gameState.notifications.forEach(n => n.read = true);
+    if (gameState.messages) {
+        gameState.messages.forEach(msg => msg.read = true);
+    }
     
-    // ✅ 修复：同时标记所有私信为已读
+    if (gameState.notifications) {
+        gameState.notifications.forEach(n => n.read = true);
+    }
+    
+    // 标记所有私信为已读
     if (gameState.privateMessageSystem && gameState.privateMessageSystem.conversations) {
         gameState.privateMessageSystem.conversations.forEach(conv => {
             conv.unreadCount = 0;
@@ -378,7 +429,7 @@ function markAllRead() {
         gameState.privateMessageSystem.unreadCount = 0;
     }
     
-    // ✅ 新增：标记系统消息已读
+    // 标记系统消息已读
     if (gameState.systemMessages && gameState.systemMessages.messages) {
         gameState.systemMessages.messages.forEach(msg => {
             msg.read = true;
@@ -386,15 +437,21 @@ function markAllRead() {
         gameState.systemMessages.unreadCount = 0;
     }
     
-    // 立即更新UI
-    updateNavMessageBadge();
-    updatePrivateMessageUI();
-    updateMessageFilterBadges(); // ✅ 新增：更新顶部四个按钮的小红点
+    // 立即更新所有UI
+    if (typeof updateNavMessageBadge === 'function') {
+        updateNavMessageBadge();
+    }
+    if (typeof updatePrivateMessageUI === 'function') {
+        updatePrivateMessageUI();
+    }
+    if (typeof updateMessageFilterBadges === 'function') {
+        updateMessageFilterBadges();
+    }
     if (typeof updateSystemMessagesUI === 'function') {
         updateSystemMessagesUI();
     }
     
-    // 如果当前在消息页面，刷新显示
+    // 关键修复：重新渲染消息中心页面，确保横条红点/蓝点显示正确
     if (typeof showMessagesFullscreen === 'function') {
         showMessagesFullscreen();
     }
@@ -419,7 +476,7 @@ function openUserProfileFromComment(username, avatar) {
     }, 100);
 }
 
-// ==================== 新增：消息实时更新系统 ====================
+// ==================== 消息实时更新系统 ====================
 
 // 启动消息实时更新
 function startMessagesRealtimeUpdate() {
@@ -432,19 +489,30 @@ function startMessagesRealtimeUpdate() {
         const activePage = document.querySelector('.fullscreen-page.active');
         if (activePage && activePage.id.startsWith('messages')) {
             // 获取当前消息类型
-            const pageId = activePage.id; // messagesAllPage, messagesLikePage等
+            const pageId = activePage.id;
             const type = pageId.replace('messages', '').replace('Page', '').toLowerCase();
             
             // 重新渲染当前页面
-            renderMessagesFullscreenPage(type);
+            if (typeof renderMessagesFullscreenPage === 'function') {
+                renderMessagesFullscreenPage(type);
+            }
         }
         
-        // ✅ 更新消息页面的四个按钮小红点
-        updateMessageFilterBadges();
+        // 更新消息页面的四个按钮小红点
+        if (typeof updateMessageFilterBadges === 'function') {
+            updateMessageFilterBadges();
+        }
         
         // 更新导航栏消息徽章
-        updateNavMessageBadge();
-    }, 1000); // 每秒检查一次
+        if (typeof updateNavMessageBadge === 'function') {
+            updateNavMessageBadge();
+        }
+        
+        // ✅ 关键修复：更新消息中心横条的红点/蓝点
+        if (typeof updateMessageCenterBars === 'function') {
+            updateMessageCenterBars();
+        }
+    }, 3000);
 }
 
 // 停止消息实时更新
@@ -458,14 +526,13 @@ function stopMessagesRealtimeUpdate() {
 // 页面切换时自动停止/启动更新
 const originalSwitchTab = window.switchTab;
 window.switchTab = function(tab) {
-    // 先执行原始逻辑
-    originalSwitchTab(tab);
+    if (originalSwitchTab) {
+        originalSwitchTab(tab);
+    }
     
-    // 如果切换到消息页，启动更新
     if (tab === 'messages') {
         startMessagesRealtimeUpdate();
     } else {
-        // 切换到其他页面时停止更新（节省性能）
         stopMessagesRealtimeUpdate();
     }
 };
@@ -473,21 +540,23 @@ window.switchTab = function(tab) {
 // 打开全屏消息页时启动更新
 const originalOpenMessagesFullscreenPage = window.openMessagesFullscreenPage;
 window.openMessagesFullscreenPage = function(type) {
-    originalOpenMessagesFullscreenPage(type);
+    if (originalOpenMessagesFullscreenPage) {
+        originalOpenMessagesFullscreenPage(type);
+    }
     startMessagesRealtimeUpdate();
 };
 
 // 关闭全屏消息页时停止更新
 const originalCloseMessagesFullscreenPage = window.closeMessagesFullscreenPage;
 window.closeMessagesFullscreenPage = function(pageName) {
-    originalCloseMessagesFullscreenPage(pageName);
+    if (originalCloseMessagesFullscreenPage) {
+        originalCloseMessagesFullscreenPage(pageName);
+    }
     stopMessagesRealtimeUpdate();
 };
 
 // 绑定全局函数
-window.showMessagesFullscreen = showMessagesFullscreen;
-window.openMessagesFullscreenPage = openMessagesFullscreenPage;
-window.closeMessagesFullscreenPage = closeMessagesFullscreenPage;
+window.currentMessageFilter = window.currentMessageFilter || 'all';
 window.renderMessagesFullscreenPage = renderMessagesFullscreenPage;
 window.markMessagesAsReadByType = markMessagesAsReadByType;
 window.updateNavMessageBadge = updateNavMessageBadge;
@@ -496,3 +565,12 @@ window.markAllRead = markAllRead;
 window.openUserProfileFromMessage = openUserProfileFromMessage;
 window.openUserProfileFromComment = openUserProfileFromComment;
 window.updateMessageFilterBadges = updateMessageFilterBadges;
+window.showMessagesFullscreen = showMessagesFullscreen;
+window.openMessagesFullscreenPage = openMessagesFullscreenPage;
+window.closeMessagesFullscreenPage = closeMessagesFullscreenPage;
+window.startMessagesRealtimeUpdate = startMessagesRealtimeUpdate;
+window.stopMessagesRealtimeUpdate = stopMessagesRealtimeUpdate;
+// ✅ 新增：导出横条更新函数
+window.updateMessageCenterBars = updateMessageCenterBars;
+
+console.log('消息中心系统已加载');

@@ -33,7 +33,7 @@ const privateMessageTemplates = {
         { content: "取关了！内容越来越没质量", weight: 4 },
         { content: "就这？我还以为多厉害呢", weight: 3 },
         { content: "就知道接广告，还有良心吗？", weight: 4 },
-        { content: "举报了！等着被封号吧！", weight: 2 },
+        { content: "举报了，等着被封号吧！", weight: 2 },
         { content: "收钱办事的垃圾主播", weight: 3 },
         { content: "技术这么差还教别人？", weight: 3 },
         { content: "天天就知道卖惨骗礼物", weight: 3 },
@@ -44,6 +44,82 @@ const privateMessageTemplates = {
         { content: "别信这个主播，是骗子", weight: 2 }
     ]
 };
+
+// 私信实时更新定时器（新增）
+let privateMessagesUpdateInterval = null;
+window.isPrivateMessageListOpen = false;
+
+// 启动私信列表实时更新（新增）
+function startPrivateMessagesRealtimeUpdate() {
+    // 如果已经存在定时器，先停止
+    if (privateMessagesUpdateInterval) {
+        clearInterval(privateMessagesUpdateInterval);
+    }
+    
+    // 每4秒更新一次私信列表（比消息中心稍慢，避免性能问题）
+    privateMessagesUpdateInterval = setInterval(() => {
+        // 只有在私信列表页面打开时才更新
+        if (window.isPrivateMessageListOpen) {
+            // 检查是否有新的私信
+            const hasNewMessages = checkForNewPrivateMessages();
+            
+            if (hasNewMessages) {
+                // 重新渲染私信列表
+                if (typeof renderPrivateMessageList === 'function') {
+                    renderPrivateMessageList();
+                }
+                
+                // 更新导航栏徽章
+                if (typeof updateNavMessageBadge === 'function') {
+                    updateNavMessageBadge();
+                }
+                
+                // 更新消息中心页面
+                if (typeof showMessagesFullscreen === 'function') {
+                    showMessagesFullscreen();
+                }
+            }
+        }
+    }, 4000);
+    
+    console.log('私信列表实时更新已启动');
+}
+
+// 停止私信列表实时更新（新增）
+function stopPrivateMessagesRealtimeUpdate() {
+    if (privateMessagesUpdateInterval) {
+        clearInterval(privateMessagesUpdateInterval);
+        privateMessagesUpdateInterval = null;
+        console.log('私信列表实时更新已停止');
+    }
+}
+
+// 检查是否有新的私信（新增）
+function checkForNewPrivateMessages() {
+    if (!gameState.privateMessageSystem || !gameState.privateMessageSystem.conversations) {
+        return false;
+    }
+    
+    // 检查最后更新时间
+    const now = gameTimer;
+    const timeDiff = now - gameState.privateMessageSystem.lastCheckTime;
+    
+    // 根据粉丝数量决定检查频率
+    const baseCheckInterval = VIRTUAL_MINUTE_MS * 15; // 15虚拟分钟
+    const fanBonus = Math.min(gameState.fans / 1000, 0.5); // 粉丝越多检查越频繁
+    
+    if (timeDiff < baseCheckInterval * (1 - fanBonus)) {
+        return false;
+    }
+    
+    // 更新最后检查时间
+    gameState.privateMessageSystem.lastCheckTime = now;
+    
+    // 检查是否有未读消息
+    const totalUnread = gameState.privateMessageSystem.conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+    
+    return totalUnread > 0;
+}
 
 // 生成随机用户名
 function generateRandomPrivateMessageUser() {
@@ -126,14 +202,21 @@ function generatePrivateMessage() {
     
     system.unreadCount++;
     
-    // 更新UI
-    updatePrivateMessageUI();
+    // 更新UI（如果私信列表已打开）
+    if (window.isPrivateMessageListOpen) {
+        if (typeof updatePrivateMessageUI === 'function') {
+            updatePrivateMessageUI();
+        }
+        if (typeof showMessagesFullscreen === 'function') {
+            showMessagesFullscreen();
+        }
+    }
+    
     saveGame();
     
     // 触发通知（如果是负面消息）
     if (!messageData.isPositive) {
         showNotification('📩 负面私信', `${userData.username}: ${messageData.content.substring(0, 20)}...`);
-        // ✅ 已移除：负面私信不再增加警告次数
     }
 }
 
@@ -141,8 +224,9 @@ function generatePrivateMessage() {
 function startPrivateMessageGeneration() {
     if (!gameState.privateMessageSystem) initPrivateMessageSystem();
     
-    // 避免重复启动
+    // 先检查是否已存在定时器，避免重复创建
     if (gameState.privateMessageSystem.generationInterval) {
+        console.log('私信生成定时器已存在，先清除旧定时器');
         clearInterval(gameState.privateMessageSystem.generationInterval);
     }
     
@@ -151,6 +235,8 @@ function startPrivateMessageGeneration() {
         // 在隐私设置中可以有开关控制是否接收私信
         generatePrivateMessage();
     }, 15000); // 15秒一次
+    
+    console.log('私信生成定时器已启动');
 }
 
 // 停止私信生成
@@ -158,10 +244,11 @@ function stopPrivateMessageGeneration() {
     if (gameState.privateMessageSystem && gameState.privateMessageSystem.generationInterval) {
         clearInterval(gameState.privateMessageSystem.generationInterval);
         gameState.privateMessageSystem.generationInterval = null;
+        console.log('私信生成定时器已停止');
     }
 }
 
-// 更新私信UI（增强版 - 支持导航栏小红点）
+// 更新私信UI
 function updatePrivateMessageUI() {
     if (!gameState.privateMessageSystem) return;
     
@@ -183,23 +270,16 @@ function updatePrivateMessageUI() {
     
     // 更新主页面消息导航栏的小红点（包含私信）
     updateNavMessageBadge();
-    
-    // 如果有打开私信列表或聊天界面，更新它们
-    if (document.getElementById('privateMessagesPage')?.classList.contains('active')) {
-        renderPrivateMessageList();
-    }
-    
-    const chatPage = document.getElementById('privateChatPage');
-    if (chatPage?.classList.contains('active')) {
-        const username = chatPage.dataset.currentUser;
-        if (username) {
-            renderPrivateChat(username);
-        }
-    }
 }
 
 // 显示私信列表（全屏）
 function showPrivateMessageList() {
+    // 标记私信列表为打开状态（新增）
+    window.isPrivateMessageListOpen = true;
+    
+    // 启动实时更新（新增）
+    startPrivateMessagesRealtimeUpdate();
+    
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
     
@@ -266,8 +346,14 @@ function renderPrivateMessageList() {
     `;
 }
 
-// 打开私信聊天界面
+// 打开私信聊天界面（保持静态，不启动实时更新）
 function openPrivateChat(username) {
+    // 标记私信列表为关闭状态（新增）
+    window.isPrivateMessageListOpen = false;
+    
+    // 停止实时更新（新增）
+    stopPrivateMessagesRealtimeUpdate();
+    
     const page = document.getElementById('privateMessagesPage');
     page.classList.remove('active');
     
@@ -279,7 +365,7 @@ function openPrivateChat(username) {
     const system = gameState.privateMessageSystem;
     const conversation = system.conversations.find(c => c.username === username);
     if (conversation) {
-        // ✅ 修复：将未读数清零
+        // 修复：将未读数清零
         system.unreadCount -= conversation.unreadCount;
         conversation.unreadCount = 0;
         updatePrivateMessageUI();
@@ -289,7 +375,7 @@ function openPrivateChat(username) {
     renderPrivateChat(username);
 }
 
-// 渲染聊天界面
+// 渲染聊天界面（保持静态，不添加实时更新）
 function renderPrivateChat(username) {
     const content = document.getElementById('privateChatPageContent');
     if (!content) return;
@@ -340,7 +426,7 @@ function renderPrivateChat(username) {
         <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #161823; border-top: 1px solid #333; padding: 10px;">
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="privateMessageInput" placeholder="回复 ${username}..." 
-                       style="flex: 1; background: #222; border: 1px solid #333; border-radius: 20px; padding: 10px 15px; color: #fff; font-size: 14px;">
+                       style="flex: 1; background: #222; border: 1px solid #333; color: #fff; border-radius: 20px; padding: 10px 15px; font-size: 14px;">
                 <button onclick="sendPrivateMessage('${username}')" 
                         style="background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); color: #000; border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 16px;">
                     ➤
@@ -389,11 +475,21 @@ function sendPrivateMessage(username) {
     showNotification('私信已发送', '你的回复已发送给 ' + username);
 }
 
-// 关闭私信列表
+// 关闭私信列表（新增停止更新）
 function closePrivateMessageList() {
+    // 标记私信列表为关闭状态（新增）
+    window.isPrivateMessageListOpen = false;
+    
+    // 停止实时更新（新增）
+    stopPrivateMessagesRealtimeUpdate();
+    
     document.getElementById('privateMessagesPage').classList.remove('active');
-    document.getElementById('mainContent').style.display = 'block';
-    document.querySelector('.bottom-nav').style.display = 'flex';
+    
+    const activeFullscreenPages = document.querySelectorAll('.fullscreen-page.active');
+    if (activeFullscreenPages.length === 0) {
+        document.getElementById('mainContent').style.display = 'block';
+        document.querySelector('.bottom-nav').style.display = 'flex';
+    }
     
     // 更新显示
     updateDisplay();
@@ -404,8 +500,8 @@ function closePrivateChat() {
     document.getElementById('privateChatPage').classList.remove('active');
     document.getElementById('privateChatPage').dataset.currentUser = '';
     
-    // 返回列表
-    document.getElementById('privateMessagesPage').classList.add('active');
+    // ✅ 重要：返回列表时重新启动实时更新
+    showPrivateMessageList();
 }
 
 // 在游戏加载时初始化
@@ -442,3 +538,9 @@ window.startPrivateMessageGeneration = startPrivateMessageGeneration;
 window.stopPrivateMessageGeneration = stopPrivateMessageGeneration;
 window.initPrivateMessageOnGameLoad = initPrivateMessageOnGameLoad;
 window.cleanupPrivateMessages = cleanupPrivateMessages;
+// ✅ 新增：导出实时更新相关函数
+window.startPrivateMessagesRealtimeUpdate = startPrivateMessagesRealtimeUpdate;
+window.stopPrivateMessagesRealtimeUpdate = stopPrivateMessagesRealtimeUpdate;
+window.checkForNewPrivateMessages = checkForNewPrivateMessages;
+
+console.log('私信系统模块已加载');

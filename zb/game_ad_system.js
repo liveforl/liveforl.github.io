@@ -3,6 +3,85 @@
 // 依赖: game_core.js (gameState, gameTimer, VIRTUAL_DAY_MS, violationKeywords)
 // 依赖: game_ui.js (showNotification, showWarning, showAlert, updateDisplay, closeFullscreenPage)
 
+// ==================== 新增：底部弹窗通知函数 ====================
+function showBottomPopup(title, content) {
+    // 创建弹窗元素
+    const popup = document.createElement('div');
+    popup.className = 'bottom-popup';
+    popup.innerHTML = `
+        <div class="bottom-popup-content">
+            <div class="bottom-popup-title">${title}</div>
+            <div class="bottom-popup-message">${content}</div>
+        </div>
+    `;
+    
+    // 添加样式
+    const style = document.createElement('style');
+    style.textContent = `
+        .bottom-popup {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 -4px 20px rgba(102, 126, 234, 0.4);
+            z-index: 9999;
+            transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bottom-popup.show {
+            bottom: 0;
+        }
+        .bottom-popup-content {
+            padding: 18px 20px;
+            color: #fff;
+        }
+        .bottom-popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .bottom-popup-title::before {
+            content: "💰";
+            font-size: 18px;
+        }
+        .bottom-popup-message {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+    `;
+    
+    // 确保样式只添加一次
+    if (!document.querySelector('#bottomPopupStyle')) {
+        style.id = 'bottomPopupStyle';
+        document.head.appendChild(style);
+    }
+    
+    // 添加到页面
+    document.body.appendChild(popup);
+    
+    // 触发动画
+    setTimeout(() => {
+        popup.classList.add('show');
+    }, 100);
+    
+    // 3.5秒后自动消失
+    setTimeout(() => {
+        popup.classList.remove('show');
+        setTimeout(() => {
+            if (document.body.contains(popup)) {
+                document.body.removeChild(popup);
+            }
+        }, 400);
+    }, 3500);
+}
+
 // ==================== 商单数据库（重构）=======================
 window.adOrdersDB = [
     // 低风险商单（真实）
@@ -238,7 +317,7 @@ window.selectMethod = function(m) {
     if (form) form.style.display = 'block'; 
 };
 
-// ==================== 发布商单内容（重构） ====================
+// ==================== 发布商单内容（重构版：从零开始 + 粉丝增长） ====================
 window.publishAd = function() {
     const content = document.getElementById('adContent').value.trim();
     const ad = window.selectedAdOrder;
@@ -257,14 +336,24 @@ window.publishAd = function() {
     
     if (hasViolation) {
         window.gameState.warnings = Math.min(20, window.gameState.warnings + Math.floor(Math.random() * 2) + 1);
+        
+        // ✅ 修改：添加警告历史记录
+        if (typeof addWarningToHistory === 'function') {
+            addWarningToHistory('AD_VIOLATION', 
+                `商单内容违规${ad.keyword ? `（包含关键词"${ad.keyword}"）` : ''}`, 
+                content.substring(0, 50) + (content.length > 50 ? '...' : ''));
+        }
+        
         if (typeof window.showWarning === 'function') {
             window.showWarning(`商单内容违规，警告${window.gameState.warnings}/20次`);
         }
+        
         if (window.gameState.warnings >= 20) {
             if (typeof window.banAccount === 'function') {
                 window.banAccount('商单违规');
             }
         }
+        
         window.gameState.rejectedAdOrders++;
         
         closeFullscreenPage('adOrders');
@@ -273,11 +362,11 @@ window.publishAd = function() {
         return;
     }
     
-    // 成功发布
-    const views = Math.floor(Math.random() * 15000 + 5000);
-    const likes = Math.floor(Math.random() * 1500 + 100);
-    const comments = Math.floor(Math.random() * 200 + 20);
-    const shares = Math.floor(Math.random() * 100 + 10);
+    // 成功发布（修改：从零开始）
+    const views = 0; // ✅ 从0开始
+    const likes = 0; // ✅ 从0开始
+    const comments = 0; // ✅ 从0开始
+    const shares = 0; // ✅ 从0开始
     const work = { 
         id: Date.now(), 
         type: window.selectedMethod, 
@@ -289,21 +378,24 @@ window.publishAd = function() {
         time: window.gameTimer, 
         isAd: true, 
         adOrder: ad, // 保存商单信息
-        revenue: Math.floor((Math.random() * 15000 + 5000) / 1000), 
+        revenue: Math.floor((Math.random() * 15000 + 5000) / 1000), // ✅ 收益保留，但初始播放量为0
         isPrivate: false,
-        hasNegativeComments: false  // 是否有负面评论
+        hasNegativeComments: false,  // 是否有负面评论
+        // ✅ 移除：不再需要单独的粉丝增长定时器
+        // growthEndTime: null,
+        // fanGrowthInterval: null
     };
     
     window.gameState.worksList.push(work);
     window.gameState.works++;
     
-    // 只统计视频和直播的播放量
+    // 只统计视频和直播的播放量（初始为0）
     if (work.type === 'video' || work.type === 'live') {
-        window.gameState.views += work.views;
+        // window.gameState.views += work.views; // ✅ 从0开始，不增加
     }
     
-    window.gameState.likes += work.likes;
-    window.gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
+    // window.gameState.likes += work.likes; // ✅ 从0开始，不增加
+    window.gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5)); // ✅ 收益影响粉丝（但views初始为0，所以基本不增加）
     window.gameState.money += ad.actualReward;
     window.gameState.adOrdersCount++;
     
@@ -316,14 +408,12 @@ window.publishAd = function() {
     if (window.gameState.adOrdersCount % 10 === 0) {
         const fanLoss = Math.floor(Math.random() * 1000) + 500;
         window.gameState.fans = Math.max(0, window.gameState.fans - fanLoss);
-        if (typeof window.showNotification === 'function') {
-            window.showNotification('粉丝疲劳', `长期接商单导致粉丝流失：${fanLoss}`);
-        }
+        // ✅ 修改：使用涨掉粉通知系统
+        addFanChangeNotification('⬇️', `长期接商单导致粉丝流失：${fanLoss.toLocaleString()}`, '粉丝疲劳', 'loss', fanLoss);
     }
     
-    if (typeof window.showNotification === 'function') {
-        window.showNotification('商单完成', `获得${ad.actualReward}元`);
-    }
+    // ✅ 修改：只显示小弹窗通知，移除通知中心通知
+    showEventPopup('🎉 商单完成', `成功完成 "${ad.title}" 商单，获得 ${ad.actualReward.toLocaleString()} 元报酬！`);
     
     // 检查成就
     checkAdAchievements();
@@ -342,12 +432,27 @@ window.publishAd = function() {
         window.resetInactivityDropState();
     }
     
+    // ✅ ✅ ✅ 关键修改：将作品加入全局粉丝增长系统，而不是启动单独定时器
+    if (typeof window.addWorkToGlobalFanGrowth === 'function') {
+        window.addWorkToGlobalFanGrowth(work.id, true); // isNewWork = true
+    }
+    
     if (typeof window.updateDisplay === 'function') {
         window.updateDisplay();
     }
     
     saveGame();
 };
+
+// ==================== 选择发布方式 ====================
+window.selectMethod = function(m) { 
+    window.selectedMethod = m; 
+    const form = document.getElementById('publishForm');
+    if (form) form.style.display = 'block'; 
+};
+
+// ==================== 发布商单内容（重构版：从零开始 + 粉丝增长） ====================
+window.publishAd = window.publishAd;
 
 // ==================== 月底商单检查（修复版：支持所有月份）=======================
 window.checkMonthlyAdOrders = function() {
@@ -389,6 +494,14 @@ window.checkMonthlyAdOrders = function() {
             work.adOrder.isChecked = true;
             work.adOrder.isExposed = true;
             work.hasNegativeComments = true;
+            
+            // ✅ 修复：如果作品有粉丝增长定时器，清理它
+            if (work.fanGrowthInterval) {
+                clearInterval(work.fanGrowthInterval);
+                work.fanGrowthInterval = null;
+                work.growthEndTime = null;
+                console.log(`[商单查处] 作品 ${work.id} 的粉丝增长定时器已清理`);
+            }
         }
     });
     
@@ -408,31 +521,100 @@ window.checkMonthlyAdOrders = function() {
         window.gameState.appealAvailable = true;
         
         // 4. 强制结束直播
-        if (window.gameState.liveStatus && typeof window.endLiveStream === 'function') {
-            window.endLiveStream();
-            if (typeof window.showNotification === 'function') {
-                window.showNotification('直播中断', '账号被封禁，直播已强制结束');
+        if (gameState.liveStatus && typeof endLiveStream === 'function') {
+            endLiveStream();
+            if (typeof window.showEventPopup === 'function') {
+                showEventPopup('🚫 直播中断', '虚假商单曝光，直播已强制结束');
             }
         }
         
         // 5. 停止所有推广
-        Object.keys(window.gameState.trafficWorks).forEach(workId => {
-            if (typeof window.stopTrafficForWork === 'function') {
-                window.stopTrafficForWork(workId);
+        Object.keys(gameState.trafficWorks).forEach(workId => {
+            if (typeof stopTrafficForWork === 'function') {
+                stopTrafficForWork(workId);
             }
         });
         
         // 6. 开始持续掉粉惩罚（修复版：不会重置已有惩罚）
         startFakeAdFanLoss(exposedWorks, true);
         
+        // ✅ 添加警告历史记录（虚假商单查处）
+        if (typeof addWarningToHistory === 'function') {
+            exposedWorks.forEach(work => {
+                addWarningToHistory('FAKE_AD', 
+                    `虚假商单"${work.adOrder.title}"被平台查处`, 
+                    work.content.substring(0, 50) + (work.content.length > 50 ? '...' : ''));
+            });
+        }
+        
         // 7. 负面新闻
         if (typeof window.startPublicOpinionCrisis === 'function') {
             window.startPublicOpinionCrisis('⚠️ 虚假商单丑闻');
         }
         
-        // 显示通知
-        if (typeof window.showNotification === 'function') {
-            window.showNotification('🚨 虚假商单被查处！', `罚款${totalFine.toLocaleString()}元，封号${banDays}天，粉丝将持续流失！`);
+        // ✅ 新增：删除被检测到的虚假商单视频
+        exposedWorks.forEach(work => {
+            // 找到作品索引
+            const workIndex = window.gameState.worksList.findIndex(w => w.id === work.id);
+            if (workIndex !== -1) {
+                // 从统计数据中减去该视频的贡献
+                if (work.type === 'video' || work.type === 'live') {
+                    window.gameState.views = Math.max(0, window.gameState.views - work.views);
+                }
+                window.gameState.likes = Math.max(0, window.gameState.likes - work.likes);
+                
+                // 更新作品计数器
+                window.gameState.works = Math.max(0, window.gameState.works - 1);
+                
+                // 更新总互动数
+                const interactionCount = work.comments + work.likes + work.shares;
+                window.gameState.totalInteractions = Math.max(0, window.gameState.totalInteractions - interactionCount);
+                
+                // 清理推荐定时器
+                if (work.recommendInterval) {
+                    clearInterval(work.recommendInterval);
+                    work.recommendInterval = null;
+                }
+                
+                // 清理争议定时器
+                if (work.controversyInterval) {
+                    clearInterval(work.controversyInterval);
+                    work.controversyInterval = null;
+                }
+                
+                // 清理热搜定时器
+                if (work.hotInterval) {
+                    clearInterval(work.hotInterval);
+                    work.hotInterval = null;
+                }
+                
+                // 清理抽奖相关定时器
+                if (work.isRaffle) {
+                    if (work.fanGrowthInterval) clearInterval(work.fanGrowthInterval);
+                    if (work.dataGrowthInterval) clearInterval(work.dataGrowthInterval);
+                    if (work.fanLossInterval) clearInterval(work.fanLossInterval);
+                    if (work.manualDrawWarningInterval) clearInterval(work.manualDrawWarningInterval);
+                    if (work.crazyFanLossInterval) clearInterval(work.crazyFanLossInterval);
+                }
+                
+                // 清理流量推广
+                if (window.gameState.trafficWorks[work.id]) {
+                    if (typeof stopTrafficForWork === 'function') {
+                        stopTrafficForWork(work.id);
+                    }
+                    delete window.gameState.trafficWorks[work.id];
+                }
+                
+                // 从列表中删除
+                window.gameState.worksList.splice(workIndex, 1);
+                
+                console.log(`[商单查处] 作品 ${work.id} 已被删除`);
+            }
+        });
+        
+        // ✅ 修改：使用小弹窗通知
+        if (typeof window.showEventPopup === 'function') {
+            showEventPopup('🚨 虚假商单被查处！', `罚款${totalFine.toLocaleString()}元，封号${banDays}天，粉丝将持续流失！`);
         }
         
         if (typeof window.showWarning === 'function') {
@@ -465,16 +647,16 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
         
         // 更新惩罚状态（合并）
         window.gameState.fakeAdPenalty.endTime = mergedEndTime;
-        window.gameState.fakeAdPenalty.dailyFanLoss = maxDailyFanLoss;
+        window.gameState.fakeAdPenalty.dailyFanLoss = maxDailyLoss;
         
         // 合并暴露的作品ID（去重）
         const existingIds = window.gameState.fakeAdPenalty.exposedWorkIds || [];
         const newIds = exposedWorks.map(w => w.id);
         window.gameState.fakeAdPenalty.exposedWorkIds = [...new Set([...existingIds, ...newIds])];
         
-        // 显示合并通知
-        if (typeof window.showNotification === 'function') {
-            window.showNotification('⚠️ 惩罚加重', `虚假商单丑闻恶化，惩罚延长至${Math.ceil(totalDays)}天！`);
+        // ✅ 修改：使用小弹窗通知
+        if (typeof showEventPopup === 'function') {
+            showEventPopup('⚠️ 惩罚加重', `虚假商单丑闻恶化，惩罚延长至${Math.ceil(totalDays)}天！`);
         }
         
         return; // 不启动新的定时器，让现有的继续运行
@@ -483,7 +665,6 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
     // 不存在活跃惩罚，清除现有定时器（如果有的话）并创建新的惩罚
     if (window.gameState.fakeAdPenaltyInterval) {
         clearInterval(window.gameState.fakeAdPenaltyInterval);
-        window.gameState.fakeAdPenaltyInterval = null;
     }
     
     // 创建新的惩罚状态
@@ -515,8 +696,9 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
             clearInterval(window.gameState.fakeAdPenaltyInterval);
             window.gameState.fakeAdPenaltyInterval = null;
             
-            if (typeof window.showNotification === 'function') {
-                window.showNotification('✅ 虚假商单影响结束', '粉丝的愤怒逐渐平息');
+            // ✅ 修改：使用小弹窗通知
+            if (typeof window.showEventPopup === 'function') {
+                showEventPopup('✅ 虚假商单影响结束', '粉丝的愤怒逐渐平息');
             }
             return;
         }
@@ -526,15 +708,15 @@ window.startFakeAdFanLoss = function(exposedWorks, isFromMonthlyCheck = false) {
         
         window.gameState.fans = Math.max(0, window.gameState.fans - lossAmount);
         
-        // ✅ 修改为每秒显示一次通知
+        // ✅ 修改为每秒显示一次通知（使用涨掉粉通知系统）
         const now = Date.now();
         const lastNotify = window.gameState.fakeAdPenalty.lastNotifyTime || 0;
         if (now - lastNotify > 1000) { // 从5000改为1000，实现每秒通知
             window.gameState.fakeAdPenalty.lastNotifyTime = now;
             const daysLeft = Math.ceil((window.gameState.fakeAdPenalty.endTime - window.gameTimer) / VIRTUAL_DAY_MS);
-            if (typeof window.showNotification === 'function') {
-                window.showNotification('📉 丑闻影响', `虚假商单丑闻持续发酵，粉丝流失-${lossAmount}（剩余${daysLeft}天）`);
-            }
+            
+            // ✅ 修改：使用涨掉粉通知系统
+            addFanChangeNotification('⬇️', `虚假商单丑闻持续发酵，粉丝流失-${lossAmount}（剩余${daysLeft}天）`, '虚假商单惩罚', 'loss', lossAmount);
         }
         
         if (typeof window.updateDisplay === 'function') {
@@ -586,8 +768,9 @@ window.resumeFakeAdPenalty = function() {
             clearInterval(window.gameState.fakeAdPenaltyInterval);
             window.gameState.fakeAdPenaltyInterval = null;
             
-            if (typeof window.showNotification === 'function') {
-                window.showNotification('✅ 虚假商单影响结束', '粉丝的愤怒逐渐平息');
+            // ✅ 修改：使用小弹窗通知
+            if (typeof window.showEventPopup === 'function') {
+                showEventPopup('✅ 虚假商单影响结束', '粉丝的愤怒逐渐平息');
             }
             return;
         }
@@ -597,15 +780,15 @@ window.resumeFakeAdPenalty = function() {
         
         window.gameState.fans = Math.max(0, window.gameState.fans - lossAmount);
         
-        // ✅ 修改为每秒显示一次通知
+        // ✅ 修改为每秒显示一次通知（使用涨掉粉通知系统）
         const now = Date.now();
         const lastNotify = window.gameState.fakeAdPenalty.lastNotifyTime || 0;
         if (now - lastNotify > 1000) { // 从5000改为1000，实现每秒通知
             window.gameState.fakeAdPenalty.lastNotifyTime = now;
             const daysLeft = Math.ceil((window.gameState.fakeAdPenalty.endTime - window.gameTimer) / VIRTUAL_DAY_MS);
-            if (typeof window.showNotification === 'function') {
-                window.showNotification('📉 丑闻影响', `虚假商单丑闻持续发酵，粉丝流失-${lossAmount}（剩余${daysLeft}天）`);
-            }
+            
+            // ✅ 修改：使用涨掉粉通知系统
+            addFanChangeNotification('⬇️', `虚假商单丑闻持续发酵，粉丝流失-${lossAmount}（剩余${daysLeft}天）`, '虚假商单惩罚', 'loss', lossAmount);
         }
         
         if (typeof window.updateDisplay === 'function') {
@@ -614,9 +797,10 @@ window.resumeFakeAdPenalty = function() {
     }, 1000);
     
     // 立即显示恢复提示
-    if (typeof window.showNotification === 'function') {
+    // ✅ 修改：使用小弹窗通知
+    if (typeof window.showEventPopup === 'function') {
         const daysLeft = Math.ceil(timeLeft / VIRTUAL_DAY_MS);
-        window.showNotification('⚠️ 惩罚恢复', `检测到未完成的虚假商单惩罚，持续掉粉中（剩余${daysLeft}天）`);
+        showEventPopup('⚠️ 惩罚恢复', `检测到未完成的虚假商单惩罚，持续掉粉中（剩余${daysLeft}天）`);
     }
 };
 
@@ -639,25 +823,78 @@ window.checkAdOrderExposure = function() {
             work.adOrder.isExposed = true;
             work.hasNegativeComments = true;
             
-            // 触发惩罚
+            // ✅ 新增：删除被检测到的虚假商单视频
+            const workIndex = window.gameState.worksList.findIndex(w => w.id === work.id);
+            if (workIndex !== -1) {
+                // 从统计数据中减去该视频的贡献
+                if (work.type === 'video' || work.type === 'live') {
+                    window.gameState.views = Math.max(0, window.gameState.views - work.views);
+                }
+                window.gameState.likes = Math.max(0, window.gameState.likes - work.likes);
+                
+                // 更新作品计数器
+                window.gameState.works = Math.max(0, window.gameState.works - 1);
+                
+                // 更新总互动数
+                const interactionCount = work.comments + work.likes + work.shares;
+                window.gameState.totalInteractions = Math.max(0, window.gameState.totalInteractions - interactionCount);
+                
+                // 清理推荐定时器
+                if (work.recommendInterval) {
+                    clearInterval(work.recommendInterval);
+                    work.recommendInterval = null;
+                }
+                
+                // 清理争议定时器
+                if (work.controversyInterval) {
+                    clearInterval(work.controversyInterval);
+                    work.controversyInterval = null;
+                }
+                
+                // 清理热搜定时器
+                if (work.hotInterval) {
+                    clearInterval(work.hotInterval);
+                    work.hotInterval = null;
+                }
+                
+                // 清理抽奖相关定时器
+                if (work.isRaffle) {
+                    if (work.fanGrowthInterval) clearInterval(work.fanGrowthInterval);
+                    if (work.dataGrowthInterval) clearInterval(work.dataGrowthInterval);
+                    if (work.fanLossInterval) clearInterval(work.fanLossInterval);
+                    if (work.manualDrawWarningInterval) clearInterval(work.manualDrawWarningInterval);
+                    if (work.crazyFanLossInterval) clearInterval(work.crazyFanLossInterval);
+                }
+                
+                // 清理流量推广
+                if (window.gameState.trafficWorks[work.id]) {
+                    if (typeof stopTrafficForWork === 'function') {
+                        stopTrafficForWork(work.id);
+                    }
+                    delete window.gameState.trafficWorks[work.id];
+                }
+                
+                // 从列表中删除
+                window.gameState.worksList.splice(workIndex, 1);
+                
+                // 显示删除通知
+                if (typeof window.showEventPopup === 'function') {
+                    showEventPopup('🗑️ 视频已删除', `虚假商单视频已被平台删除`);
+                }
+                
+                console.log(`[举报曝光] 作品 ${work.id} 已被删除`);
+            }
+            
+            // 罚款
             const fine = Math.floor(work.adOrder.actualReward * 1.5);
             window.gameState.money = Math.max(0, window.gameState.money - fine);
             window.gameState.warnings = Math.min(20, window.gameState.warnings + 3);
             
-            // ✅ 强制结束直播
-            if (window.gameState.liveStatus && typeof window.endLiveStream === 'function') {
-                window.endLiveStream();
-                if (typeof window.showNotification === 'function') {
-                    window.showNotification('直播中断', '账号被举报，直播已强制结束');
-                }
-            }
+            // ✅ 不中断直播（修复：移除了强制结束直播的代码）
+            // ✅ 修改：虚假商单被曝光不再强制结束直播
             
-            // ✅ 停止所有推广
-            Object.keys(window.gameState.trafficWorks).forEach(workId => {
-                if (typeof window.stopTrafficForWork === 'function') {
-                    window.stopTrafficForWork(workId);
-                }
-            });
+            // ✅ 不停止所有推广（修复：移除了停止所有推广的代码）
+            // ✅ 修改：虚假商单被曝光不再停止所有流量推广
             
             // 开始掉粉惩罚（修复版：不会重置已有惩罚）
             startFakeAdFanLoss([work]);
@@ -667,9 +904,23 @@ window.checkAdOrderExposure = function() {
                 window.startPublicOpinionCrisis('⚠️ 虚假商单被曝光');
             }
             
-            if (typeof window.showNotification === 'function') {
-                window.showNotification('🚨 虚假商单被曝光！', `罚款${fine}元，警告+3，粉丝开始流失！`);
+            // ✅ 添加警告历史记录（虚假商单被举报）
+            if (typeof addWarningToHistory === 'function') {
+                addWarningToHistory('FAKE_AD', 
+                    `虚假商单"${work.adOrder.title}"被网友举报`, 
+                    work.content.substring(0, 50) + (work.content.length > 50 ? '...' : ''));
             }
+            
+            // ✅ 修复：如果作品有粉丝增长定时器，清理它
+            if (work.fanGrowthInterval) {
+                clearInterval(work.fanGrowthInterval);
+                work.fanGrowthInterval = null;
+                work.growthEndTime = null;
+                console.log(`[举报曝光] 作品 ${work.id} 的粉丝增长定时器已清理`);
+            }
+            
+            // ✅ 修改：使用涨掉粉通知系统（罚款通知仍在通知中心）
+            showEventPopup('🚨 虚假商单被曝光！', `罚款${fine.toLocaleString()}元，警告+3，粉丝开始流失！`);
             
             if (typeof window.showWarning === 'function') {
                 window.showWarning(`虚假商单被曝光！警告${window.gameState.warnings}/20次`);
@@ -814,16 +1065,13 @@ window.rejectBrandDeal = function() {
     window.gameState.pendingBrandDeal.status = 'rejected';
     window.gameState.rejectedAdOrders++;
     
-    if (typeof window.showNotification === 'function') {
-        window.showNotification('合作已拒绝', '你拒绝了品牌合作机会');
+    // ✅ 修改：使用小弹窗通知
+    if (typeof window.showEventPopup === 'function') {
+        showEventPopup('合作已拒绝', '你拒绝了品牌合作机会');
     }
     
     if (typeof window.closeFullscreenPage === 'function') {
         window.closeFullscreenPage('adOrders');
-    }
-    
-    if (typeof window.updateDisplay === 'function') {
-        window.updateDisplay();
     }
 };
 
@@ -841,7 +1089,7 @@ window.selectBrandMethod = function(method) {
     }
 };
 
-// ==================== 发布品牌合作内容（保持原有逻辑） ====================
+// ==================== 发布品牌合作内容（修复版：从零开始 + 粉丝增长） ====================
 window.publishBrandAd = function() {
     const content = document.getElementById('brandAdContent').value.trim();
     const brandDeal = window.gameState.pendingBrandDeal;
@@ -856,11 +1104,11 @@ window.publishBrandAd = function() {
     // 检查违规
     if (typeof window.checkViolation === 'function' && window.checkViolation(content)) return;
     
-    // 成功发布
-    const views = Math.floor(Math.random() * 15000 + 5000);
-    const likes = Math.floor(Math.random() * 1500 + 100);
-    const comments = Math.floor(Math.random() * 200 + 20);
-    const shares = Math.floor(Math.random() * 100 + 10);
+    // 成功发布（修改：从零开始）
+    const views = 0; // ✅ 从0开始
+    const likes = 0; // ✅ 从0开始
+    const comments = 0; // ✅ 从0开始
+    const shares = 0; // ✅ 从0开始
     const work = { 
         id: Date.now(), 
         type: window.selectedBrandMethod || 'video', 
@@ -871,20 +1119,23 @@ window.publishBrandAd = function() {
         shares: shares, 
         time: window.gameTimer, 
         isAd: true, 
-        revenue: Math.floor(views / 1000), 
-        isPrivate: false 
+        revenue: Math.floor(views / 1000), // ✅ 收益从0开始计算
+        isPrivate: false,
+        // ✅ 移除：不再需要单独的粉丝增长定时器
+        // growthEndTime: null,
+        // fanGrowthInterval: null
     };
     
     window.gameState.worksList.push(work);
     window.gameState.works++;
     
-    // 只统计视频和直播的播放量
+    // 只统计视频和直播的播放量（初始为0）
     if (work.type === 'video' || work.type === 'live') {
-        window.gameState.views += work.views;
+        // window.gameState.views += work.views; // ✅ 从0开始，不增加
     }
     
-    window.gameState.likes += work.likes;
-    window.gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5));
+    // window.gameState.likes += work.likes; // ✅ 从0开始，不增加
+    window.gameState.fans += Math.floor(work.views / 1000 * (Math.random() * 2 + 0.5)); // ✅ 基本不增加粉丝
     window.gameState.money += brandDeal.actualReward;
     window.gameState.adOrdersCount++;
     
@@ -896,9 +1147,8 @@ window.publishBrandAd = function() {
     // 清空pending状态
     window.gameState.pendingBrandDeal = null;
     
-    if (typeof window.showNotification === 'function') {
-        window.showNotification('合作完成', `品牌合作完成，获得${brandDeal.actualReward}元`);
-    }
+    // ✅ 修改：只显示小弹窗通知，移除通知中心通知
+    showEventPopup('🎉 品牌合作完成', `品牌合作 "${brandDeal.title}" 已完成，获得 ${brandDeal.actualReward.toLocaleString()} 元报酬！`);
     
     if (typeof window.closeFullscreenPage === 'function') {
         window.closeFullscreenPage('adOrders');
@@ -915,7 +1165,22 @@ window.publishBrandAd = function() {
     if (typeof window.resetInactivityDropState === 'function') {
         window.resetInactivityDropState();
     }
+    
+    // ✅ ✅ ✅ 关键修改：将作品加入全局粉丝增长系统，而不是启动单独定时器
+    if (typeof window.addWorkToGlobalFanGrowth === 'function') {
+        window.addWorkToGlobalFanGrowth(work.id, true); // isNewWork = true
+    }
 };
+
+// ==================== 选择发布方式 ====================
+window.selectMethod = function(m) { 
+    window.selectedMethod = m; 
+    const form = document.getElementById('publishForm');
+    if (form) form.style.display = 'block'; 
+};
+
+// ==================== 发布商单内容（重构版：从零开始 + 粉丝增长） ====================
+window.publishAd = window.publishAd;
 
 // ==================== 高商单数惩罚机制（保持原有逻辑） ====================
 window.checkHighAdCountPenalty = function() {
@@ -937,8 +1202,9 @@ window.checkHighAdCountPenalty = function() {
         window.gameState.adOrdersCount = 0;
         
         // 4. 显示通知
-        if (typeof window.showNotification === 'function') {
-            window.showNotification('⚠️ 粉丝疲劳爆发', `长期接商单引发粉丝不满！惩罚持续${penaltyDays}虚拟天`);
+        // ✅ 修改：使用小弹窗通知
+        if (typeof window.showEventPopup === 'function') {
+            showEventPopup('⚠️ 粉丝疲劳爆发', `长期接商单引发粉丝不满！惩罚持续${penaltyDays}虚拟天`);
         }
         
         // 5. 启动惩罚期专用定时器
@@ -955,8 +1221,9 @@ window.checkHighAdCountPenalty = function() {
                 window.gameState.adOrdersPenaltyActive = false;
                 window.gameState.adOrdersPenaltyIntensity = 0;
                 
-                if (typeof window.showNotification === 'function') {
-                    window.showNotification('✅ 粉丝疲劳缓解', '经过休息，粉丝对你的印象有所好转');
+                // ✅ 修改：使用小弹窗通知
+                if (typeof window.showEventPopup === 'function') {
+                    showEventPopup('✅ 粉丝疲劳缓解', '经过休息，粉丝对你的印象有所好转');
                 }
                 
                 if (typeof window.updateDisplay === 'function') {
@@ -979,9 +1246,8 @@ window.checkHighAdCountPenalty = function() {
                 
                 // 20%概率显示通知
                 if (Math.random() < 0.20) {
-                    if (typeof window.showNotification === 'function') {
-                        window.showNotification('📉 粉丝疲劳', `因长期接商单失去${dropAmount}个粉丝`);
-                    }
+                    // ✅ 修改：使用涨掉粉通知系统
+                    addFanChangeNotification('⬇️', '因长期接商单失去粉丝', '粉丝疲劳', 'loss', dropAmount);
                 }
                 
                 if (typeof window.updateDisplay === 'function') {
@@ -1004,11 +1270,11 @@ function checkAdAchievements() {
     const adAchievements = [
         { id: 21, name: '商单新人', desc: '完成首个商单', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 1 },
         { id: 22, name: '广告达人', desc: '完成10个商单', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 10 },
-        { id: 23, name: '百万单王', desc: '单次商单收入超50万', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate).some(w => w.revenue >= 50000) },
+        { id: 23, name: '百万单王', desc: '单次商单收入超50万', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate).some(w => (w.revenue || 0) >= 50000) },
         { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', target: () => window.gameState.rejectedAdOrders >= 5 },
         { id: 25, name: '商单大师', desc: '完成50个商单且未违规', target: () => window.gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && window.gameState.warnings < 5 },
         // 新增成就
-        { id: 26, name: '赌徒', desc: '完成10个虚假商单', target: () => window.gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length >= 10 },
+        { id: 26, name: '赌徒', desc: '完成10个虚假商单', target: () => window.gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate && !w.adOrder.isExposed).length >= 10 },
         { id: 27, name: '身败名裂', desc: '因虚假商单被封号3次', target: () => window.gameState.fakeAdBans >= 3 },
         { id: 28, name: '诚信经营', desc: '连续3个月无虚假商单', target: () => window.gameState.monthsWithoutFakeAd >= 3 }
     ];
@@ -1110,7 +1376,7 @@ if (typeof window.gameState !== 'undefined') {
     initAdSystem();
 }
 
-console.log('商单系统模块（重构版）已加载');
+console.log('商单系统模块（重构版：支持粉丝增长）已加载');
 
 // ==================== 全局函数绑定 ====================
 window.generateAdOrder = window.generateAdOrder;
@@ -1133,3 +1399,4 @@ window.generateCommentsWithNegative = window.generateCommentsWithNegative;
 window.startMonthlyCheck = window.startMonthlyCheck;
 window.startExposureCheck = window.startExposureCheck;
 window.resumeFakeAdPenalty = window.resumeFakeAdPenalty;
+window.showBottomPopup = showBottomPopup;

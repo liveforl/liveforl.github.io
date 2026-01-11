@@ -167,6 +167,12 @@ let gameState = {
     fakeAdBans: 0,
     monthsWithoutFakeAd: 0,
     lastCheckMonth: -1,
+    // ✅ 修复：补充舆论风波系统缺失的初始状态
+    isPublicOpinionCrisis: false,
+    publicOpinionDaysCount: 0,
+    publicOpinionStartTime: null,
+    publicOpinionInterval: null,
+    publicOpinionTitle: '',
     
     // ✅ 新增功能：关注列表和评论点赞状态
     following: [], // 关注列表
@@ -197,11 +203,11 @@ let gameState = {
     // ✅ 新增：社交达人成就计数
     followingCount: 0, // 关注人数（冗余字段，实际用following.length）
     
-    // ✅ 新增：全勤主播成就相关
-    daysWithoutUpdate: 0, // 连续不更新的天数（用于反向计算）
+    // ✅ 新增：基础涨粉/掉粉增益（每发布一个作品增加）
+    baseFanChangeBoost: 0, // 初始为0，每发布一个作品增加5
     
-    // ✅ 新增：成就解锁状态
-    unlockedAchievements: [] // 已解锁成就的ID列表（与achievements数组配合使用）
+    // ✅ 新增：消息免打扰状态
+    doNotDisturb: false // 默认关闭
 };
 
 // ==================== 成就列表 ====================
@@ -218,12 +224,12 @@ const achievements = [
     { id: 10, name: '百万富翁', desc: '累计收益达到100万', icon: '💎', unlocked: false },
     { id: 11, name: '话题之王', desc: '单条动态获得1万转发', icon: '🔁', unlocked: false },
     { id: 12, name: '评论互动达人', desc: '单条作品获得5000评论', icon: '💬', unlocked: false },
-    { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false },
+    // ✅ 已移除: { id: 13, name: '全勤主播', desc: '连续30天更新', icon: '📅', unlocked: false },
     { id: 14, name: '逆风翻盘', desc: '从封号中申诉成功', icon: '🔄', unlocked: false },
     { id: 15, name: '幸运儿', desc: '触发50次随机事件', icon: '🍀', unlocked: false },
     { id: 16, name: '社交达人', desc: '关注1000个用户', icon: '👥', unlocked: false },
-    { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false },
-    { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false },
+    // ✅ 已移除: { id: 17, name: '夜猫子', desc: '凌晨3点还在直播', icon: '🦉', unlocked: false },
+    // ✅ 已移除: { id: 18, name: '早起鸟儿', desc: '早上6点开始直播', icon: '🐦', unlocked: false },
     { id: 19, name: '宠粉狂魔', desc: '回复1000条评论', icon: '💖', unlocked: false },
     { id: 20, name: '传奇主播', desc: '解锁所有成就', icon: '👑', unlocked: false },
     
@@ -231,7 +237,7 @@ const achievements = [
     { id: 21, name: '商单新人', desc: '完成首个商单', icon: '💼', unlocked: false },
     { id: 22, name: '广告达人', desc: '完成10个商单', icon: '📢', unlocked: false },
     { id: 23, name: '百万单王', desc: '单次商单收入超50万', icon: '💵', unlocked: false },
-    { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👀', unlocked: false },
+    // ✅ 已移除: { id: 24, name: '火眼金睛', desc: '识别并拒绝5个违规商单', icon: '👀', unlocked: false },
     { id: 25, name: '商单大师', desc: '完成50个商单且未违规', icon: '🏆', unlocked: false },
     { id: 26, name: '赌徒', desc: '完成10个虚假商单', icon: '🎰', unlocked: false },
     { id: 27, name: '身败名裂', desc: '因虚假商单被封号3次', icon: '💀', unlocked: false },
@@ -248,6 +254,7 @@ function formatNumber(num) {
     return num.toString();
 }
 
+// ==================== 修改后的formatTime函数 ====================
 function formatTime(timestamp) {
     const diff = gameTimer - timestamp;
     if (diff < 0) return '未来';
@@ -256,10 +263,56 @@ function formatTime(timestamp) {
     const virtualHours = Math.floor(diff / VIRTUAL_HOUR_MS);
     const virtualDays = Math.floor(diff / VIRTUAL_DAY_MS);
     
+    // 小于1分钟：显示"刚刚"
     if (virtualMinutes < 1) return '刚刚';
+    
+    // 1分钟到60分钟：显示"x分钟前"
     if (virtualMinutes < 60) return `${virtualMinutes}分钟前`;
+    
+    // 1小时到24小时：显示"x小时前"
     if (virtualHours < 24) return `${virtualHours}小时前`;
-    return `${virtualDays}天前`;
+    
+    // 1天到3天：显示"x天前"
+    if (virtualDays < 3) return `${virtualDays}天前`;
+    
+    // 超过3天：显示日期
+    const targetVirtualDays = Math.floor(timestamp / VIRTUAL_DAY_MS);
+    const targetDate = getDateFromVirtualDays(targetVirtualDays);
+    
+    const currentDate = getVirtualDate();
+    const yearsDiff = currentDate.year - targetDate.year;
+    
+    // 超过1年：显示"xxxx年xx月xx日"
+    if (yearsDiff >= 1) {
+        return `${targetDate.year}年${String(targetDate.month).padStart(2, '0')}月${String(targetDate.day).padStart(2, '0')}日`;
+    }
+    
+    // 3天到1年：显示"xx月xx日"
+    return `${String(targetDate.month).padStart(2, '0')}月${String(targetDate.day).padStart(2, '0')}日`;
+}
+
+// ==================== 辅助函数：根据虚拟天数计算日期 ====================
+function getDateFromVirtualDays(virtualDays) {
+    const currentYear = GAME_START_VIRTUAL_DATE.year + Math.floor(virtualDays / 365);
+    const dayOfYear = virtualDays % 365;
+    
+    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let remainingDays = dayOfYear;
+    let month = 0;
+    
+    for (let i = 0; i < monthDays.length; i++) {
+        if (remainingDays < monthDays[i]) {
+            month = i;
+            break;
+        }
+        remainingDays -= monthDays[i];
+    }
+    
+    return {
+        year: currentYear,
+        month: month + 1,
+        day: remainingDays + 1
+    };
 }
 
 function saveGame() {
@@ -311,10 +364,55 @@ function initGame() {
         };
     }
     
-    // ✅ 新增：初始化成就相关状态
+    // ✅ 新增：确保成就相关状态存在
     if (gameState.commentRepliesCount === undefined) gameState.commentRepliesCount = 0;
     if (gameState.liveHistory === undefined) gameState.liveHistory = [];
     if (gameState.unlockedAchievements === undefined) gameState.unlockedAchievements = [];
+    
+    // ✅ 新增：确保警告历史存在
+    if (gameState.warningHistory === undefined) gameState.warningHistory = [];
+    
+    // ✅ 新增：确保自动清理缓存配置存在
+    if (gameState.autoCleanCacheInterval === undefined) gameState.autoCleanCacheInterval = 5;
+    if (gameState.autoCleanCacheTimer === undefined) gameState.autoCleanCacheTimer = null;
+    
+    // ✅ 新增：确保涨掉粉通知列表存在
+    if (gameState.fanChangeNotifications === undefined) gameState.fanChangeNotifications = [];
+    
+    // ✅ 新增：确保今日粉丝统计字段存在
+    if (gameState.todayNewFans === undefined) gameState.todayNewFans = 0;
+    if (gameState.todayLostFans === undefined) gameState.todayLostFans = 0;
+    if (gameState.todayStatsResetDay === undefined) gameState.todayStatsResetDay = 0;
+
+    // ✅ ✅ ✅ 新增：确保全局作品粉丝增长系统存在（读取存档时）
+    if (gameState.workFanGrowthSystem === undefined) {
+        gameState.workFanGrowthSystem = {
+            activeWorks: [],
+            globalInterval: null,
+            totalFanChange: 0,
+            isRunning: false
+        };
+    } else {
+        // 确保旧存档也能正确初始化
+        if (gameState.workFanGrowthSystem.activeWorks === undefined) {
+            gameState.workFanGrowthSystem.activeWorks = [];
+        }
+        if (gameState.workFanGrowthSystem.globalInterval === undefined) {
+            gameState.workFanGrowthSystem.globalInterval = null;
+        }
+        if (gameState.workFanGrowthSystem.totalFanChange === undefined) {
+            gameState.workFanGrowthSystem.totalFanChange = 0;
+        }
+        if (gameState.workFanGrowthSystem.isRunning === undefined) {
+            gameState.workFanGrowthSystem.isRunning = false;
+        }
+    }
+    
+    // ✅ 新增：确保基础涨粉增益存在
+    if (gameState.baseFanChangeBoost === undefined) gameState.baseFanChangeBoost = 0;
+    
+    // ✅ 新增：确保消息免打扰状态存在
+    if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
     
     const saved = localStorage.getItem('streamerGameState');
     if (saved) {
@@ -359,8 +457,52 @@ function initGame() {
                 // ✅ 修复：加载存档时确保gameStartTime有效
                 if (!gameState.gameStartTime || gameState.gameStartTime <= 0) {
                     gameState.gameStartTime = Date.now(); // 修复：设置为当前时间
+                } else {
+                    gameState.gameStartTime = gameState.gameStartTime;
                 }
             }
+            
+            // ✅ 修复：确保自动清理缓存配置存在
+            if (gameState.autoCleanCacheInterval === undefined) gameState.autoCleanCacheInterval = 5;
+            if (gameState.autoCleanCacheTimer === undefined) gameState.autoCleanCacheTimer = null;
+            
+            // ✅ 新增：确保涨掉粉通知列表存在
+            if (gameState.fanChangeNotifications === undefined) gameState.fanChangeNotifications = [];
+            
+            // ✅ 新增：确保今日粉丝统计字段存在
+            if (gameState.todayNewFans === undefined) gameState.todayNewFans = 0;
+            if (gameState.todayLostFans === undefined) gameState.todayLostFans = 0;
+            if (gameState.todayStatsResetDay === undefined) gameState.todayStatsResetDay = 0;
+
+            // ✅ ✅ ✅ 新增：确保全局作品粉丝增长系统存在（读取存档时）
+            if (gameState.workFanGrowthSystem === undefined) {
+                gameState.workFanGrowthSystem = {
+                    activeWorks: [],
+                    globalInterval: null,
+                    totalFanChange: 0,
+                    isRunning: false
+                };
+            } else {
+                // 确保旧存档也能正确初始化
+                if (gameState.workFanGrowthSystem.activeWorks === undefined) {
+                    gameState.workFanGrowthSystem.activeWorks = [];
+                }
+                if (gameState.workFanGrowthSystem.globalInterval === undefined) {
+                    gameState.workFanGrowthSystem.globalInterval = null;
+                }
+                if (gameState.workFanGrowthSystem.totalFanChange === undefined) {
+                    gameState.workFanGrowthSystem.totalFanChange = 0;
+                }
+                if (gameState.workFanGrowthSystem.isRunning === undefined) {
+                    gameState.workFanGrowthSystem.isRunning = false;
+                }
+            }
+            
+            // ✅ 新增：确保基础涨粉增益存在
+            if (gameState.baseFanChangeBoost === undefined) gameState.baseFanChangeBoost = 0;
+            
+            // ✅ 新增：确保消息免打扰状态存在
+            if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
             
             realStartTime = Date.now();
             gameState.liveInterval = null; 
@@ -400,6 +542,9 @@ function initGame() {
             if (gameState.commentRepliesCount === undefined) gameState.commentRepliesCount = 0;
             if (gameState.liveHistory === undefined) gameState.liveHistory = [];
             if (gameState.unlockedAchievements === undefined) gameState.unlockedAchievements = [];
+            
+            // ✅ 新增：确保警告历史存在
+            if (gameState.warningHistory === undefined) gameState.warningHistory = [];
             
             if (gameState.chartData) {
                 if (gameState.chartData.fans.length === 0) {
@@ -470,7 +615,8 @@ function initGame() {
                         if (gameState.isBanned && gameState.fans > 0) {
                             const fanLoss = Math.floor(Math.random() * 90) + 10;
                             gameState.fans = Math.max(0, gameState.fans - fanLoss);
-                            showNotification('粉丝流失', `封禁期间粉丝流失：${fanLoss}`);
+                            // ✅ 修改：使用涨掉粉通知系统
+                            addFanChangeNotification('⬇️', `失去了${fanLoss.toLocaleString()}个粉丝`, '封禁期间', 'loss', fanLoss);
                             updateDisplay();
                         }
                     }, 1000);
@@ -494,8 +640,9 @@ function initGame() {
                         if (gameState.isHotSearch) {
                             const fanGrowth = Math.floor(Math.random() * 100) + 50;
                             gameState.fans += fanGrowth;
-                            if (typeof showNotification === 'function') {
-                                showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝`);
+                            // ✅ 修复：使用 addFanChangeNotification 替代 showNotification
+                            if (typeof addFanChangeNotification === 'function') {
+                                addFanChangeNotification('⬆️', `获得了${fanGrowth.toLocaleString()}个新粉丝`, '热搜效应', 'gain', fanGrowth);
                             }
                             if (typeof updateDisplay === 'function') updateDisplay();
                         }
@@ -520,8 +667,9 @@ function initGame() {
                         if (gameState.isPublicOpinionCrisis && gameState.fans > 0) {
                             const fanLoss = Math.floor(Math.random() * 50) + 10;
                             gameState.fans = Math.max(0, gameState.fans - fanLoss);
-                            if (typeof showNotification === 'function') {
-                                showNotification('舆论风波', `舆论风波中，粉丝流失：${fanLoss}`);
+                            // ✅ 修复：使用 addFanChangeNotification 替代 showNotification
+                            if (typeof addFanChangeNotification === 'function') {
+                                addFanChangeNotification('⬇️', `失去了${fanLoss.toLocaleString()}个粉丝`, '舆论风波', 'loss', fanLoss);
                             }
                             if (typeof updateDisplay === 'function') updateDisplay();
                         }
@@ -546,6 +694,24 @@ function initGame() {
                 }
             });
             
+            // ✅ ✅ ✅ 关键新增：恢复抽奖活动状态
+            console.log('开始恢复抽奖活动状态...');
+            let raffleCount = 0;
+            gameState.worksList.forEach(work => {
+                if (work.isRaffle) {
+                    raffleCount++;
+                    console.log(`[恢复抽奖] 作品 ${work.id} 状态: ${work.raffleStatus}`);
+                    if (typeof window.resumeRaffleState === 'function') {
+                        window.resumeRaffleState(work.id);
+                    }
+                }
+            });
+            if (raffleCount > 0) {
+                console.log(`✅ 共恢复 ${raffleCount} 个抽奖活动`);
+            } else {
+                console.log('没有需要恢复的抽奖活动');
+            }
+            
             if (gameState.devMode) {
                 const devBtn = document.getElementById('devFloatButton');
                 if (devBtn) devBtn.style.display = 'block';
@@ -553,6 +719,7 @@ function initGame() {
             
             console.log('开始恢复作品状态...');
             gameState.worksList.forEach(work => {
+                // ✅ 修复：恢复推荐状态
                 if (work.isRecommended && work.recommendEndTime !== null) {
                     const timePassed = gameTimer - work.recommendEndTime;
                     const daysLeft = -timePassed / VIRTUAL_DAY_MS;
@@ -573,6 +740,7 @@ function initGame() {
                     }
                 }
                 
+                // ✅ 修复：恢复争议状态
                 if (work.isControversial && work.controversyEndTime !== null) {
                     const timePassed = gameTimer - work.controversyEndTime;
                     const daysLeft = -timePassed / VIRTUAL_DAY_MS;
@@ -593,6 +761,7 @@ function initGame() {
                     }
                 }
                 
+                // ✅ 修复：恢复热搜状态
                 if (work.isHot && work.hotEndTime !== null) {
                     const timePassed = gameTimer - work.hotEndTime;
                     const daysLeft = -timePassed / VIRTUAL_DAY_MS;
@@ -610,6 +779,24 @@ function initGame() {
                         if (typeof startPostHotEffect === 'function') {
                             startPostHotEffect(work.id, daysLeft, true);
                         }
+                    }
+                }
+                
+                // ✅ ✅ ✅ 关键修复：恢复作品到全局粉丝增长系统
+                if (work.growthEndTime && work.growthEndTime > gameTimer) {
+                    const timeLeft = (work.growthEndTime - gameTimer) / VIRTUAL_DAY_MS;
+                    console.log(`[作品恢复] 作品 ${work.id} 的粉丝增长期未结束，剩余 ${timeLeft.toFixed(1)} 天，加入全局系统`);
+                    
+                    // ✅ 新增：调用全局添加函数
+                    if (typeof window.addWorkToGlobalFanGrowth === 'function') {
+                        window.addWorkToGlobalFanGrowth(work.id, false);
+                    }
+                } else if (work.growthEndTime && work.fanGrowthInterval) {
+                    // 如果增长期已过但定时器还在，清理它（旧系统遗留问题）
+                    if (work.fanGrowthInterval) {
+                        clearInterval(work.fanGrowthInterval);
+                        work.fanGrowthInterval = null;
+                        console.log(`[作品清理] 作品 ${work.id} 的增长期已过，清理遗留定时器`);
                     }
                 }
             });
@@ -631,6 +818,21 @@ function initGame() {
                 }, 1500);
             }
             
+            // ✅ 新增：恢复自动清理缓存设置
+            if (typeof startAutoCleanCache === 'function') {
+                console.log('正在恢复自动清理缓存设置...');
+                setTimeout(() => {
+                    startAutoCleanCache();
+                }, 2000);
+            }
+            
+            // ✅ ✅ ✅ 新增：游戏加载时启动全局作品粉丝增长系统
+            if (typeof window.startGlobalWorkFanGrowth === 'function') {
+                setTimeout(() => {
+                    window.startGlobalWorkFanGrowth();
+                }, 3000);
+            }
+            
         } catch (error) {
             console.error('加载存档失败:', error);
             localStorage.removeItem('streamerGameState');
@@ -645,10 +847,43 @@ function initGame() {
         gameState.lastUpdateTime = 0;
         gameState.lastWorkTime = 0;
         
-        // ✅ 关键修复：游戏开始时正确初始化gameStartTime
-        gameState.gameStartTime = Date.now(); // 设置为当前时间，防止全勤主播立即解锁
+        // ✅ 关键修复：确保gameStartTime在游戏开始时被正确设置
+        gameState.gameStartTime = Date.now(); // 设置为当前时间
         
         realStartTime = Date.now();
+        
+        // 确保直播历史存在
+        if (!gameState.liveHistory) {
+            gameState.liveHistory = [];
+        }
+        
+        // ✅ 确保自动清理缓存配置存在
+        if (gameState.autoCleanCacheInterval === undefined) gameState.autoCleanCacheInterval = 5;
+        if (gameState.autoCleanCacheTimer === undefined) gameState.autoCleanCacheTimer = null;
+        
+        // ✅ 确保涨掉粉通知列表存在
+        if (gameState.fanChangeNotifications === undefined) gameState.fanChangeNotifications = [];
+        
+        // ✅ 确保今日粉丝统计字段存在
+        if (gameState.todayNewFans === undefined) gameState.todayNewFans = 0;
+        if (gameState.todayLostFans === undefined) gameState.todayLostFans = 0;
+        if (gameState.todayStatsResetDay === undefined) gameState.todayStatsResetDay = 0;
+
+        // ✅ ✅ ✅ 确保全局作品粉丝增长系统存在
+        if (gameState.workFanGrowthSystem === undefined) {
+            gameState.workFanGrowthSystem = {
+                activeWorks: [],
+                globalInterval: null,
+                totalFanChange: 0,
+                isRunning: false
+            };
+        }
+        
+        // ✅ 新增：确保基础涨粉增益存在
+        if (gameState.baseFanChangeBoost === undefined) gameState.baseFanChangeBoost = 0;
+        
+        // ✅ 新增：确保消息免打扰状态存在
+        if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
         
         for (let i = 0; i < 60; i++) {
             gameState.chartData.fans.push(0);
@@ -660,32 +895,23 @@ function initGame() {
         gameState.chartData.currentDay = 0;
         gameState.chartData.lastInteractionTotal = 0;
         
-        gameState.devMode = false;
-        // ✅ 新增功能：初始化新状态
-        gameState.following = [];
-        gameState.commentLikes = {};
-        gameState.messages = [];
-        gameState.privateMessageSystem = {
-            conversations: [],
-            unreadCount: 0,
-            lastCheckTime: 0,
-            generationInterval: null
-        };
-        // ✅ 新增：初始化系统消息状态
-        gameState.systemMessages = {
-            unreadCount: 0,
-            messages: [],
-            hotSearchActiveWorks: []
-        };
-        
-        // ✅ 新增：初始化成就相关状态
-        gameState.commentRepliesCount = 0;
-        gameState.liveHistory = [];
-        gameState.unlockedAchievements = [];
+        achievements.forEach(a => a.unlocked = false);
+        window.charts = { fans: null, likes: null, views: null, interactions: null };
     }
     
     if (!gameState.userId) {
         gameState.userId = 'UID' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    }
+    
+    // ✅ 新增：启动每日数据重置检查
+    startDailyStatsResetCheck();
+    
+    // ✅ ✅ ✅ 关键新增：启动抽奖状态检查
+    if (typeof startRaffleStatusCheck === 'function') {
+        console.log('启动抽奖状态检查循环...');
+        startRaffleStatusCheck();
+    } else {
+        console.warn('警告：startRaffleStatusCheck 函数未定义，抽奖系统可能未正确加载');
     }
     
     startGameTimer();
@@ -710,10 +936,41 @@ function initGame() {
         initSystemMessages();
     }
     
+    // ✅ 新增：启动自动清理缓存
+    if (typeof startAutoCleanCache === 'function') {
+        startAutoCleanCache();
+    }
+    
     saveGame();
     
     // 关键修复：确保 window.gameState 与局部变量同步
     window.gameState = gameState;
+}
+
+// ✅ 新增：每日数据重置检查函数
+function startDailyStatsResetCheck() {
+    // 每秒检查一次是否需要重置今日数据
+    setInterval(() => {
+        const currentVirtualDays = Math.floor(getVirtualDaysPassed());
+        
+        // 如果记录的resetDay不等于当前天数，说明是新的一天
+        if (gameState.todayStatsResetDay !== currentVirtualDays) {
+            // 重置今日数据
+            gameState.todayNewFans = 0;
+            gameState.todayLostFans = 0;
+            gameState.todayStatsResetDay = currentVirtualDays;
+            
+            console.log(`新的一天开始，重置今日粉丝统计数据 (虚拟天数: ${currentVirtualDays})`);
+            
+            // 如果粉丝页面打开，立即更新显示
+            const fansPage = document.getElementById('fansPage');
+            if (fansPage && fansPage.classList.contains('active')) {
+                if (typeof renderFansPage === 'function') {
+                    renderFansPage();
+                }
+            }
+        }
+    }, 1000);
 }
 
 // ==================== 游戏启动 ====================
@@ -755,6 +1012,47 @@ function startGame() {
         gameState.liveHistory = [];
     }
     
+    // ✅ 确保自动清理缓存配置存在
+    if (gameState.autoCleanCacheInterval === undefined) gameState.autoCleanCacheInterval = 5;
+    if (gameState.autoCleanCacheTimer === undefined) gameState.autoCleanCacheTimer = null;
+    
+    // ✅ 确保涨掉粉通知列表存在
+    if (gameState.fanChangeNotifications === undefined) gameState.fanChangeNotifications = [];
+    
+    // ✅ 确保今日粉丝统计字段存在
+    if (gameState.todayNewFans === undefined) gameState.todayNewFans = 0;
+    if (gameState.todayLostFans === undefined) gameState.todayLostFans = 0;
+    if (gameState.todayStatsResetDay === undefined) gameState.todayStatsResetDay = 0;
+
+    // ✅ ✅ ✅ 确保全局作品粉丝增长系统存在
+    if (gameState.workFanGrowthSystem === undefined) {
+        gameState.workFanGrowthSystem = {
+            activeWorks: [],
+            globalInterval: null,
+            totalFanChange: 0,
+            isRunning: false
+        };
+    }
+    
+    // ✅ 新增：确保基础涨粉增益存在
+    if (gameState.baseFanChangeBoost === undefined) gameState.baseFanChangeBoost = 0;
+    
+    // ✅ 新增：确保消息免打扰状态存在
+    if (gameState.doNotDisturb === undefined) gameState.doNotDisturb = false;
+    
+    for (let i = 0; i < 60; i++) {
+        gameState.chartData.fans.push(0);
+        gameState.chartData.likes.push(0);
+        gameState.chartData.views.push(0);
+        gameState.chartData.interactions.push(0);
+    }
+    gameState.chartData.currentIndex = 0;
+    gameState.chartData.currentDay = 0;
+    gameState.chartData.lastInteractionTotal = 0;
+    
+    achievements.forEach(a => a.unlocked = false);
+    window.charts = { fans: null, likes: null, views: null, interactions: null };
+    
     initGame();
 }
 
@@ -762,6 +1060,8 @@ function startGame() {
 function resetGame() {
     stopGameTimer();
     
+    // ==================== 修复：全面清理所有定时器 ====================
+    // 1. 清理核心状态定时器（8个）
     const intervals = [
         'liveInterval',
         'banInterval', 
@@ -769,7 +1069,8 @@ function resetGame() {
         'hotSearchInterval',
         'publicOpinionInterval', // ✅ 修复：清除舆论风波定时器
         'inactivityDropInterval',
-        'highAdCountDropInterval'
+        'highAdCountDropInterval',
+        'adOrdersPenaltyInterval'
     ];
     
     intervals.forEach(intervalName => {
@@ -779,24 +1080,59 @@ function resetGame() {
         }
     });
     
-    Object.keys(gameState.trafficWorks).forEach(workId => {
-        const trafficData = gameState.trafficWorks[workId];
+    // 2. 清理全局模块定时器（7个）
+    const windowIntervals = [
+        'monthlyCheckInterval',
+        'exposureCheckInterval',
+        'chartRefreshInterval',
+        'devCountdownInterval',
+        'monthlySummaryInterval',
+        'hotSearchCheckInterval',
+        'messagesUpdateInterval'
+    ];
+    
+    windowIntervals.forEach(intervalName => {
+        if (window[intervalName]) {
+            clearInterval(window[intervalName]);
+            window[intervalName] = null;
+        }
+    });
+    
+    // 3. 清理流量推广定时器（动态数量）
+    Object.keys(gameState.trafficWorks).forEach(workIdStr => {
+        const trafficData = gameState.trafficWorks[workIdStr];
         if (trafficData && trafficData.interval) {
             clearInterval(trafficData.interval);
         }
     });
     
-    if (window.chartRefreshInterval) {
-        clearInterval(window.chartRefreshInterval);
-        window.chartRefreshInterval = null;
+    // 4. 清理作品级定时器（每个作品可能有多个）
+    gameState.worksList.forEach(work => {
+        if (work.recommendInterval) clearInterval(work.recommendInterval);
+        if (work.controversyInterval) clearInterval(work.controversyInterval);
+        if (work.hotInterval) clearInterval(work.hotInterval);
+        if (work.hotSearchInterval) clearInterval(work.hotSearchInterval);
+        // ✅ 新增：清理作品粉丝增长定时器（旧系统遗留）
+        if (work.fanGrowthInterval) clearInterval(work.fanGrowthInterval);
+        // ✅ 新增：清理抽奖相关定时器
+        if (work.fanGrowthInterval) clearInterval(work.fanGrowthInterval);
+        if (work.dataGrowthInterval) clearInterval(work.dataGrowthInterval);
+        if (work.fanLossInterval) clearInterval(work.fanLossInterval);
+        if (work.manualDrawWarningInterval) clearInterval(work.manualDrawWarningInterval);
+        if (work.crazyFanLossInterval) clearInterval(work.crazyFanLossInterval);
+    });
+    
+    // 5. 清理私信生成定时器
+    if (typeof stopPrivateMessageGeneration === 'function') {
+        stopPrivateMessageGeneration();
     }
     
-    if (window.devCountdownInterval) {
-        clearInterval(window.devCountdownInterval);
-        window.devCountdownInterval = null;
+    // 6. 清理系统消息定时器
+    if (typeof stopSystemMessagesTimer === 'function') {
+        stopSystemMessagesTimer();
     }
     
-    // 清除虚假商单相关的定时器
+    // 7. 清理虚假商单相关定时器
     if (gameState.fakeAdPenaltyInterval) {
         clearInterval(gameState.fakeAdPenaltyInterval);
         gameState.fakeAdPenaltyInterval = null;
@@ -810,15 +1146,42 @@ function resetGame() {
         window.exposureCheckInterval = null;
     }
     
-    // 清除私信生成定时器
-    if (typeof stopPrivateMessageGeneration === 'function') {
-        stopPrivateMessageGeneration();
+    // 8. 清理UI实时更新定时器
+    if (window.worksUpdateInterval) {
+        clearInterval(window.worksUpdateInterval);
+        window.worksUpdateInterval = null;
+    }
+    if (window.messagesUpdateInterval) {
+        clearInterval(window.messagesUpdateInterval);
+        window.messagesUpdateInterval = null;
+    }
+
+    // ✅ 新增：清理自动清理缓存定时器
+    if (gameState.autoCleanCacheTimer) {
+        clearInterval(gameState.autoCleanCacheTimer);
+        gameState.autoCleanCacheTimer = null;
+    }
+    if (window.autoCleanCacheInterval) {
+        clearInterval(window.autoCleanCacheInterval);
+        window.autoCleanCacheInterval = null;
+    }
+
+    // ✅ ✅ ✅ 新增：清理全局作品粉丝增长系统
+    if (gameState.workFanGrowthSystem) {
+        if (gameState.workFanGrowthSystem.globalInterval) {
+            clearInterval(gameState.workFanGrowthSystem.globalInterval);
+            gameState.workFanGrowthSystem.globalInterval = null;
+        }
+        gameState.workFanGrowthSystem.activeWorks = [];
+        gameState.workFanGrowthSystem.totalFanChange = 0;
+        gameState.workFanGrowthSystem.isRunning = false;
     }
     
-    // ✅ 新增：停止系统消息定时器
-    if (typeof stopSystemMessagesTimer === 'function') {
-        stopSystemMessagesTimer();
+    // ✅ 新增：清理抽奖系统定时器
+    if (typeof window.cleanupRaffleTimers === 'function') {
+        window.cleanupRaffleTimers();
     }
+    // ==================== 修复结束 ====================
     
     gameState = {
         username: '', 
@@ -906,7 +1269,36 @@ function resetGame() {
         // ✅ 新增：重置成就相关状态
         commentRepliesCount: 0,
         liveHistory: [],
-        unlockedAchievements: []
+        unlockedAchievements: [],
+        
+        // ✅ 新增：重置警告历史
+        warningHistory: [],
+        
+        // ✅ 新增：重置自动清理缓存配置
+        autoCleanCacheInterval: 5, // 默认5分钟
+        autoCleanCacheTimer: null,
+        
+        // ✅ 新增：重置涨掉粉通知列表
+        fanChangeNotifications: [],
+        
+        // ✅ 新增：重置今日粉丝统计
+        todayNewFans: 0,
+        todayLostFans: 0,
+        todayStatsResetDay: 0,
+
+        // ✅ ✅ ✅ 新增：重置全局作品粉丝增长系统
+        workFanGrowthSystem: {
+            activeWorks: [],
+            globalInterval: null,
+            totalFanChange: 0,
+            isRunning: false
+        },
+        
+        // ✅ 新增：重置基础涨粉增益
+        baseFanChangeBoost: 0,
+        
+        // ✅ 新增：重置消息免打扰状态
+        doNotDisturb: false
     };
     
     gameTimer = 0;
@@ -985,6 +1377,21 @@ window.addEventListener('beforeunload', function() {
         stopSystemMessagesTimer();
     }
     
+    // ✅ 新增：停止自动清理缓存
+    if (typeof stopAutoCleanCache === 'function') {
+        stopAutoCleanCache();
+    }
+    
+    // ✅ ✅ ✅ 新增：停止全局作品粉丝增长系统
+    if (typeof window.stopGlobalWorkFanGrowth === 'function') {
+        window.stopGlobalWorkFanGrowth();
+    }
+    
+    // ✅ 新增：清理抽奖系统定时器
+    if (typeof window.cleanupRaffleTimers === 'function') {
+        window.cleanupRaffleTimers();
+    }
+    
     stopGameTimer();
     saveGame();
 });
@@ -1005,5 +1412,6 @@ window.getVirtualDate = getVirtualDate;
 window.saveGame = saveGame;
 window.formatNumber = formatNumber;
 window.formatTime = formatTime;
+window.startDailyStatsResetCheck = startDailyStatsResetCheck; // ✅ 导出函数
 
 console.log('游戏核心已加载，startGame函数:', typeof startGame);

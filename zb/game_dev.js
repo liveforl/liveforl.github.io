@@ -1,4 +1,4 @@
-// ==================== 开发者模式功能（增强专业版） ====================
+// ==================== 开发者模式功能（增强专业版 - 已更新） ====================
 
 // 全局倒计时追踪器
 window.devCountdowns = {
@@ -200,7 +200,7 @@ function showDevOptions() {
       <div class="dev-section-title">📡 实时状态监控</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; color: #ccc; margin-top: 10px;">
         <div style="background: #111; padding: 8px; border-radius: 6px; border: 1px solid #222;">
-          <div style="color: #667eea; margin-bottom: 4px;">虚拟时间</div>
+          <div style="color: #667aea; margin-bottom: 4px;">虚拟时间</div>
           <div id="devVirtualDays" style="font-weight: bold; font-size: 12px;">0天</div>
           <div id="devGameTimer" style="font-size: 10px; color: #999;">0秒</div>
         </div>
@@ -226,6 +226,11 @@ function showDevOptions() {
       <div class="dev-section">
         <div class="dev-section-title">🧪 测试工具</div>
         <div class="dev-grid">
+          <!-- ✅ 新增：触发随机事件按钮 -->
+          <button class="dev-btn dev-btn-test" onclick="devTriggerRandomEvent()">
+            <span class="dev-btn-icon">🎲</span>
+            <span class="dev-btn-text">触发事件</span>
+          </button>
           <button class="dev-btn dev-btn-test" onclick="devTestHotSearch()">
             <span class="dev-btn-icon">🔥</span>
             <span class="dev-btn-text">触发热搜</span>
@@ -322,6 +327,70 @@ function handleDevModalEscape(e) {
   if (e.key === 'Escape') {
     closeDevOptions();
   }
+}
+
+// ✅ 新增：触发随机事件选择界面
+function devTriggerRandomEvent() {
+  // 生成事件列表HTML
+  const eventListHtml = randomEvents.map((event, index) => {
+    const typeColor = event.type === 'good' ? '#00f2ea' : event.type === 'bad' ? '#ff0050' : '#667eea';
+    const typeLabel = event.type === 'good' ? '好' : event.type === 'bad' ? '坏' : '中';
+    const weight = event.weight || 1;
+    
+    return `
+      <div class="event-select-item" onclick="devSelectEventToTrigger(${index})" style="background: #161823; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.3s;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+          <div style="font-size: 14px; font-weight: bold; color: ${typeColor};">
+            ${event.title}
+          </div>
+          <div style="background: ${typeColor}; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">
+            ${typeLabel}
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #ccc; margin-bottom: 6px;">
+          ${event.desc}
+        </div>
+        <div style="font-size: 11px; color: #999;">
+          权重: ${weight} | 索引: ${index}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // 显示事件选择模态框
+  const modalContent = `
+    <div class="modal-header">
+      <div class="modal-title">选择要触发的随机事件</div>
+      <div class="close-btn" onclick="closeModal()">✕</div>
+    </div>
+    <div style="max-height: 70vh; overflow-y: auto; padding: 0 20px 20px;">
+      <div style="margin-bottom: 15px; font-size: 12px; color: #999;">
+        点击事件卡片即可立即触发该事件。事件效果将立即生效。
+      </div>
+      ${eventListHtml}
+    </div>
+  `;
+  
+  showModal(modalContent);
+}
+
+// ✅ 新增：执行选中的随机事件
+function devSelectEventToTrigger(eventIndex) {
+  if (eventIndex < 0 || eventIndex >= randomEvents.length) {
+    showAlert('事件索引无效', '错误');
+    return;
+  }
+  
+  const selectedEvent = randomEvents[eventIndex];
+  
+  // 执行事件
+  handleRandomEvent(selectedEvent);
+  
+  // 关闭事件选择界面
+  closeModal();
+  
+  // 显示成功提示
+  showNotification('事件已触发', `成功触发事件: ${selectedEvent.title}`);
 }
 
 // 测试功能
@@ -430,8 +499,8 @@ function devAddRandomWork() {
   const newFans = Math.floor(views / 1000 * (Math.random() * 2 + 0.5));
   gameState.fans += newFans;
   
-  // 修复：只统计主动互动行为（点赞、评论、转发），去掉播放量
-  gameState.totalInteractions += comments + likes + shares;
+  const interactionBoost = comments + likes + shares;
+  gameState.totalInteractions += interactionBoost;
   gameState.activeFans += Math.floor(newFans * 0.5);
   
   updateDisplay();
@@ -610,3 +679,6 @@ window.devUpdateCountdowns = devUpdateCountdowns;
 window.devUpdateSpecialStatusCountdowns = devUpdateSpecialStatusCountdowns;
 // 新增
 window.devChangeGameTime = devChangeGameTime;
+// ✅ 新增：绑定随机事件触发相关函数
+window.devTriggerRandomEvent = devTriggerRandomEvent;
+window.devSelectEventToTrigger = devSelectEventToTrigger;

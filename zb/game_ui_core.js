@@ -21,12 +21,41 @@ function updateDisplay() {
         setTimeout(() => dateDisplay.classList.remove('updating'), 300);
     }
     
-    document.getElementById('fansCount').textContent = formatNumber(gameState.fans);
+    // ==================== 修改：涨掉粉直接显示在粉丝数上方 ====================
+    const fansCountEl = document.getElementById('fansCount');
+    if (fansCountEl) {
+        const notifications = gameState.fanChangeNotifications || [];
+        let fanChangeText = '';
+        
+        if (notifications.length > 0) {
+            const latest = notifications[notifications.length - 1];
+            const changeNum = latest.changeType === 'gain' ? `+${latest.fanCount}` : `-${latest.fanCount}`;
+            const color = latest.changeType === 'gain' ? '#00f2ea' : '#ff0050';
+            fanChangeText = `<div style="font-size: 12px; color: ${color}; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); line-height: 1;">${changeNum}</div>`;
+        }
+        
+        fansCountEl.innerHTML = `${fanChangeText}${formatNumber(gameState.fans)}`;
+        fansCountEl.style.position = 'relative';
+    }
+    // ============================================================
+    
     document.getElementById('likesCount').textContent = formatNumber(gameState.likes);
     document.getElementById('viewsCount').textContent = formatNumber(gameState.views);
     document.getElementById('worksCount').textContent = formatNumber(gameState.works);
     document.getElementById('moneyCount').textContent = formatNumber(Math.floor(gameState.money));
-    document.getElementById('warningCount').textContent = `${gameState.warnings}/20`;
+    
+    // ✅ 修改：添加警告入口点击事件
+    const warningCountEl = document.getElementById('warningCount');
+    warningCountEl.textContent = `${gameState.warnings}/20`;
+    warningCountEl.style.cursor = 'pointer';
+    warningCountEl.title = '点击查看警告详情';
+    warningCountEl.onclick = function() {
+        if (typeof showWarningListFullscreen === 'function') {
+            showWarningListFullscreen();
+        } else {
+            showAlert('警告系统未加载，请刷新页面重试', '错误');
+        }
+    };
     
     // ✅ 新增功能：更新关注数显示
     document.getElementById('followingCount').textContent = formatNumber(gameState.following ? gameState.following.length : 0);
@@ -185,30 +214,27 @@ function closeModal() {
 let notificationsUpdateInterval = null;
 window.isNotificationCenterOpen = false;
 
+// ✅ 修改：showNotification现在直接调用showEventPopup，不再存储通知
 function showNotification(title, content) {
-    // ✅ 自动清理通知：限制数量最多100条
-    if (gameState.notifications.length >= 100) {
-        gameState.notifications = gameState.notifications.slice(-99); // 保留最新的99条
-    }
-    
-    const notification = { id: Date.now(), title: title, content: content, time: gameTimer, read: false }; 
-    gameState.notifications.push(notification);
-    updateNotificationBadge();
+    // 直接显示弹窗通知，不再存储到通知中心
+    showEventPopup(title, content);
 }
 
+// ✅ 修改：updateNotificationBadge不再显示任何徽章
 function updateNotificationBadge() {
-    const unreadCount = gameState.notifications.filter(n => !n.read).length, badge = document.getElementById('notificationBadge');
-    if (!badge) return;
-    if (unreadCount > 0) {
-        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-        badge.style.display = 'block';
-    } else badge.style.display = 'none';
+    // 隐藏通知徽章
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        badge.style.display = 'none';
+    }
 }
 
 // ✅ 增强版：显示通知中心（带实时动态更新）
 function showNotifications() {
     // 标记所有通知为已读
-    gameState.notifications.forEach(n => n.read = true);
+    if (gameState.notifications) {
+        gameState.notifications.forEach(n => n.read = true);
+    }
     updateNotificationBadge();
     
     // 设置标志位
@@ -216,15 +242,17 @@ function showNotifications() {
     
     // 渲染函数
     function renderNotifications() {
-        const notificationHtml = gameState.notifications.slice(-20).reverse().map(notification => 
-            `<div class="comment-item">
-                <div class="comment-header">
-                    <span class="comment-user">${notification.title}</span>
-                    <span class="comment-time">${formatTime(notification.time)}</span>
-                </div>
-                <div class="comment-content">${notification.content}</div>
-            </div>`
-        ).join('');
+        const notificationHtml = gameState.notifications && gameState.notifications.length > 0 
+            ? gameState.notifications.slice(-20).reverse().map(notification => 
+                `<div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-user">${notification.title}</span>
+                        <span class="comment-time">${formatTime(notification.time)}</span>
+                    </div>
+                    <div class="comment-content">${notification.content}</div>
+                </div>`
+            ).join('')
+            : '<div style="text-align:center;color:#999;padding:20px;">通知中心已停用，所有通知将以弹窗形式显示</div>';
         
         // 检查模态框是否仍然存在且是通知中心
         const modal = document.getElementById('modal');
@@ -232,8 +260,7 @@ function showNotifications() {
         if (modal && modal.style.display === 'block' && content && content.innerHTML.includes('通知中心')) {
             const listContainer = content.querySelector('div[style*="max-height"]');
             if (listContainer) {
-                listContainer.innerHTML = gameState.notifications.length === 0 ? 
-                    '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : notificationHtml;
+                listContainer.innerHTML = notificationHtml;
             }
         } else {
             // 如果模态框已关闭，停止更新
@@ -242,20 +269,22 @@ function showNotifications() {
     }
     
     // 初始渲染
-    const initialHtml = gameState.notifications.slice(-20).reverse().map(notification => 
-        `<div class="comment-item">
-            <div class="comment-header">
-                <span class="comment-user">${notification.title}</span>
-                <span class="comment-time">${formatTime(notification.time)}</span>
-            </div>
-            <div class="comment-content">${notification.content}</div>
-        </div>`
-    ).join('');
+    const initialHtml = gameState.notifications && gameState.notifications.length > 0
+        ? gameState.notifications.slice(-20).reverse().map(notification => 
+            `<div class="comment-item">
+                <div class="comment-header">
+                    <span class="comment-user">${notification.title}</span>
+                    <span class="comment-time">${formatTime(notification.time)}</span>
+                </div>
+                <div class="comment-content">${notification.content}</div>
+            </div>`
+        ).join('')
+        : '<div style="text-align:center;color:#999;padding:20px;">通知中心已停用，所有通知将以弹窗形式显示</div>';
     
     // 使用自定义关闭函数
     const closeBtnHtml = `<div class="close-btn" onclick="closeNotificationsModal()">✕</div>`;
     
-    showModal(`<div class="modal-header"><div class="modal-title">通知中心</div>${closeBtnHtml}</div><div style="max-height:60vh;overflow-y:auto">${gameState.notifications.length === 0 ? '<div style="text-align:center;color:#999;padding:20px;">暂无通知</div>' : initialHtml}</div>`);
+    showModal(`<div class="modal-header"><div class="modal-title">通知中心（已停用）</div>${closeBtnHtml}</div><div style="max-height:60vh;overflow-y:auto">${initialHtml}</div>`);
     
     // 启动实时更新
     startNotificationsRealtimeUpdate(renderNotifications);
@@ -312,7 +341,6 @@ function showConfirm(message, onConfirm, title = '请确认') {
     const modalContent = `
         <div class="modal-header">
             <div class="modal-title">${title}</div>
-            <div class="close-btn" onclick="closeModal()">✕</div>
         </div>
         <div style="padding: 20px; text-align: center;">
             <div style="margin-bottom: 20px; font-size: 14px; line-height: 1.5;">${message}</div>
@@ -338,7 +366,6 @@ function showPrompt(message, defaultValue, onSubmit, title = '请输入') {
     const modalContent = `
         <div class="modal-header">
             <div class="modal-title">${title}</div>
-            <div class="close-btn" onclick="closeModal(); window._promptCallback = null;">✕</div>
         </div>
         <div style="padding: 20px;">
             <div style="margin-bottom: 15px; font-size: 14px;">${message}</div>

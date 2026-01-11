@@ -9,15 +9,16 @@ function startHotSearch(title) {
         if (gameState.isHotSearch) {
             const fanGrowth = Math.floor(Math.random() * 100) + 50;
             gameState.fans += fanGrowth;
-            if (typeof showNotification === 'function') {
-                showNotification('热搜效应', `热搜期间获得${fanGrowth}新粉丝`);
-            }
+            // ✅ 修改：使用涨掉粉通知系统，并更新今日新增粉丝
+            gameState.todayNewFans += fanGrowth; // ✅ 新增：累计今日新增粉丝
+            addFanChangeNotification('⬆️', `获得了${fanGrowth.toLocaleString()}个新粉丝`, '热搜效应', 'gain', fanGrowth);
             if (typeof updateDisplay === 'function') {
                 updateDisplay();
             }
         }
     }, 1000);
-    showNotification('🎉 热搜上榜', `恭喜！${title}，将持续${gameState.hotSearchDaysCount}虚拟天！`);
+    // ✅ 修改：只显示小弹窗通知
+    showEventPopup('🎉 热搜上榜', `恭喜！${title}，将持续${gameState.hotSearchDaysCount}虚拟天！`);
     updateDisplay();
 }
 
@@ -42,7 +43,8 @@ function endHotSearch() {
         clearInterval(gameState.hotSearchInterval);
         gameState.hotSearchInterval = null;
     }
-    showNotification('📉 热搜结束', '热搜期已结束，期待下次上榜！');
+    // ✅ 修改：只显示小弹窗通知
+    showEventPopup('📉 热搜结束', '热搜期已结束，期待下次上榜！');
     updateDisplay();
 }
 
@@ -56,7 +58,8 @@ function banAccount(reason) {
     gameState.appealAvailable = true;
     if (gameState.liveStatus) {
         endLiveStream();
-        showNotification('直播中断', '账号被封禁，直播已强制结束');
+        // ✅ 修改：使用小弹窗通知
+        showEventPopup('🚫 直播中断', '账号被封禁，直播已强制结束');
     }
     Object.keys(gameState.trafficWorks).forEach(workId => {
         if (typeof stopTrafficForWork === 'function') stopTrafficForWork(workId);
@@ -98,7 +101,10 @@ function showBanNotice() {
             clearInterval(gameState.banDropInterval);
             gameState.banDropInterval = null;
         }
-        showNotification('封禁结束', '恭喜你，账号已恢复正常使用，警告次数已清空');
+        
+        // ✅ 修改：只显示小弹窗通知
+        showEventPopup('🔓 账号已解封', '封禁结束！警告次数已清空，可以继续创作啦');
+        
         updateDisplay();
         
         // ✅ 修复：解封后立即检查不更新掉粉状态
@@ -111,7 +117,9 @@ function showBanNotice() {
         if (gameState.isBanned && gameState.fans > 0) {
             const fanLoss = Math.floor(Math.random() * 90) + 10;
             gameState.fans = Math.max(0, gameState.fans - fanLoss);
-            showNotification('粉丝流失', `封禁期间粉丝流失：${fanLoss}`);
+            gameState.todayLostFans += fanLoss; // ✅ 新增：累计今日取关数
+            // ✅ 修改：使用涨掉粉通知系统
+            addFanChangeNotification('⬇️', `失去了${fanLoss.toLocaleString()}个粉丝`, '封禁期间', 'loss', fanLoss);
             updateDisplay();
         }
     }, 1000);
@@ -129,12 +137,17 @@ function startPublicOpinionCrisis(title) {
             if (gameState.isPublicOpinionCrisis && gameState.fans > 0) {
                 const fanLoss = Math.floor(Math.random() * 50) + 10;
                 gameState.fans = Math.max(0, gameState.fans - fanLoss);
-                showNotification('舆论风波', `舆论风波中，粉丝流失：${fanLoss}`);
-                updateDisplay();
+                gameState.todayLostFans += fanLoss; // ✅ 新增：累计今日取关数
+                // ✅ 修复：使用 addFanChangeNotification 替代 showNotification
+                if (typeof addFanChangeNotification === 'function') {
+                    addFanChangeNotification('⬇️', `失去了${fanLoss.toLocaleString()}个粉丝`, '舆论风波', 'loss', fanLoss);
+                }
+                if (typeof updateDisplay === 'function') updateDisplay();
             }
         }, 1000);
     }
-    showNotification('⚠️ 舆论风波', `你被卷入舆论风波，将持续${gameState.publicOpinionDaysCount}虚拟天！`);
+    // ✅ 修复：只显示小弹窗通知
+    showEventPopup('⚠️ 舆论风波', `你被卷入舆论风波，将持续${gameState.publicOpinionDaysCount}虚拟天！`);
     updateDisplay();
 }
 
@@ -171,7 +184,8 @@ function endPublicOpinionCrisis() {
         clearInterval(gameState.publicOpinionInterval);
         gameState.publicOpinionInterval = null;
     }
-    showNotification('📉 舆论风波结束', '舆论风波已平息');
+    // ✅ 修复：只显示小弹窗通知
+    showEventPopup('📉 舆论风波结束', '舆论风波已平息');
     updateDisplay();
 }
 
@@ -257,6 +271,14 @@ function updateChartsRealtime() {
             }
         });
     }
+    
+    // ✅ 新增：实时更新点赞全屏界面的图表
+    const likesPage = document.getElementById('likesPage');
+    if (likesPage && likesPage.classList.contains('active')) {
+        if (window.charts && window.charts.likesDetail) {
+            window.charts.likesDetail.update('none');
+        }
+    }
 }
 
 // ==================== 不更新掉粉检测（核心修改） ====================
@@ -288,12 +310,15 @@ function checkInactivityPenalty() {
         gameState.isDroppingFansFromInactivity = true;
         
         // 强制显示警告（首次触发）
-        showNotification('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
+        // ✅ 修改：使用小弹窗通知
+        if (typeof window.showEventPopup === 'function') {
+            showEventPopup('⚠️ 粉丝流失警告', '连续7天未更新，粉丝开始流失！快发布新作品！');
+        }
         
         // 启动每秒掉粉
         gameState.inactivityDropInterval = setInterval(() => {
             if (!gameState.isDroppingFansFromInactivity) { 
-                clearInterval(gameState.inactivityDropInterval);
+                clearInterval(game.state.inactivityDropInterval);
                 return;
             }
             
@@ -307,9 +332,10 @@ function checkInactivityPenalty() {
             const dropAmount = baseDrop + extraDrop;
             
             gameState.fans = Math.max(0, gameState.fans - dropAmount);
+            gameState.todayLostFans += dropAmount; // ✅ 新增：累计今日取关数
             
-            // 100%通知概率
-            showNotification('📉 粉丝流失', `失去了${dropAmount}个粉丝（已${Math.floor(currentDaysSinceLastWork)}天未更新）`);
+            // ✅ 修改：使用涨掉粉通知系统
+            addFanChangeNotification('⬇️', `失去了${dropAmount.toLocaleString()}个粉丝（已${Math.floor(currentDaysSinceLastWork)}天未更新）`, '不活跃惩罚', 'loss', dropAmount);
             
             updateDisplay();
         }, 1000);
@@ -372,23 +398,26 @@ function startGameLoop() {
         }
     }, 1000);
     
-    // 自然涨粉/掉粉（保持不变）
+    // ==================== 自然涨粉/掉粉（核心修改：每3秒触发1次，带作品增益） ====================
     setInterval(() => {
-        if (Math.random() < 0.05) {
-            const change = Math.floor(Math.random() * 100) - 50;
-            gameState.fans = Math.max(0, gameState.fans + change);
-            
-            if (change > 0) {
-                showNotification('粉丝变化', `获得了${change}个新粉丝`);
-            } else if (change < 0) {
-                showNotification('粉丝变化', `失去了${Math.abs(change)}个粉丝`);
-            }
-            
-            updateChartData();
+        // 每3秒固定触发1次，数量受作品增益影响
+        const baseChange = Math.floor(Math.random() * 100) - 50;
+        const boostedChange = baseChange + gameState.baseFanChangeBoost; // 应用作品增益
+        const change = boostedChange;
+        
+        gameState.fans = Math.max(0, gameState.fans + change);
+        
+        if (change > 0) {
+            gameState.todayNewFans += change;
+            addFanChangeNotification('⬆️', `获得了${change.toLocaleString()}个新粉丝`, '自然增长', 'gain', change);
+        } else if (change < 0) {
+            gameState.todayLostFans += Math.abs(change);
+            addFanChangeNotification('⬇️', `失去了${Math.abs(change).toLocaleString()}个粉丝`, '自然流失', 'loss', Math.abs(change));
         }
         
+        updateChartData();
         updateDisplay();
-    }, 100);
+    }, 3000); // 每3秒触发一次
     
     // 自动互动生成（保持不变）
     setInterval(() => {
@@ -413,10 +442,6 @@ function startGameLoop() {
             
             const interactionAmount = Math.floor(Math.random() * 50) + 1;
             gameState.totalInteractions += interactionAmount;
-            
-            if (Math.random() < 0.05) {
-                showNotification('粉丝活跃', `${interactionAmount}位粉丝进行了${selectedType}互动`);
-            }
         }
         
         if (Math.random() < 0.05) {
@@ -513,12 +538,7 @@ function checkAchievements() {
                     unlocked = publicWorksForComments.some(w => (w.comments || 0) >= 5000);
                     break;
                 
-                // 全勤主播
-                case 13: 
-                    const now = Date.now();
-                    // 使用游戏开始后的真实天数
-                    unlocked = Math.max(0, Math.floor((now - gameState.gameStartTime) / (24 * 60 * 60 * 1000))) >= 30;
-                    break;
+                // ✅ 已移除: case 13: 全勤主播成就
                 
                 // 逆风翻盘 - 特殊成就
                 case 14: 
@@ -537,24 +557,8 @@ function checkAchievements() {
                     unlocked = gameState.following.length >= 1000;
                     break;
                 
-                // 夜猫子
-                case 17: 
-                    if (!gameState.liveHistory) gameState.liveHistory = [];
-                    unlocked = gameState.liveHistory.some(live => {
-                        // 使用虚拟时间的小时（6AM是第6小时，3AM是第3小时）
-                        const hour = Math.floor((live.startVirtualTime % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS);
-                        return hour === 3; // 凌晨3点
-                    });
-                    break;
-                
-                // 早起鸟儿
-                case 18: 
-                    if (!gameState.liveHistory) gameState.liveHistory = [];
-                    unlocked = gameState.liveHistory.some(live => {
-                        const hour = Math.floor((live.startVirtualTime % VIRTUAL_DAY_MS) / VIRTUAL_HOUR_MS);
-                        return hour === 6; // 早上6点
-                    });
-                    break;
+                // ✅ 已移除: case 17: 夜猫子成就
+                // ✅ 已移除: case 18: 早起鸟儿成就
                 
                 // 宠粉狂魔
                 case 19: 
@@ -581,20 +585,18 @@ function checkAchievements() {
                 // 百万单王
                 case 23: 
                     const adWorks = gameState.worksList.filter(w => w.isAd && !w.isPrivate);
+                    const revenues = adWorks.map(w => w.revenue || 0);
                     unlocked = adWorks.some(w => (w.revenue || 0) >= 50000);
                     break;
                 
-                // 火眼金睛
-                case 24: 
-                    unlocked = (gameState.rejectedAdOrders || 0) >= 5;
-                    break;
+                // ✅ 已移除: case 24: 火眼金睛成就
                 
                 // 商单大师 - 需要同时满足两个条件
                 case 25: 
                     unlocked = gameState.worksList.filter(w => w.isAd && !w.isPrivate).length >= 50 && (gameState.warnings || 0) < 5;
                     break;
                 
-                // 赌徒（负面成就）
+                // 赌徒
                 case 26: 
                     const fakeAdCount = gameState.worksList.filter(w => w.isAd && w.adOrder && !w.adOrder.real && !w.isPrivate).length;
                     unlocked = fakeAdCount >= 10;
@@ -626,8 +628,10 @@ function checkAchievements() {
                     showAchievementPopup(achievement);
                 }
                 
-                // 保留原有的通知中心消息
-                showNotification('成就解锁！', `${achievement.name}：${achievement.desc}`);
+                // ✅ 修改：只显示小弹窗通知，移除通知中心通知
+                if (typeof window.showEventPopup === 'function') {
+                    showEventPopup('🏆 成就解锁', `${achievement.name}：${achievement.desc}`);
+                }
                 
                 console.log(`✅ 成就解锁: ${achievement.name} (ID: ${achievement.id})`);
                 
@@ -641,7 +645,8 @@ function checkAchievements() {
                         legendaryAchievement.unlocked = true;
                         gameState.achievements.push(20);
                         showAchievementPopup(legendaryAchievement);
-                        showNotification('🏆 传奇成就', '恭喜解锁所有成就！');
+                        // ✅ 修改：使用小弹窗通知
+                        showEventPopup('🏆 传奇成就', '恭喜解锁所有成就！');
                     }
                 }
             }
@@ -650,7 +655,37 @@ function checkAchievements() {
     // ==================== 修复结束 ====================
 }
 
-// ==================== Chart.js图表系统（修复版） ====================
+// ==================== 新增：将天数转换为月日格式的函数 ====================
+function convertDaysToMD(dayNumber) {
+    if (dayNumber < 0) return '';
+    
+    // 每月天数（不考虑闰年，2月固定28天）
+    const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const monthNames = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    
+    // 计算年内第几天（对365取模）
+    let dayInYear = dayNumber % 365;
+    
+    // 处理负数情况
+    if (dayInYear < 0) {
+        dayInYear = (dayInYear + 365) % 365;
+    }
+    
+    // 遍历月份，找到对应的月和日
+    let remainingDays = dayInYear;
+    for (let i = 0; i < monthDays.length; i++) {
+        if (remainingDays < monthDays[i]) {
+            // 返回 "月.日" 格式
+            return `${monthNames[i]}.${remainingDays + 1}`;
+        }
+        remainingDays -= monthDays[i];
+    }
+    
+    // 默认为12月31日
+    return '12.31';
+}
+
+// ==================== Chart.js图表系统（修复版：显示月日日期） ====================
 function drawChart(canvasId, data, color, label) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
@@ -676,7 +711,10 @@ function drawChart(canvasId, data, color, label) {
             labels.push('');
             displayData.push(null); // 未来天数设为null，不画线
         } else {
-            labels.push(`第${dayNumber}天`);
+            // ==================== 修改：将天数转换为月日格式 ====================
+            labels.push(convertDaysToMD(dayNumber));
+            // =========================================================================
+            
             // 如果数据为0，也设为null，避免画直线
             const value = data[dataIndex] || 0;
             displayData.push(value > 0 ? value : null);
@@ -698,7 +736,11 @@ function drawChart(canvasId, data, color, label) {
                 label: label,
                 data: displayData,
                 borderColor: color,
-                backgroundColor: color + '20',
+                // ==================== 修复：使用RGBA格式确保APK兼容 ====================
+                backgroundColor: color.startsWith('#') ? 
+                    `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, 0.125)` : 
+                    color + '20',
+                // =========================================================================
                 borderWidth: 3,
                 fill: true,
                 tension: 0.4,
@@ -727,7 +769,16 @@ function drawChart(canvasId, data, color, label) {
                     callbacks: {
                         label: function(context) {
                             return label + ': ' + context.parsed.y.toLocaleString();
+                        },
+                        // ==================== 修改：tooltip显示完整日期 ====================
+                        title: function(context) {
+                            const label = context[0].label;
+                            if (label) {
+                                return `日期: ${label}`;
+                            }
+                            return '';
                         }
+                        // =========================================================================
                     }
                 }
             },
@@ -772,6 +823,87 @@ function drawChart(canvasId, data, color, label) {
     window.charts[canvasId] = chart;
 }
 
+// ==================== 数据分析界面（修改版 - 移除点赞图表） ====================
+function showCharts() {
+    document.getElementById('mainContent').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+    document.getElementById('chartsPage').classList.add('active');
+    
+    if (!gameState.chartData.currentIndex && gameState.chartData.likes.length > 0) {
+        const virtualDays = Math.floor(getVirtualDaysPassed());
+        gameState.chartData.currentIndex = (virtualDays - 1) % 60;
+        gameState.chartData.currentDay = virtualDays - 1;
+    }
+    
+    const content = document.getElementById('chartsPageContent');
+    content.innerHTML = `
+        <div class="chart-container">
+            <!-- ✅ 移除：点赞图表已移动到独立界面 -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 10px; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);">
+                <div style="font-size: 14px; color: rgba(255, 255, 255, 0.9); margin-bottom: 10px;">图表已独立</div>
+                <div style="font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 10px;">点赞图表已移动到独立界面</div>
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8);">
+                    点击主界面"点赞"统计数字查看详细图表
+                </div>
+            </div>
+            
+            <div style="background: #161823; border-radius: 10px; padding: 15px; margin: 10px; border: 1px solid #333;">
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #667aea;">
+                    📊 图表功能调整说明
+                </div>
+                <div style="font-size: 12px; color: #999; line-height: 1.6;">
+                    <div style="margin-bottom: 8px;">• 点赞图表已独立到全屏界面</div>
+                    <div style="margin-bottom: 8px;">• 播放量图表也已独立</div>
+                    <div style="margin-bottom: 8px;">• 点击对应统计数字查看详细图表</div>
+                    <div>• 查看更多数据请使用统计数字入口</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (window.chartRefreshInterval) {
+        clearInterval(window.chartRefreshInterval);
+    }
+    
+    // 更新点赞图表的实时刷新
+    window.chartRefreshInterval = setInterval(() => {
+        const likesPage = document.getElementById('likesPage');
+        if (likesPage && likesPage.classList.contains('active')) {
+            // 点赞界面图表实时更新
+            if (window.charts && window.charts.likesDetail) {
+                window.charts.likesDetail.update('none');
+            }
+        }
+    }, 1000);
+}
+
+// ==================== 新增：涨掉粉通知管理函数 ====================
+function addFanChangeNotification(icon, title, content, changeType, fanCount) {
+    // 确保初始化数组存在
+    if (!gameState.fanChangeNotifications) {
+        gameState.fanChangeNotifications = [];
+    }
+    
+    // 创建通知对象
+    const notification = {
+        id: Date.now(),
+        icon: icon,
+        title: title,
+        content: content,
+        time: gameTimer,
+        changeType: changeType, // 'gain' 或 'loss'
+        fanCount: fanCount
+    };
+    
+    // 添加到列表末尾
+    gameState.fanChangeNotifications.push(notification);
+    
+    // 自动清理：如果超过10条，移除最旧的一条
+    if (gameState.fanChangeNotifications.length > 10) {
+        gameState.fanChangeNotifications.shift(); // 移除第一条（最旧的）
+    }
+}
+
 // ==================== 全局函数绑定 ====================
 window.startHotSearch = startHotSearch;
 window.showHotSearchNotice = showHotSearchNotice;
@@ -788,3 +920,7 @@ window.updateChartsRealtime = updateChartsRealtime;
 window.updateChartStatsRealtime = updateChartStatsRealtime;
 window.checkInactivityPenalty = checkInactivityPenalty;
 window.checkAchievements = checkAchievements; // ✅ 导出成就检查函数
+// ==================== 导出新增的日期转换函数 ====================
+window.convertDaysToMD = convertDaysToMD;
+// ✅ 新增：导出涨掉粉通知管理函数
+window.addFanChangeNotification = addFanChangeNotification;

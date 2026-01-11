@@ -80,9 +80,8 @@ function handleRandomEvent(event) {
         } else {
             console.error('generateHotSearchInvite函数未找到');
         }
-        // 显示通知
-        showNotification(event.title, '你收到了一个热搜话题邀请，请在消息中心查看');
-        showEventPopup(event.title, '热搜邀请已发送至系统消息'); // ✅ 新增事件弹窗
+        // ✅ 修改：只显示小弹窗通知，不移除通知中心通知（因为是系统消息）
+        showEventPopup(event.title, '热搜邀请已发送至系统消息');
         return; // 热搜邀请由系统消息模块处理，这里不再处理
     }
     
@@ -94,8 +93,9 @@ function handleRandomEvent(event) {
             targetWork.isRecommended = true;
             targetWork.recommendEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
-            showNotification(event.title, message);
-            showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 修改：只显示小弹窗通知
+            showEventPopup(event.title, message);
             
             // ✅ 检查幸运儿成就
             const luckyAchievement = achievements.find(a => a.id === 15);
@@ -104,15 +104,14 @@ function handleRandomEvent(event) {
                     luckyAchievement.unlocked = true;
                     gameState.achievements.push(15);
                     showAchievementPopup(luckyAchievement);
-                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
-                    // 重新检查传奇主播
+                    showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                     checkAchievements();
                 }
             }
             
             startRecommendEffect(targetWork.id, event.effect.duration);
         } else {
-            showNotification(event.title, '你还没有可推荐的视频作品');
+            showAlert(event.title, '你还没有可推荐的视频作品');
         }
     }
     
@@ -124,8 +123,9 @@ function handleRandomEvent(event) {
             targetWork.isHot = true;
             targetWork.hotEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `动态《${targetWork.content.substring(0, 20)}...》登上热搜！`;
-            showNotification(event.title, message);
-            showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 修改：只显示小弹窗通知
+            showEventPopup(event.title, message);
             
             // ✅ 检查幸运儿成就
             const luckyAchievement = achievements.find(a => a.id === 15);
@@ -134,14 +134,14 @@ function handleRandomEvent(event) {
                     luckyAchievement.unlocked = true;
                     gameState.achievements.push(15);
                     showAchievementPopup(luckyAchievement);
-                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                     checkAchievements();
                 }
             }
             
             startPostHotEffect(targetWork.id, event.effect.duration);
         } else {
-            showNotification(event.title, '你还没有可上热搜的动态');
+            showAlert(event.title, '你还没有可上热搜的动态');
         }
     }
     
@@ -149,8 +149,9 @@ function handleRandomEvent(event) {
     else if (event.effect.brandDeal) {
         generateBrandDeal();
         message = '有新的品牌合作机会，请在商单中心查看！';
-        showNotification(event.title, message);
-        showEventPopup(event.title, message); // ✅ 新增事件弹窗
+        
+        // ✅ 修改：只显示小弹窗通知
+        showEventPopup(event.title, message);
         
         // ✅ 检查幸运儿成就
         const luckyAchievement = achievements.find(a => a.id === 15);
@@ -159,7 +160,7 @@ function handleRandomEvent(event) {
                 luckyAchievement.unlocked = true;
                 gameState.achievements.push(15);
                 showAchievementPopup(luckyAchievement);
-                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                 checkAchievements();
             }
         }
@@ -169,8 +170,9 @@ function handleRandomEvent(event) {
     else if (event.effect.hotSearch) {
         const title = event.title || '🔥 话题热议中';
         startHotSearch(title);
-        showNotification(event.title, event.desc);
-        showEventPopup(event.title, event.desc); // ✅ 新增事件弹窗
+        
+        // ✅ 修改：只显示小弹窗通知
+        showEventPopup(event.title, event.desc);
         
         // ✅ 检查幸运儿成就
         const luckyAchievement = achievements.find(a => a.id === 15);
@@ -179,7 +181,7 @@ function handleRandomEvent(event) {
                 luckyAchievement.unlocked = true;
                 gameState.achievements.push(15);
                 showAchievementPopup(luckyAchievement);
-                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                 checkAchievements();
             }
         }
@@ -193,8 +195,9 @@ function handleRandomEvent(event) {
             targetWork.isControversial = true;
             targetWork.controversyEndTime = gameTimer + (event.effect.duration * VIRTUAL_DAY_MS);
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》${event.desc}`;
-            showNotification(event.title, message);
-            showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 修改：只显示小弹窗通知
+            showEventPopup(event.title, message);
             
             // ✅ 检查幸运儿成就
             const luckyAchievement = achievements.find(a => a.id === 15);
@@ -203,18 +206,26 @@ function handleRandomEvent(event) {
                     luckyAchievement.unlocked = true;
                     gameState.achievements.push(15);
                     showAchievementPopup(luckyAchievement);
-                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                     checkAchievements();
                 }
             }
             
             startControversyEffect(targetWork.id, event.effect.duration);
             if (event.effect.addWarning) {
-                gameState.warnings = Math.min(20, gameState.warnings + 1);
+                gameState.warnings = Math.min(20, gameState.warnings + Math.floor(Math.random() * 2) + 1);
+                
+                // ✅ 添加警告历史记录
+                if (typeof addWarningToHistory === 'function') {
+                    addWarningToHistory('CONTENT_VIOLATION', 
+                        '内容引发争议被举报', 
+                        '');
+                }
+                
                 showWarning(`内容违规，警告${gameState.warnings}/20次`);
             }
         } else {
-            showNotification(event.title, '没有合适的视频可触发争议');
+            showAlert(event.title, '没有合适的视频可触发争议');
         }
     }
     
@@ -224,14 +235,23 @@ function handleRandomEvent(event) {
         if (videos.length > 0) {
             targetWork = videos[Math.floor(Math.random() * videos.length)];
             const workIndex = gameState.worksList.findIndex(w => w.id === targetWork.id);
+            
+            // 从统计数据中减去该视频的贡献
             gameState.views = Math.max(0, gameState.views - targetWork.views);
             gameState.likes = Math.max(0, gameState.likes - targetWork.likes);
             const interactionCount = targetWork.comments + targetWork.likes + targetWork.shares;
             gameState.totalInteractions = Math.max(0, gameState.totalInteractions - interactionCount);
+            
+            // 更新作品计数器（关键修复）
+            gameState.works = Math.max(0, gameState.works - 1);
+            
+            // 从列表中删除视频
             gameState.worksList.splice(workIndex, 1);
+            
             message = `视频《${targetWork.title || targetWork.content.substring(0, 20)}...》因${event.desc}被删除`;
-            showNotification(event.title, message);
-            showEventPopup(event.title, message); // ✅ 新增事件弹窗
+            
+            // ✅ 修改：只显示小弹窗通知
+            showEventPopup(event.title, message);
             
             // ✅ 检查幸运儿成就
             const luckyAchievement = achievements.find(a => a.id === 15);
@@ -240,17 +260,39 @@ function handleRandomEvent(event) {
                     luckyAchievement.unlocked = true;
                     gameState.achievements.push(15);
                     showAchievementPopup(luckyAchievement);
-                    showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                    showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                     checkAchievements();
                 }
             }
             
+            // 清理可能存在的定时器
+            if (targetWork.recommendInterval) {
+                clearInterval(targetWork.recommendInterval);
+            }
+            if (targetWork.controversyInterval) {
+                clearInterval(targetWork.controversyInterval);
+            }
+            if (targetWork.hotInterval) {
+                clearInterval(targetWork.hotInterval);
+            }
+            if (targetWork.fanGrowthInterval) {
+                clearInterval(targetWork.fanGrowthInterval);
+            }
+            
             if (event.effect.addWarning) {
-                gameState.warnings = Math.min(20, gameState.warnings + 1);
+                gameState.warnings = Math.min(20, gameState.warnings + Math.floor(Math.random() * 2) + 1);
+                
+                // ✅ 添加警告历史记录
+                if (typeof addWarningToHistory === 'function') {
+                    addWarningToHistory(event.title.includes('版权') ? 'COPYRIGHT_ISSUE' : 'SYSTEM_ERROR', 
+                        event.desc, 
+                        targetWork.title || targetWork.content.substring(0, 50));
+                }
+                
                 showWarning(`内容违规，警告${gameState.warnings}/20次`);
             }
         } else {
-            showNotification(event.title, '没有可删除的视频');
+            showAlert(event.title, '没有可删除的视频');
         }
     }
     
@@ -269,26 +311,51 @@ function handleRandomEvent(event) {
             gameState.money = Math.max(0, gameState.money - fine);
             gameState.warnings = Math.min(20, gameState.warnings + 3);
             
-            // 开始掉粉惩罚
-            const penaltyDays = Math.floor(Math.random() * 46) + 15;
-            const dailyLoss = Math.floor(Math.random() * 200) + 50;
-            
-            if (!gameState.fakeAdPenalty) {
-                gameState.fakeAdPenalty = {
-                    isActive: true,
-                    endTime: gameTimer + (penaltyDays * VIRTUAL_DAY_MS),
-                    exposedWorkIds: [targetWork.id],
-                    dailyFanLoss: dailyLoss
-                };
+            // ✅ 强制结束直播
+            if (gameState.liveStatus && typeof endLiveStream === 'function') {
+                endLiveStream();
+                // ✅ 修改：使用小弹窗通知
+                if (typeof showEventPopup === 'function') {
+                    showEventPopup('🚫 直播中断', '账号被举报，直播已强制结束');
+                }
             }
             
+            // ✅ 停止所有推广
+            Object.keys(gameState.trafficWorks).forEach(workId => {
+                if (typeof stopTrafficForWork === 'function') {
+                    stopTrafficForWork(workId);
+                }
+            });
+            
+            // 开始掉粉惩罚（修复版：不会重置已有惩罚）
+            startFakeAdFanLoss([targetWork]);
+            
+            // 舆论风波
             if (typeof startPublicOpinionCrisis === 'function') {
-                startPublicOpinionCrisis('⚠️ 虚假商单被举报');
+                startPublicOpinionCrisis('⚠️ 虚假商单被曝光');
             }
             
-            message = `罚款${fine}元，警告+3，粉丝开始流失！`;
-            showNotification('🚨 虚假商单被举报！', message);
-            showEventPopup('虚假商单被举报', message); // ✅ 新增事件弹窗
+            // ✅ 添加警告历史记录（虚假商单被举报）
+            if (typeof addWarningToHistory === 'function') {
+                addWarningToHistory('FAKE_AD', 
+                    `虚假商单"${targetWork.adOrder.title}"被网友举报`, 
+                    targetWork.content.substring(0, 50) + (targetWork.content.length > 50 ? '...' : ''));
+            }
+            
+            // ✅ 修复：如果作品有粉丝增长定时器，清理它
+            if (targetWork.fanGrowthInterval) {
+                clearInterval(targetWork.fanGrowthInterval);
+                targetWork.fanGrowthInterval = null;
+                targetWork.growthEndTime = null;
+                console.log(`[举报曝光] 作品 ${targetWork.id} 的粉丝增长定时器已清理`);
+            }
+            
+            // ✅ 修改：使用涨掉粉通知系统（罚款通知仍在通知中心）
+            showEventPopup('🚨 虚假商单被曝光！', `罚款${fine.toLocaleString()}元，警告+3，粉丝开始流失！`);
+            
+            if (typeof showWarning === 'function') {
+                showWarning(`虚假商单被曝光！警告${gameState.warnings}/20次`);
+            }
             
             // ✅ 检查负面成就
             // 赌徒成就（完成10个虚假商单）
@@ -301,7 +368,7 @@ function handleRandomEvent(event) {
                     gamblerAchievement.unlocked = true;
                     gameState.achievements.push(26);
                     showAchievementPopup(gamblerAchievement);
-                    showNotification('🏆 负面成就解锁', `赌徒：完成10个虚假商单`);
+                    showEventPopup('🏆 负面成就解锁', `赌徒：完成10个虚假商单`);
                     checkAchievements();
                 }
             }
@@ -315,14 +382,12 @@ function handleRandomEvent(event) {
                     disgraceAchievement.unlocked = true;
                     gameState.achievements.push(27);
                     showAchievementPopup(disgraceAchievement);
-                    showNotification('🏆 负面成就解锁', `身败名裂：因虚假商单被封号3次`);
+                    showEventPopup('🏆 负面成就解锁', `身败名裂：因虚假商单被封号3次`);
                     checkAchievements();
                 }
             }
-            
-            showWarning(`虚假商单被举报！警告${gameState.warnings}/20次`);
         } else {
-            showNotification('举报风波', '有网友质疑你的内容，但未被证实');
+            showAlert('举报风波', '有网友质疑你的内容，但未被证实');
         }
     }
     
@@ -347,7 +412,7 @@ function handleRandomEvent(event) {
             }, i * 1000);
         }
         
-        showNotification(event.title, '有新的私信消息');
+        // ✅ 修改：只显示小弹窗通知
         showEventPopup(event.title, event.desc);
         
         // ✅ 检查幸运儿成就
@@ -357,7 +422,7 @@ function handleRandomEvent(event) {
                 luckyAchievement.unlocked = true;
                 gameState.achievements.push(15);
                 showAchievementPopup(luckyAchievement);
-                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                 checkAchievements();
             }
         }
@@ -365,7 +430,23 @@ function handleRandomEvent(event) {
     
     // ========== 处理原有直接效果事件 ==========
     else {
-        if (event.effect.fans) gameState.fans = Math.max(0, gameState.fans + event.effect.fans);
+        // ✅ 修改：处理直接粉丝变化效果，并正确记录到今日统计
+        if (event.effect.fans) {
+            const change = event.effect.fans;
+            gameState.fans = Math.max(0, gameState.fans + change);
+            
+            // ✅ 记录到今日统计
+            if (change > 0) {
+                gameState.todayNewFans += change; // 涨粉
+                // ✅ 添加涨粉通知
+                addFanChangeNotification('⬆️', `获得了${change.toLocaleString()}个新粉丝`, event.title, 'gain', change);
+            } else if (change < 0) {
+                gameState.todayLostFans += Math.abs(change); // 掉粉
+                // ✅ 添加掉粉通知
+                addFanChangeNotification('⬇️', `失去了${Math.abs(change).toLocaleString()}个粉丝`, event.title, 'loss', Math.abs(change));
+            }
+        }
+        
         if (event.effect.likes) gameState.likes = Math.max(0, gameState.likes + event.effect.likes);
         if (event.effect.views) gameState.views = Math.max(0, gameState.views + event.effect.views);
         if (event.effect.money) gameState.money = Math.max(0, gameState.money + event.effect.money);
@@ -379,13 +460,13 @@ function handleRandomEvent(event) {
                 luckyAchievement.unlocked = true;
                 gameState.achievements.push(15);
                 showAchievementPopup(luckyAchievement);
-                showNotification('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
+                showEventPopup('🏆 成就解锁', `${luckyAchievement.name}：${luckyAchievement.desc}`);
                 checkAchievements();
             }
         }
         
-        showNotification(event.title, event.desc);
-        showEventPopup(event.title, event.desc); // ✅ 新增事件弹窗
+        // ✅ 修改：只显示小弹窗通知
+        showEventPopup(event.title, event.desc);
     }
     
     if (!gameState.isBanned && gameState.warnings >= 20) banAccount('多次违反社区规定');
@@ -406,15 +487,22 @@ function startRecommendEffect(workId, durationDays, isResume = false) {
         }
         
         const viewsBoost = Math.floor(Math.random() * 4000) + 1000;
+        const likesBoost = Math.floor(Math.random() * 400) + 100;
+        const fanBoost = Math.floor(Math.random() * 40) + 10;
+        
         work.views += viewsBoost;
         gameState.views += viewsBoost;
-        
-        const fanBoost = Math.floor(Math.random() * 40) + 10;
-        gameState.fans += fanBoost;
-        
-        const likesBoost = Math.floor(Math.random() * 50) + 10;
         work.likes += likesBoost;
         gameState.likes += likesBoost;
+        gameState.fans += fanBoost;
+        
+        // ✅ 修复：记录到今日新增粉丝
+        gameState.todayNewFans += fanBoost;
+        
+        // ✅ 修复：添加涨粉通知
+        if (Math.random() < 0.3) { // 30%概率显示通知，避免刷屏
+            addFanChangeNotification('⬆️', `视频推荐获得${fanBoost.toLocaleString()}个新粉丝`, '视频推荐', 'gain', fanBoost);
+        }
         
         updateDisplay();
         updateWorksList();
@@ -422,7 +510,8 @@ function startRecommendEffect(workId, durationDays, isResume = false) {
     
     // 只在非恢复模式下显示通知
     if (!isResume) {
-        showNotification('🔥 视频推荐', `视频《${work.title || work.content.substring(0, 20)}...》获得平台推荐！`);
+        // ✅ 修改：使用小弹窗通知
+        showEventPopup('🔥 视频推荐', `视频《${work.title || work.content.substring(0, 20)}...》获得平台推荐！`);
     }
 }
 
@@ -435,7 +524,8 @@ function endRecommendEffect(workId) {
     work.recommendEndTime = null;
     work.recommendInterval = null;
     
-    showNotification('推荐结束', `视频《${work.title || work.content.substring(0, 20)}...》的热度推荐已结束`);
+    // ✅ 修改：使用小弹窗通知
+    showEventPopup('推荐结束', `视频《${work.title || work.content.substring(0, 20)}...》的热度推荐已结束`);
     updateDisplay();
     updateWorksList();
 }
@@ -454,23 +544,30 @@ function startPostHotEffect(workId, durationDays, isResume = false) {
         }
         
         const viewsBoost = Math.floor(Math.random() * 1500) + 500;
-        work.views += viewsBoost;
-        
-        const fanBoost = Math.floor(Math.random() * 25) + 5;
-        gameState.fans += fanBoost;
-        
         const likesBoost = Math.floor(Math.random() * 30) + 5;
         const commentsBoost = Math.floor(Math.random() * 10) + 2;
+        const fanBoost = Math.floor(Math.random() * 25) + 5;
+        
+        work.views += viewsBoost;
         work.likes += likesBoost;
         work.comments += commentsBoost;
-        gameState.likes += likesBoost;
+        gameState.fans += fanBoost;
+        
+        // ✅ 修复：记录到今日新增粉丝
+        gameState.todayNewFans += fanBoost;
+        
+        // ✅ 修复：添加涨粉通知
+        if (Math.random() < 0.3) { // 30%概率显示通知
+            addFanChangeNotification('⬆️', `动态热搜获得${fanBoost.toLocaleString()}个新粉丝`, '动态热搜', 'gain', fanBoost);
+        }
         
         updateDisplay();
         updateWorksList();
     }, 1000);
     
     if (!isResume) {
-        showNotification('🔥 动态热搜', `动态《${work.content.substring(0, 20)}...》登上热搜！`);
+        // ✅ 修改：使用小弹窗通知
+        showEventPopup('🔥 动态热搜', `动态《${work.content.substring(0, 20)}...》登上热搜！`);
     }
 }
 
@@ -483,7 +580,8 @@ function endPostHotEffect(workId) {
     work.hotEndTime = null;
     work.hotInterval = null;
     
-    showNotification('热搜结束', `动态《${work.content.substring(0, 20)}...》的热搜已结束`);
+    // ✅ 修改：使用小弹窗通知
+    showEventPopup('热搜结束', `动态《${work.content.substring(0, 20)}...》的热搜已结束`);
     updateDisplay();
     updateWorksList();
 }
@@ -504,6 +602,14 @@ function startControversyEffect(workId, durationDays, isResume = false) {
         const fanLoss = Math.floor(Math.random() * 30) + 20;
         gameState.fans = Math.max(0, gameState.fans - fanLoss);
         
+        // ✅ 修复：记录到今日取关数
+        gameState.todayLostFans += fanLoss;
+        
+        // ✅ 修复：添加掉粉通知
+        if (Math.random() < 0.2) { // 20%概率显示通知，避免刷屏
+            addFanChangeNotification('⬇️', `视频争议导致失去${fanLoss.toLocaleString()}个粉丝`, '内容争议', 'loss', fanLoss);
+        }
+        
         if (work.likes > 0) {
             const likesLoss = Math.floor(Math.random() * 10) + 1;
             work.likes = Math.max(0, work.likes - likesLoss);
@@ -512,7 +618,8 @@ function startControversyEffect(workId, durationDays, isResume = false) {
         
         // 降低通知频率，避免恢复时刷屏
         if (Math.random() < 0.05) {
-            showNotification('争议持续', `视频争议中，粉丝持续流失：-${fanLoss}`);
+            // ✅ 修改：使用小弹窗通知
+            showEventPopup('争议持续', `视频争议中，粉丝持续流失：-${fanLoss}`);
         }
         
         updateDisplay();
@@ -520,7 +627,8 @@ function startControversyEffect(workId, durationDays, isResume = false) {
     }, 1000);
     
     if (!isResume) {
-        showNotification('⚠️ 内容争议', `视频《${work.title || work.content.substring(0, 20)}...》引发争议！`);
+        // ✅ 修改：使用小弹窗通知
+        showEventPopup('⚠️ 内容争议', `视频《${work.title || work.content.substring(0, 20)}...》引发争议！`);
     }
 }
 
@@ -533,7 +641,8 @@ function endControversyEffect(workId) {
     work.controversyEndTime = null;
     work.controversyInterval = null;
     
-    showNotification('争议平息', `视频《${work.title || work.content.substring(0, 20)}...》的争议已平息`);
+    // ✅ 修改：使用小弹窗通知
+    showEventPopup('争议平息', `视频《${work.title || work.content.substring(0, 20)}...》的争议已平息`);
     updateDisplay();
     updateWorksList();
 }
@@ -556,7 +665,8 @@ function generateBrandDeal() {
         status: 'pending'
     };
     
-    showNotification('品牌合作', `你有新的品牌合作机会：${gameState.pendingBrandDeal.title}，报酬${reward}元`);
+    // ✅ 修改：使用小弹窗通知
+    showEventPopup('品牌合作', `你有新的品牌合作机会：${gameState.pendingBrandDeal.title}，报酬${reward}元`);
 }
 
 // ==================== 全局函数绑定 ====================

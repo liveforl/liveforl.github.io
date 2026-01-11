@@ -2,15 +2,6 @@
 // 本模块包含热搜话题邀请、月度总结等系统推送功能
 // 依赖: game_core.js, game_ui_core.js
 
-// ==================== 系统消息数据结构 ====================
-/*
-gameState.systemMessages = {
-    unreadCount: 0,
-    messages: [], // { id, type, title, content, time, read, data }
-    hotSearchActiveWorks: [] // 当前参与热搜的作品ID列表
-};
-*/
-
 // ==================== 热搜话题库 ====================
 const hotSearchTopics = [
     '#春节特别策划#',
@@ -27,13 +18,72 @@ const hotSearchTopics = [
     '#音乐翻唱挑战#'
 ];
 
-// ==================== 生成热搜话题邀请 ====================
+// ==================== 系统消息实时更新定时器 ====================
+let systemMessagesUpdateInterval = null;
+window.isSystemMessageListOpen = false;
+
+// ==================== 启动系统消息列表实时更新 ====================
+function startSystemMessagesRealtimeUpdate() {
+    if (systemMessagesUpdateInterval) {
+        clearInterval(systemMessagesUpdateInterval);
+    }
+    
+    systemMessagesUpdateInterval = setInterval(() => {
+        if (window.isSystemMessageListOpen) {
+            const hasNewMessages = checkForNewSystemMessages();
+            
+            if (hasNewMessages) {
+                if (typeof renderSystemMessagesList === 'function') {
+                    renderSystemMessagesList();
+                }
+                
+                if (typeof updateNavMessageBadge === 'function') {
+                    updateNavMessageBadge();
+                }
+                
+                if (typeof showMessagesFullscreen === 'function') {
+                    showMessagesFullscreen();
+                }
+            }
+        }
+    }, 5000);
+    
+    console.log('系统消息列表实时更新已启动');
+}
+
+// ==================== 停止系统消息列表实时更新 ====================
+function stopSystemMessagesRealtimeUpdate() {
+    if (systemMessagesUpdateInterval) {
+        clearInterval(systemMessagesUpdateInterval);
+        systemMessagesUpdateInterval = null;
+        console.log('系统消息列表实时更新已停止');
+    }
+}
+
+// ==================== 检查是否有新的系统消息 ====================
+function checkForNewSystemMessages() {
+    if (!gameState.systemMessages || !gameState.systemMessages.messages) {
+        return false;
+    }
+    
+    const now = gameTimer;
+    const timeDiff = now - (gameState.systemMessages.lastCheckTime || 0);
+    
+    if (timeDiff < VIRTUAL_MINUTE_MS * 30) {
+        return false;
+    }
+    
+    gameState.systemMessages.lastCheckTime = now;
+    
+    return gameState.systemMessages.unreadCount > 0;
+}
+
+// ==================== 生成热搜话题邀请（带时间限制） ====================
 function generateHotSearchInvite() {
     if (!gameState.systemMessages) {
         initSystemMessages();
     }
     
-    // 避免同时存在多个未处理的热搜邀请
     const existingInvite = gameState.systemMessages.messages.find(msg => 
         msg.type === 'hotSearchInvite' && !msg.data?.accepted && !msg.data?.expired
     );
@@ -44,30 +94,39 @@ function generateHotSearchInvite() {
     }
     
     const topic = hotSearchTopics[Math.floor(Math.random() * hotSearchTopics.length)];
+    const duration = Math.floor(Math.random() * 3) + 2; // 2-4虚拟天
+    const deadlineTime = gameTimer + (24 * VIRTUAL_HOUR_MS); // 24虚拟小时内未接受则过期
+    
     const inviteMessage = {
         id: Date.now(),
         type: 'hotSearchInvite',
         title: '🚀 热搜话题邀请',
-        content: `平台邀请你参与热门话题：${topic}`,
+        content: `平台邀请你参与热门话题：${topic}，活动时长${duration}天。请在${formatVirtualTime(deadlineTime)}前接受邀请！`,
         time: gameTimer,
         read: false,
         data: {
             topic: topic,
-            duration: 3, // 持续3虚拟天
+            duration: duration,
+            startTime: null,
+            endTime: null,
+            deadlineTime: deadlineTime, // 接受截止时间
             accepted: false,
-            expired: false
+            expired: false,
+            expiredReason: null
         }
     };
     
     gameState.systemMessages.messages.push(inviteMessage);
     gameState.systemMessages.unreadCount++;
     
-    showNotification('系统消息', `你收到了一个热搜话题邀请：${topic}`);
+    showNotification('系统消息', `你收到了一个热搜话题邀请：${topic}（剩余${Math.ceil((deadlineTime - gameTimer) / VIRTUAL_HOUR_MS)}小时）`);
     
-    // 更新UI
-    if (typeof updateSystemMessagesUI === 'function') {
-        updateSystemMessagesUI();
+    if (window.isSystemMessageListOpen) {
+        if (typeof updateSystemMessagesUI === 'function') {
+            updateSystemMessagesUI();
+        }
     }
+    
     if (typeof updateNavMessageBadge === 'function') {
         updateNavMessageBadge();
     }
@@ -84,7 +143,6 @@ function generateMonthlySummary() {
     const currentDate = getVirtualDate();
     const currentMonth = `${currentDate.year}-${currentDate.month}`;
     
-    // 检查本月是否已生成总结
     const hasSummaryThisMonth = gameState.systemMessages.messages.some(msg => 
         msg.type === 'monthlySummary' && msg.data?.month === currentMonth
     );
@@ -94,7 +152,6 @@ function generateMonthlySummary() {
         return;
     }
     
-    // 计算本月收入（只统计已发布的公开作品）
     const thirtyDaysAgo = gameTimer - (30 * VIRTUAL_DAY_MS);
     const monthlyWorks = gameState.worksList.filter(work => 
         work.time >= thirtyDaysAgo && !work.isPrivate
@@ -109,7 +166,6 @@ function generateMonthlySummary() {
     const liveRevenue = liveWorks.reduce((sum, work) => sum + (work.revenue || 0), 0);
     const totalRevenue = videoRevenue + postRevenue + liveRevenue;
     
-    // 计算商单收入
     const adWorks = monthlyWorks.filter(work => work.isAd);
     const adRevenue = adWorks.reduce((sum, work) => sum + (work.revenue || 0), 0);
     
@@ -141,10 +197,12 @@ function generateMonthlySummary() {
     
     showNotification('系统消息', '你的月度收入总结已生成');
     
-    // 更新UI
-    if (typeof updateSystemMessagesUI === 'function') {
-        updateSystemMessagesUI();
+    if (window.isSystemMessageListOpen) {
+        if (typeof updateSystemMessagesUI === 'function') {
+            updateSystemMessagesUI();
+        }
     }
+    
     if (typeof updateNavMessageBadge === 'function') {
         updateNavMessageBadge();
     }
@@ -154,9 +212,24 @@ function generateMonthlySummary() {
 
 // ==================== 接受热搜邀请 ====================
 function acceptHotSearchInvite(messageId, contentType) {
+    // ✅ 新增：账号被封禁时无法接受热搜邀请
+    if (gameState.isBanned) { 
+        showWarning('账号被封禁，无法参与热搜话题'); 
+        return; 
+    }
+    
     const message = gameState.systemMessages.messages.find(m => m.id == messageId);
     if (!message || message.data?.accepted || message.data?.expired) {
         console.log('热搜邀请无效或已过期');
+        return;
+    }
+    
+    // 检查是否过期
+    if (gameTimer > message.data.deadlineTime) {
+        message.data.expired = true;
+        message.data.expiredReason = '超时未接受';
+        showNotification('邀请已过期', '热搜邀请已超过接受时间');
+        saveGame();
         return;
     }
     
@@ -164,6 +237,8 @@ function acceptHotSearchInvite(messageId, contentType) {
     message.data.accepted = true;
     message.data.acceptedAt = gameTimer;
     message.data.contentType = contentType;
+    message.data.startTime = gameTimer;
+    message.data.endTime = gameTimer + (message.data.duration * VIRTUAL_DAY_MS);
     
     // 标记为已读
     if (!message.read) {
@@ -187,13 +262,19 @@ function acceptHotSearchInvite(messageId, contentType) {
         time: gameTimer,
         isPrivate: false,
         isHotSearchWork: true,
+        isRecommended: false,
+        isControversial: false,
+        isHot: false,
         hotSearchData: {
             topic: topic,
             duration: message.data.duration,
             startTime: gameTimer,
             endTime: gameTimer + (message.data.duration * VIRTUAL_DAY_MS)
         },
-        revenue: 0
+        revenue: 0,
+        // 移除定时器引用
+        fanGrowthInterval: null,
+        hotSearchInterval: null
     };
     
     gameState.worksList.push(hotWork);
@@ -208,7 +289,7 @@ function acceptHotSearchInvite(messageId, contentType) {
     // 启动热搜效果
     startHotSearchWorkEffect(workId);
     
-    showNotification('发布成功', `你已参与热搜话题：${topic}`);
+    showNotification('发布成功', `你已参与热搜话题：${topic}（活动时长${message.data.duration}天）`);
     
     // 更新UI
     if (typeof updateSystemMessagesUI === 'function') {
@@ -224,7 +305,7 @@ function acceptHotSearchInvite(messageId, contentType) {
     closeSystemMessagesList();
 }
 
-// ==================== 启动热搜作品效果（优化版 - 降低频率和幅度） ====================
+// ==================== 启动热搜作品效果 ====================
 function startHotSearchWorkEffect(workId) {
     const work = gameState.worksList.find(w => w.id === workId);
     if (!work || !work.isHotSearchWork) {
@@ -236,21 +317,20 @@ function startHotSearchWorkEffect(workId) {
         clearInterval(work.hotSearchInterval);
     }
     
-    // 改为每3秒更新一次，降低更新频率
     work.hotSearchInterval = setInterval(() => {
-        // 检查是否到期
         if (gameTimer >= work.hotSearchData.endTime) {
             endHotSearchWorkEffect(workId);
             return;
         }
         
-        // 降低数据增长幅度，改为类似流量推广的水平
-        // 但保持粉丝增长不变（用户要求）
-        const viewsBoost = Math.floor(Math.random() * 4000) + 1000; // 从10000-25000改为1000-5000
-        const likesBoost = Math.floor(Math.random() * 400) + 100; // 从1500-4500改为100-500
-        const commentsBoost = Math.floor(Math.random() * 50) + 10; // 从400-1200改为10-60
-        const sharesBoost = Math.floor(Math.random() * 30) + 5; // 从150-450改为5-35
-        const fanBoost = Math.floor(Math.random() * 2000) + 1000; // 粉丝增长保持不变
+        const timeLeft = (work.hotSearchData.endTime - gameTimer) / VIRTUAL_DAY_MS;
+        const intensity = Math.max(0.5, timeLeft / work.hotSearchData.duration); // 随着时间推移效果减弱
+        
+        const viewsBoost = Math.floor((Math.random() * 4000 + 1000) * intensity);
+        const likesBoost = Math.floor((Math.random() * 400 + 100) * intensity);
+        const commentsBoost = Math.floor((Math.random() * 50 + 10) * intensity);
+        const sharesBoost = Math.floor((Math.random() * 30 + 5) * intensity);
+        const fanBoost = Math.floor((Math.random() * 2000 + 1000) * intensity);
         
         work.views += viewsBoost;
         if (work.type === 'video' || work.type === 'live') {
@@ -262,31 +342,24 @@ function startHotSearchWorkEffect(workId) {
         work.shares += sharesBoost;
         gameState.fans += fanBoost;
         
-        // 更新总互动数
         gameState.totalInteractions += likesBoost + commentsBoost + sharesBoost;
         
-        // 收益计算改为正常模式（与流量推广一致）
         const oldRevenue = work.revenue || 0;
-        const newRevenue = Math.floor(work.views / 1000); // 从/500改为/1000
+        const newRevenue = Math.floor(work.views / 1000);
         const revenueBoost = newRevenue - oldRevenue;
         if (revenueBoost > 0) {
             work.revenue = newRevenue;
             gameState.money += revenueBoost;
         }
         
-        // 更新显示
         updateDisplay();
         
-        // 每15秒显示一次增长通知（避免刷屏）
-        // 3秒间隔，概率0.2约15秒一次，改为0.05更合理
         if (Math.random() < 0.05) {
-            showNotification('🔥 热搜爆发', `${work.hotSearchData.topic} 正在爆火中！`);
+            showEventPopup('🔥 热搜爆发', `${work.hotSearchData.topic} 正在爆火中！剩余${timeLeft.toFixed(1)}天`);
         }
-    }, 3000); // 从1000ms改为3000ms，降低更新频率
+    }, 3000);
     
-    // 立即显示开始通知
-    showNotification('🔥 热搜启动', `${work.hotSearchData.topic} 开始获得爆炸式增长！`);
-    updateDisplay();
+    showEventPopup('🔥 热搜启动', `${work.hotSearchData.topic} 开始获得爆炸式增长！`);
 }
 
 // ==================== 结束热搜效果 ====================
@@ -304,7 +377,6 @@ function endHotSearchWorkEffect(workId) {
     
     work.isHotSearchWork = false;
     
-    // 从活跃列表中移除
     if (gameState.systemMessages.hotSearchActiveWorks) {
         const index = gameState.systemMessages.hotSearchActiveWorks.indexOf(workId);
         if (index > -1) {
@@ -312,7 +384,6 @@ function endHotSearchWorkEffect(workId) {
         }
     }
     
-    // 标记邀请过期
     const inviteMessage = gameState.systemMessages.messages.find(msg => 
         msg.type === 'hotSearchInvite' && msg.data?.topic === work.hotSearchData.topic
     );
@@ -320,8 +391,7 @@ function endHotSearchWorkEffect(workId) {
         inviteMessage.data.expired = true;
     }
     
-    showNotification('热搜结束', `话题 ${work.hotSearchData.topic} 的热度已下降`);
-    updateDisplay();
+    showEventPopup('热搜结束', `话题 ${work.hotSearchData.topic} 的热度已下降`);
 }
 
 // ==================== 检查并清理过期的热搜 ====================
@@ -339,6 +409,17 @@ function checkExpiredHotSearchWorks() {
     expiredWorks.forEach(workId => {
         endHotSearchWorkEffect(workId);
     });
+    
+    // 检查并标记过期的邀请（只标记未接受的）
+    gameState.systemMessages.messages.forEach(msg => {
+        if (msg.type === 'hotSearchInvite' && !msg.data.accepted && !msg.data.expired) {
+            if (gameTimer > msg.data.deadlineTime) {
+                msg.data.expired = true;
+                msg.data.expiredReason = '超时未接受';
+                msg.content = msg.content.replace('请在', '已过期，原需在');
+            }
+        }
+    });
 }
 
 // ==================== 初始化系统消息状态 ====================
@@ -347,21 +428,20 @@ function initSystemMessages() {
         gameState.systemMessages = {
             unreadCount: 0,
             messages: [],
-            hotSearchActiveWorks: []
+            hotSearchActiveWorks: [],
+            lastCheckTime: 0
         };
     }
 }
 
-// ==================== 更新系统消息UI（小红点） ====================
+// ==================== 更新系统消息UI ====================
 function updateSystemMessagesUI() {
     if (!gameState.systemMessages) return;
     
-    // 更新导航栏消息徽章
     if (typeof updateNavMessageBadge === 'function') {
         updateNavMessageBadge();
     }
     
-    // 如果系统消息列表打开，刷新内容
     const systemMessagesPage = document.getElementById('systemMessagesPage');
     if (systemMessagesPage && systemMessagesPage.classList.contains('active')) {
         renderSystemMessagesList();
@@ -370,6 +450,9 @@ function updateSystemMessagesUI() {
 
 // ==================== 显示系统消息列表（全屏） ====================
 function showSystemMessagesList() {
+    window.isSystemMessageListOpen = true;
+    startSystemMessagesRealtimeUpdate();
+    
     document.getElementById('mainContent').style.display = 'none';
     document.querySelector('.bottom-nav').style.display = 'none';
     
@@ -393,7 +476,6 @@ function renderSystemMessagesList() {
         return;
     }
     
-    // 按时间排序（最新的在前）
     const messages = [...gameState.systemMessages.messages]
         .sort((a, b) => b.time - a.time);
     
@@ -407,22 +489,43 @@ function renderSystemMessagesList() {
             </span>` : '';
         
         let actionHtml = '';
-        if (msg.type === 'hotSearchInvite' && !msg.data?.accepted && !msg.data?.expired) {
-            // 未过期的热搜邀请显示操作按钮
-            actionHtml = `
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn" style="flex: 1; padding: 8px; font-size: 12px; background: #667eea;" 
-                            onclick="acceptHotSearchInvite('${msg.id}', 'video')">
-                        🎬 用视频发布
-                    </button>
-                    <button class="btn" style="flex: 1; padding: 8px; font-size: 12px; background: #ff6b00;" 
-                            onclick="acceptHotSearchInvite('${msg.id}', 'post')">
-                        📝 用动态发布
-                    </button>
-                </div>
-            `;
+        if (msg.type === 'hotSearchInvite') {
+            if (msg.data?.accepted) {
+                // 已参与的热搜邀请
+                actionHtml = `
+                    <div style="background: #112200; border: 1px solid #00f2ea; border-radius: 5px; padding: 8px; margin-top: 8px; font-size: 11px; color: #00f2ea;">
+                        ✅ 你已参与此热搜话题（活动时长${msg.data.duration}天）
+                    </div>
+                `;
+            } else if (msg.data?.expired) {
+                // 过期的热搜邀请
+                actionHtml = `
+                    <div style="background: #2a000a; border: 1px solid #ff0050; border-radius: 5px; padding: 8px; margin-top: 8px; font-size: 11px; color: #ff0050;">
+                        ❌ 邀请已过期${msg.data.expiredReason ? `：${msg.data.expiredReason}` : ''}
+                    </div>
+                `;
+            } else {
+                // 可接受的热搜邀请
+                const hoursLeft = Math.max(0, (msg.data.deadlineTime - gameTimer) / VIRTUAL_HOUR_MS);
+                const timeInfo = hoursLeft > 0 ? `剩余${Math.floor(hoursLeft)}小时` : '即将过期';
+                
+                actionHtml = `
+                    <div style="background: #111; border-radius: 5px; padding: 8px; margin-top: 8px; font-size: 11px; color: #ff6b00;">
+                        ⏰ 接受截止时间：${formatVirtualTime(msg.data.deadlineTime)}（${timeInfo}）
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn" style="flex: 1; padding: 8px; font-size: 12px; background: #667aea;" 
+                                onclick="acceptHotSearchInvite('${msg.id}', 'video')">
+                            🎬 用视频发布
+                        </button>
+                        <button class="btn" style="flex: 1; padding: 8px; font-size: 12px; background: #ff6b00;" 
+                                onclick="acceptHotSearchInvite('${msg.id}', 'post')">
+                            📝 用动态发布
+                        </button>
+                    </div>
+                `;
+            }
         } else if (msg.type === 'monthlySummary') {
-            // 月度总结显示详细信息
             actionHtml = `
                 <div style="background: #111; border-radius: 5px; padding: 10px; margin-top: 10px; font-size: 11px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; color: #ccc;">
@@ -437,17 +540,6 @@ function renderSystemMessagesList() {
             `;
         }
         
-        // 计算剩余时间（针对热搜）
-        let timeInfo = '';
-        if (msg.type === 'hotSearchInvite' && !msg.data.expired) {
-            if (msg.data.accepted) {
-                timeInfo = '✅ 已接受';
-            } else {
-                const hoursLeft = Math.max(0, (msg.time + (24 * VIRTUAL_DAY_MS) - gameTimer) / VIRTUAL_HOUR_MS);
-                timeInfo = `⏰ 剩余${Math.floor(hoursLeft)}小时`;
-            }
-        }
-        
         return `
             <div class="system-message-item" style="${unreadStyle}" data-message-id="${msg.id}" 
                  onclick="readSystemMessage('${msg.id}')">
@@ -455,7 +547,6 @@ function renderSystemMessagesList() {
                     <div style="flex: 1;">
                         <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px;">
                             ${msg.title} ${unreadBadge}
-                            ${timeInfo ? `<span style="font-size: 10px; color: #999; margin-left: 8px;">${timeInfo}</span>` : ''}
                         </div>
                         <div style="font-size: 12px; color: #999; line-height: 1.5;">
                             ${msg.content}
@@ -470,7 +561,11 @@ function renderSystemMessagesList() {
         `;
     }).join('');
     
-    content.innerHTML = messagesHtml;
+    content.innerHTML = `
+        <div style="padding: 10px 15px;">
+            ${messagesHtml}
+        </div>
+    `;
 }
 
 // ==================== 标记系统消息为已读 ====================
@@ -483,19 +578,16 @@ function readSystemMessage(messageId) {
     
     saveGame();
     
-    // 更新UI
     if (typeof updateSystemMessagesUI === 'function') {
         updateSystemMessagesUI();
-    }
-    
-    // 如果是月度总结，重新渲染以显示详细信息
-    if (message.type === 'monthlySummary') {
-        renderSystemMessagesList();
     }
 }
 
 // ==================== 关闭系统消息列表 ====================
 function closeSystemMessagesList() {
+    window.isSystemMessageListOpen = false;
+    stopSystemMessagesRealtimeUpdate();
+    
     const page = document.getElementById('systemMessagesPage');
     if (page) {
         page.classList.remove('active');
@@ -515,23 +607,30 @@ function closeSystemMessagesList() {
 
 // ==================== 启动系统消息定时器 ====================
 function startSystemMessagesTimer() {
-    // 每虚拟天检查一次是否需要生成月度总结
     if (window.monthlySummaryInterval) {
         clearInterval(window.monthlySummaryInterval);
     }
     
     window.monthlySummaryInterval = setInterval(() => {
         const currentDate = getVirtualDate();
-        // 在每月30号生成总结
-        if (currentDate.day === 30) {
+        
+        // ==================== 修改：获取当月真实天数 ====================
+        // 每月天数数组
+        const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        
+        // 简单处理闰年（虚拟年份也能更真实）
+        const isLeapYear = currentDate.year % 4 === 0 && (currentDate.year % 100 !== 0 || currentDate.year % 400 === 0);
+        const daysInMonth = currentDate.month === 2 && isLeapYear ? 29 : monthDays[currentDate.month - 1];
+        
+        // 只有在真正的月底才生成月度总结
+        if (currentDate.day === daysInMonth) {
             generateMonthlySummary();
         }
+        // =========================================================================
         
-        // 检查并清理过期的热搜
         checkExpiredHotSearchWorks();
     }, VIRTUAL_DAY_MS);
     
-    // 每5秒检查一次过期的热搜（更频繁）
     if (window.hotSearchCheckInterval) {
         clearInterval(window.hotSearchCheckInterval);
     }
@@ -568,13 +667,31 @@ function resumeHotSearchEffects() {
             startHotSearchWorkEffect(workId);
         } else {
             console.log(`[清理] 移除无效热搜作品ID: ${workId}`);
-            // 清理无效ID
             const index = gameState.systemMessages.hotSearchActiveWorks.indexOf(workId);
             if (index > -1) {
                 gameState.systemMessages.hotSearchActiveWorks.splice(index, 1);
             }
         }
     });
+}
+
+// ==================== 辅助：格式化虚拟时间 ====================
+function formatVirtualTime(timestamp) {
+    const date = getVirtualDate();
+    const targetMinutes = Math.floor(timestamp / VIRTUAL_MINUTE_MS);
+    const currentMinutes = Math.floor(gameTimer / VIRTUAL_MINUTE_MS);
+    const diffMinutes = targetMinutes - currentMinutes;
+    
+    if (diffMinutes <= 0) return '已过期';
+    
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    if (hours > 0) {
+        return `${date.year}年${date.month}月${date.day}日 ${String(date.hours).padStart(2, '0')}:${String(date.minutes).padStart(2, '0')}`;
+    }
+    
+    return `${minutes}分钟后`;
 }
 
 // ==================== 全局函数绑定 ====================
@@ -593,10 +710,13 @@ window.gameSystemMessages = {
     updateSystemMessagesUI,
     startSystemMessagesTimer,
     stopSystemMessagesTimer,
-    resumeHotSearchEffects
+    resumeHotSearchEffects,
+    startSystemMessagesRealtimeUpdate,
+    stopSystemMessagesRealtimeUpdate,
+    checkForNewSystemMessages,
+    formatVirtualTime
 };
 
-// 将函数绑定到全局
 window.initSystemMessages = initSystemMessages;
 window.generateHotSearchInvite = generateHotSearchInvite;
 window.generateMonthlySummary = generateMonthlySummary;
@@ -612,3 +732,9 @@ window.updateSystemMessagesUI = updateSystemMessagesUI;
 window.startSystemMessagesTimer = startSystemMessagesTimer;
 window.stopSystemMessagesTimer = stopSystemMessagesTimer;
 window.resumeHotSearchEffects = resumeHotSearchEffects;
+window.startSystemMessagesRealtimeUpdate = startSystemMessagesRealtimeUpdate;
+window.stopSystemMessagesRealtimeUpdate = stopSystemMessagesRealtimeUpdate;
+window.checkForNewSystemMessages = checkForNewSystemMessages;
+window.formatVirtualTime = formatVirtualTime;
+
+console.log('系统消息模块已加载');
