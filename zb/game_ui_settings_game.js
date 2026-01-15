@@ -84,7 +84,7 @@ function showQQGroup() {
                 <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">主播模拟器交流群</div>
                 <div style="font-size: 14px; color: #999; margin-bottom: 20px;">欢迎加入QQ群与其他玩家交流</div>
             </div>
-            <div style="background: #161823; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+            <div style="background: #161823; border-radius: 10px; padding: 20px;">
                 <div style="font-size: 16px; color: #667aea; margin-bottom: 10px;">群号</div>
                 <div style="font-size: 32px; font-weight: bold; color: #fff; letter-spacing: 3px; margin-bottom: 10px;">816068043</div>
                 <div style="font-size: 12px; color: #999;">点击号码可复制</div>
@@ -251,7 +251,7 @@ function getArchiveMemorySize() {
         if (totalBytes < 1024 * 1024) {
             return `<span style="color: #00f2ea;">${sizeInMB} MB</span>`;
         } else if (totalBytes < 5 * 1024 * 1024) {
-            return `<span style="color: #667eea;">${sizeInMB} MB</span>`;
+            return `<span style="color: #667aea;">${sizeInMB} MB</span>`;
         } else if (totalBytes < 10 * 1024 * 1024) {
             return `<span style="color: #ff6b00;">${sizeInMB} MB</span>`;
         } else {
@@ -462,73 +462,51 @@ function performAutoCleanCache() {
     try {
         console.log(`[${new Date().toLocaleTimeString()}] 开始自动清理缓存...`);
         
-        // 备份核心数据
+        // 备份核心存档数据（包括Mod数据）
         const coreData = {
-            streamerGameState: localStorage.getItem('streamerGameState')
+            streamerGameState: localStorage.getItem('streamerGameState'),
+            streamerGameMods: localStorage.getItem('streamerGameMods'),
+            streamerGameActiveMods: localStorage.getItem('streamerGameActiveMods'),
+            streamerGameLoadedMods: localStorage.getItem('streamerGameLoadedMods')
         };
         
-        if (!coreData.streamerGameState) {
-            console.warn('没有核心存档数据，跳过清理');
-            return;
-        }
-        
-        // 统计清理前的大小
-        let sizeBefore = 0;
-        for (let key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
-                sizeBefore += key.length * 2;
-                sizeBefore += localStorage[key].length * 2;
-            }
-        }
-        
-        // 清理非核心数据
+        // 清理localStorage中其他可能存在的缓存
         const keysToRemove = [];
         for (let key in localStorage) {
-            if (key !== 'streamerGameState' && key.startsWith('streamer')) {
+            // ✅ 修复：保留Mod相关键，只清理其他以'streamer'开头的键
+            if (key !== 'streamerGameState' && 
+                key !== 'streamerGameMods' && 
+                key !== 'streamerGameActiveMods' && 
+                key !== 'streamerGameLoadedMods' &&
+                key.startsWith('streamer')) {
                 keysToRemove.push(key);
             }
         }
         
-        let cleanedCount = 0;
+        // 删除过期的缓存键
         keysToRemove.forEach(key => {
             try {
                 localStorage.removeItem(key);
-                cleanedCount++;
-                console.log(`清理缓存键: ${key}`);
             } catch (e) {
                 console.error(`清理键 ${key} 失败:`, e);
             }
         });
         
-        // 恢复核心数据
-        localStorage.setItem('streamerGameState', coreData.streamerGameState);
-        
-        // 统计清理后的大小
-        let sizeAfter = 0;
-        for (let key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
-                sizeAfter += key.length * 2;
-                sizeAfter += localStorage[key].length * 2;
+        // 恢复核心数据（包括Mod数据）
+        Object.keys(coreData).forEach(key => {
+            if (coreData[key]) {
+                localStorage.setItem(key, coreData[key]);
             }
-        }
+        });
         
-        const savedMB = ((sizeBefore - sizeAfter) / (1024 * 1024)).toFixed(3);
-        
-        console.log(`自动清理完成：清理了 ${cleanedCount} 个缓存项，释放 ${savedMB} MB 空间`);
+        console.log(`自动清理完成：清理了 ${keysToRemove.length} 个缓存项`);
         
         // 如果清理了较多空间，显示通知
-        if (cleanedCount > 0) {
-            showNotification('自动清理完成', `清理了 ${cleanedCount} 个缓存项，释放 ${savedMB} MB 空间`);
+        if (keysToRemove.length > 0) {
+            showNotification('自动清理完成', `清理了 ${keysToRemove.length} 个缓存项`);
         }
         
-        // 更新内存大小显示
-        setTimeout(() => {
-            const memorySizeEl = document.querySelector('#archiveManagementModal .settings-item[style*="cursor: default"] .settings-value');
-            if (memorySizeEl) {
-                memorySizeEl.innerHTML = getArchiveMemorySize();
-            }
-        }, 100);
-        
+        saveGame();
     } catch (error) {
         console.error('自动清理缓存失败:', error);
     }
@@ -761,7 +739,7 @@ function importSaveData(fileContent, fileName) {
                         } else if (state === 'following' || state === 'messages') {
                             gameState[state] = [];
                         } else if (state === 'commentLikes' || state === 'unlockedAchievements') {
-                            gameState[state] = [];
+                            gameState[state] = {};
                         } else if (state === 'commentRepliesCount') {
                             gameState[state] = 0;
                         } else if (state === 'liveHistory' || state === 'warningHistory') {

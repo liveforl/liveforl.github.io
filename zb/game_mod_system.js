@@ -292,11 +292,9 @@ function showModHelp() {
                 
                 <div style="background: #222; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
                     <div style="font-size: 11px; color: #999; margin-bottom: 8px;">
-                        📋 点击复制游戏描述文本：
+                        📋 点击复制游戏描述文本（已自动生成）：
                     </div>
-                    <div style="background: #111; border-radius: 5px; padding: 10px; font-size: 11px; color: #ccc; font-family: monospace; max-height: 100px; overflow-y: auto;" id="gameDescription">
-这是一个主播模拟器html小游戏，该游戏有发布视频、动态和直播三种内容形式，作品从0数据开始增长；可接真实或虚假商单赚钱，虚假商单有被封号和持续掉粉风险；会随机触发热搜涨粉或舆论风波掉粉事件；违规关键词会加警告，20次警告封号，连续7天不更新也会掉粉；封号后需写申诉理由由AI检测真诚度；右上角弹窗实时通知粉丝变化，有粉丝趋势图和成就系统记录生涯；新增了抽奖系统可发起福利活动，活动期间疯狂涨粉但结束后会掉粉；平台会推送热搜话题邀请，接受后获得爆炸式曝光；私信系统接收粉丝来信，包含支持赞美或恶意辱骂；评论支持点赞和回复互动，点赞数会自动增长；设有关注系统可互相关注；存档管理支持导出导入和自动清理缓存；提供免打扰模式关闭消息红点提醒；内置28个成就从新手到传奇记录完整主播生涯。
-                    </div>
+                    <div style="background: #111; border-radius: 5px; padding: 10px; font-size: 11px; color: #ccc; font-family: monospace; max-height: 150px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4;" id="gameDescription">${escapeHtml(generateGameDescription())}</div>
                     <button class="btn btn-secondary" onclick="copyGameDescription()" style="margin-top: 10px; width: 100%; font-size: 12px; padding: 8px;">
                         📋 复制游戏描述
                     </button>
@@ -343,6 +341,11 @@ function showModHelp() {
     
     console.log('✅ 自动发布Mod已激活！');
 })();</textarea>
+                
+                <!-- 新增：教程2按钮 -->
+                <button class="btn" onclick="window.location.href='jz/jz.html'" style="width: 100%; margin-top: 15px; background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); color: #000; font-weight: bold;">
+                    📚 教程2：让AI看到游戏文件来制作
+                </button>
             </div>
 
             <button class="btn" onclick="showModManagement()" style="width: 100%; margin-top: 20px;">返回Mod管理</button>
@@ -352,9 +355,216 @@ function showModHelp() {
     showModal(helpContent);
 }
 
-// ==================== 复制游戏描述文本 ====================
+// ==================== 辅助函数：转义HTML特殊字符 ====================
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// ==================== 核心功能：自动生成游戏描述文本 ====================
+function generateGameDescription() {
+    try {
+        // 确保gameState已初始化
+        const hasGameState = typeof gameState !== 'undefined' && gameState !== null;
+        
+        // 基础游戏信息
+        const description = [];
+        description.push('=== 主播模拟器游戏完整功能说明 ===');
+        description.push('');
+        
+        // 核心系统
+        description.push('【核心系统】');
+        description.push('- 游戏采用虚拟时间系统：1分钟 = 1虚拟天，游戏从2025年1月1日开始计时');
+        description.push('- 拥有完整的粉丝系统：支持自然涨粉和掉粉、热搜效应、舆论风波、不活跃惩罚等多种机制');
+        description.push('- 拥有经济系统：通过作品收益和商单获得游戏货币');
+        description.push('- 拥有成就系统：内置28个成就，记录从新手到传奇的完整主播生涯');
+        description.push('- 拥有警告系统：20次警告触发封号，支持申诉机制');
+        description.push('- 存档系统：支持导出、导入、自动清理缓存等完整存档管理功能');
+        description.push('');
+        
+        // 内容创作系统
+        description.push('【内容创作系统】');
+        description.push('- 支持发布三种内容形式：视频、动态、直播');
+        description.push('- 作品数据从0开始自然增长，支持播放、点赞、评论、转发四种互动');
+        description.push('- 拥有流量推广功能：可购买流量加速作品传播');
+        description.push('- 拥有推荐机制：作品可能被系统推荐获得额外曝光');
+        description.push('- 拥有热搜机制：作品可能登上热搜获得大量曝光');
+        description.push('- 支持设置作品为私密状态');
+        description.push('- 直播系统支持实时观看、打赏收益、直播涨粉');
+        description.push('');
+        
+        // 商单系统
+        description.push('【商单合作系统】');
+        description.push('- 提供真实商单和虚假商单两种类型');
+        description.push('- 真实商单：收益较低但安全稳定，完成50个可解锁成就');
+        description.push('- 虚假商单：收益极高但会被平台检测到，导致封号和持续掉粉惩罚');
+        description.push('- 商单完成数量统计：完成10个解锁"广告达人"，单次收入超5万解锁"百万单王"');
+        description.push('- 虚假商单惩罚：连续3个月不接触虚假商单可解除负面状态');
+        description.push('');
+        
+        // 抽奖系统
+        if (hasGameState && typeof window.addWorkToGlobalFanGrowth !== 'undefined') {
+            description.push('【抽奖福利系统】');
+            description.push('- 可发起抽奖活动，设置奖品和参与方式');
+            description.push('- 抽奖期间作品获得特殊标识，疯狂涨粉和增加互动');
+            description.push('- 抽奖结束后会经历短暂掉粉期');
+            description.push('- 支持多种奖品：虚拟礼物、实物奖品、现金红包等');
+            description.push('- 支持自动开奖和手动开奖两种模式');
+            description.push('');
+        }
+        
+        // 热搜与舆论系统
+        description.push('【热搜与舆论系统】');
+        description.push('- 随机触发热搜事件：持续1-3天，期间每秒涨粉50-150人');
+        description.push('- 平台会推送热搜话题邀请，接受后作品获得爆炸式曝光');
+        description.push('- 随机触发舆论风波：持续1-3天，期间每秒掉粉10-60人');
+        description.push('- 两种事件都有明显的视觉提示和倒计时显示');
+        description.push('');
+        
+        // 互动系统
+        description.push('【社交互动系统】');
+        description.push('- 完整的评论区：支持用户评论、主播回复、评论点赞');
+        description.push('- 评论支持倒序、正序、最火三种排序方式');
+        description.push('- 评论点赞数会自动增长，模拟真实互动');
+        description.push('- 关注系统：可关注其他用户，互相关注增加社交属性');
+        description.push('- 用户主页：可查看用户基本信息和统计数据');
+        description.push('- 评论支持嵌套回复，形成对话链');
+        description.push('');
+        
+        // 消息系统
+        description.push('【消息通知系统】');
+        description.push('- 实时消息弹窗：粉丝变化、系统事件、成就解锁等');
+        description.push('- 消息免打扰模式：可关闭消息红点提醒');
+        description.push('- 支持多种消息类型：涨粉、掉粉、互动、系统通知等');
+        description.push('- 所有通知采用右上角滑入式弹窗，3.5秒自动消失');
+        description.push('');
+        
+        // 私信系统
+        if (hasGameState && gameState.privateMessageSystem) {
+            description.push('【私信系统】');
+            description.push('- 接收来自粉丝的私信，包含支持赞美或恶意辱骂内容');
+            description.push('- 支持私信回复和对话记录');
+            description.push('- 未读私信有红点标记');
+            description.push('- 定期自动生成新的私信（每30秒检查一次）');
+            description.push('');
+        }
+        
+        // 系统消息
+        if (hasGameState && gameState.systemMessages) {
+            description.push('【系统消息中心】');
+            description.push('- 提供官方系统通知，包含平台政策、活动邀请等');
+            description.push('- 支持接受或拒绝热搜话题邀请');
+            description.push('- 邀请接受后关联作品进入热搜状态');
+            description.push('');
+        }
+        
+        // 数据可视化
+        description.push('【数据可视化】');
+        description.push('- 提供粉丝、点赞、播放量的趋势图表');
+        description.push('- 支持60天的历史数据展示');
+        description.push('- 点击主界面的统计数据可进入全屏分析页');
+        description.push('- 图表采用Chart.js实现，支持实时更新');
+        description.push('');
+        
+        // 成就系统详情
+        description.push('【成就系统详情】');
+        description.push('- 成就1-4：粉丝里程碑（1、1000、10万、1000万）');
+        description.push('- 成就5：单条作品播放量破百万');
+        description.push('- 成就6：累计获得10万个赞');
+        description.push('- 成就7：发布100个作品');
+        description.push('- 成就8：首次直播获得1000观看');
+        description.push('- 成就9-10：收益里程碑（首次、100万）');
+        description.push('- 成就11：单条动态获得1万转发');
+        description.push('- 成就12：单条作品获得5000评论');
+        description.push('- 成就14：从封号中申诉成功（逆风翻盘）');
+        description.push('- 成就15：触发50次随机事件（幸运儿）');
+        description.push('- 成就16：关注1000个用户（社交达人）');
+        description.push('- 成就19：回复1000条评论（宠粉狂魔）');
+        description.push('- 成就20：解锁所有成就（传奇主播）');
+        description.push('- 成就21-25：商单相关成就（新人、达人、单王、大师）');
+        description.push('- 成就26-28：商单惩罚相关成就（赌徒、身败名裂、诚信经营）');
+        description.push('');
+        
+        // Mod系统
+        description.push('【Mod扩展系统】');
+        description.push('- 完整的Mod管理器：支持添加、删除、启用、禁用Mod');
+        description.push('- Mod持久化存储：Mod数据保存在localStorage中');
+        description.push('- 支持从文件导入Mod（.js、.json格式）');
+        description.push('- 支持批量加载多个Mod');
+        description.push('- 提供Mod统计：总计数、已启用数、已加载数');
+        description.push('- 页面加载时自动加载已加载的Mod');
+        description.push('');
+        
+        // 违规与惩罚系统
+        description.push('【违规与惩罚系统】');
+        description.push('- 违规关键词检测：包含暴力、色情、政治、谣言、诈骗、盗版、侵权、辱骂、歧视、毒品等');
+        description.push('- 内容检测：发布作品时自动检测标题和内容是否违规');
+        description.push('- 警告机制：每次违规增加1次警告，达到20次触发封号');
+        description.push('- 不更新惩罚：连续7天不发布作品，触发粉丝流失惩罚');
+        description.push('- 虚假商单惩罚：接虚假商单后持续掉粉，直到3个月不接触');
+        description.push('- 惩罚警告：触发惩罚时显示明显警告弹窗');
+        description.push('');
+        
+        // 申诉系统
+        description.push('【账号申诉系统】');
+        description.push('- 封号后支持申诉，需要写申诉理由');
+        description.push('- 申诉理由由AI检测真诚度（使用关键词匹配算法）');
+        description.push('- 真诚度评分需超过阈值才能申诉成功');
+        description.push('- 申诉成功：-5警告次数，账号解封');
+        description.push('- 申诉失败：失去再次申诉机会');
+        description.push('- 因接假商单被封号无法申诉');
+        description.push('');
+        
+        // 技术实现细节
+        description.push('【技术实现与接口说明】');
+        description.push('- 游戏核心数据存储在全局变量gameState中');
+        description.push('- 虚拟时间计时器：gameTimer（毫秒），VIRTUAL_DAY_MS=60000（1分钟=1天）');
+        description.push('- 作品数据结构：包含id、type、title/content、views/likes/comments/shares、time等');
+        description.push('- 互动数据：点赞、评论、转发都会增加totalInteractions计数');
+        description.push('- 粉丝变化：通过addFanChangeNotification(gain|loss)函数记录');
+        description.push('- 消息系统：gameState.messages数组存储所有互动消息');
+        description.push('- 私信系统：gameState.privateMessageSystem对象管理私信');
+        description.push('- 系统消息：gameState.systemMessages对象管理系统消息');
+        description.push('- 评论点赞：gameState.commentLikes对象记录用户点赞的评论');
+        description.push('- 关注列表：gameState.following数组存储关注用户列表');
+        description.push('- 抽奖数据：作品对象包含isRaffle、raffleStatus、prize等相关属性');
+        description.push('- 热搜数据：作品对象包含isHotSearchWork、hotSearchData等相关属性');
+        description.push('- 关键函数：createVideo()、createPost()、toggleLive()等用于内容创作');
+        description.push('- 关键函数：addFanChangeNotification(icon, title, content, type, count)用于粉丝变化通知');
+        description.push('- 关键函数：showEventPopup(title, content)用于右上角弹窗通知');
+        description.push('- 关键函数：startHotSearch(title)、startPublicOpinionCrisis(title)用于事件触发');
+        description.push('');
+        
+        description.push('【重要开发提示】');
+        description.push('- 所有定时器使用前需检查是否已存在，避免重复创建');
+        description.push('- 修改gameState数据后需调用saveGame()保存');
+        description.push('- 更新UI需调用updateDisplay()刷新显示');
+        description.push('- 粉丝数必须保持>=0，使用Math.max(0, value)保护');
+        description.push('- 时间计算使用gameTimer和VIRTUAL_DAY_MS常量');
+        description.push('- 避免在事件处理中直接操作DOM，使用函数封装');
+        description.push('- 所有随机数使用Math.random()生成');
+        description.push('- 字符串操作注意转义特殊字符');
+        description.push('');
+        
+        description.push('=== 描述结束 ===');
+        
+        return description.join('\n');
+        
+    } catch (error) {
+        console.error('生成游戏描述失败:', error);
+        return '=== 主播模拟器游戏完整功能说明 ===\n\n游戏描述生成失败，请确保游戏已完全加载。\n\n这是一个功能完整的主播模拟器游戏，包含内容创作、粉丝管理、商单合作、抽奖活动、社交互动等多个系统。';
+    }
+}
+
+// ==================== 辅助函数：复制游戏描述文本 ====================
 function copyGameDescription() {
-    const text = `这是一个主播模拟器html小游戏，该游戏有发布视频、动态和直播三种内容形式，作品从0数据开始增长；可接真实或虚假商单赚钱，虚假商单有被封号和持续掉粉风险；会随机触发热搜涨粉或舆论风波掉粉事件；违规关键词会加警告，20次警告封号，连续7天不更新也会掉粉；封号后需写申诉理由由AI检测真诚度；右上角弹窗实时通知粉丝变化，有粉丝趋势图和成就系统记录生涯；新增了抽奖系统可发起福利活动，活动期间疯狂涨粉但结束后会掉粉；平台会推送热搜话题邀请，接受后获得爆炸式曝光；私信系统接收粉丝来信，包含支持赞美或恶意辱骂；评论支持点赞和回复互动，点赞数会自动增长；设有关注系统可互相关注；存档管理支持导出导入和自动清理缓存；提供免打扰模式关闭消息红点提醒；内置28个成就从新手到传奇记录完整主播生涯。`;
+    const text = generateGameDescription();
     
     // 创建临时文本区域
     const textarea = document.createElement('textarea');
@@ -621,5 +831,7 @@ window.deleteSelectedMods = deleteSelectedMods;
 window.loadSelectedMods = window.loadSelectedMods;
 window.refreshModFileList = refreshModFileList;
 window.updateLoadedModCount = updateLoadedModCount;
+window.generateGameDescription = generateGameDescription;
+window.escapeHtml = escapeHtml;
 
-console.log('✅ Mod系统已加载（持久化版本）');
+console.log('✅ Mod系统已加载（带自动描述生成器）');
