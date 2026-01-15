@@ -1,1 +1,1132 @@
-1
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>教程二：让AI看到游戏文件来制作mod</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%);
+            color: #1a2b4d;
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 82, 204, 0.1);
+            border-radius: 0 0 15px 15px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+            color: white;
+            padding: 30px 20px;
+            margin: -20px -20px 30px -20px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #00ccff, #0066cc);
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 15px;
+            opacity: 0.85;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.08);
+            border: 1px solid rgba(0, 102, 204, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 6px 16px rgba(0, 82, 204, 0.15);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0066cc;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e6f0ff;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, #00ccff, #0066cc);
+        }
+
+        .step {
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            border: 1px solid #e6f0ff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 82, 204, 0.12);
+            border-color: #b3d9ff;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, #00ccff, #0066cc);
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+            color: white;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 12px;
+            vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(0, 82, 204, 0.2);
+        }
+
+        .step-content {
+            display: inline-block;
+            vertical-align: middle;
+            width: calc(100% - 50px);
+            font-size: 16px;
+            color: #1a2b4d;
+        }
+
+        .step-image {
+            margin-top: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            background: #f8fbff;
+            border: 1px solid #e6f0ff;
+            transition: all 0.3s ease;
+        }
+
+        .step-image:hover {
+            transform: scale(1.01);
+            box-shadow: 0 5px 15px rgba(0, 82, 204, 0.15);
+        }
+
+        .step-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .step-image img:hover {
+            transform: scale(1.02);
+        }
+
+        .step-image .gif-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #ff3366 0%, #cc0033 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .warning {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff5d9 100%);
+            border: 1px solid #ffd699;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .warning::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #ffcc00;
+        }
+
+        .warning-icon {
+            color: #ff9900;
+            font-size: 18px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .important-files {
+            background: linear-gradient(135deg, #e6f7ff 0%, #d9f2ff 100%);
+            border: 1px solid #99d6ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .important-files::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #00aaff;
+        }
+
+        .file-list {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 10px;
+        }
+
+        .file-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #0066cc;
+            border-bottom: 1px dashed #e6f0ff;
+        }
+
+        .file-list li:last-child {
+            border-bottom: none;
+        }
+
+        .file-list li:before {
+            content: "📄";
+            position: absolute;
+            left: 0;
+            font-size: 14px;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #fff5cc 0%, #ffed4b 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .nav-menu {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 102, 204, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 82, 204, 0.3);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-menu:hover {
+            transform: scale(1.1);
+            background: rgba(0, 82, 204, 0.95);
+        }
+
+        .nav-menu svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .nav-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 82, 204, 0.2);
+            display: none;
+            min-width: 200px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 102, 204, 0.1);
+            z-index: 1001;
+        }
+
+        .nav-dropdown.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .nav-dropdown a {
+            display: block;
+            padding: 12px 20px;
+            color: #0066cc;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f7ff;
+        }
+
+        .nav-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .nav-dropdown a:hover {
+            background: #e6f0ff;
+            padding-left: 25px;
+        }
+
+        /* ✅ 新增：返回游戏按钮样式 */
+        .nav-dropdown a.back-to-game {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff0050 100%);
+            color: #fff;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .nav-dropdown a.back-to-game:hover {
+            background: linear-gradient(135deg, #ff0050 0%, #cc0040 100%);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00ccff, #0066cc);
+            transition: width 0.3s ease;
+            z-index: 999;
+            box-shadow: 0 2px 5px rgba(0, 102, 204, 0.3);
+        }
+
+        .image-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.92);
+            display: none;
+            z-index: 2000;
+            cursor: zoom-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .image-viewer img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .image-viewer.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 998;
+            box-shadow: 0 4px 10px rgba(0, 82, 204, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 15px rgba(0, 82, 204, 0.4);
+        }
+
+        .back-to-top svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .section:nth-child(1) { animation-delay: 0.1s; }
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.3s; }
+        .section:nth-child(4) { animation-delay: 0.4s; }
+
+        .step {
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .step:nth-child(1) { animation-delay: 0.1s; }
+        .step:nth-child(2) { animation-delay: 0.2s; }
+        .step:nth-child(3) { animation-delay: 0.3s; }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 25px 15px;
+                margin: -15px -15px 25px -15px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .section {
+                padding: 18px;
+            }
+
+            .step {
+                padding: 18px;
+            }
+
+            .step-content {
+                font-size: 15px;
+            }
+
+            .nav-menu {
+                top: 15px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .file-list li {
+                font-size: 13px;
+            }
+        }
+
+        .loading-placeholder {
+            background: linear-gradient(90deg, #f0f7ff 25%, #e6f0ff 50%, #f0f7ff 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7a9ccc;
+            font-size: 14px;
+            border: 1px dashed #cce0ff;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .success-tip {
+            background: linear-gradient(135deg, #e6f7e6 0%, #d9f2d9 100%);
+            border: 1px solid #99d699;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 500;
+            color: #2d5a2d;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .success-tip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #00cc66;
+        }
+
+        .success-tip::after {
+            content: '✓';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #00cc66;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <div class="nav-menu" onclick="toggleNav()">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+        <div class="nav-dropdown" id="navDropdown">
+            <a href="#section1" onclick="smoothScroll('section1')">准备工作</a>
+            <a href="#section2" onclick="smoothScroll('section2')">提取游戏文件</a>
+            <a href="#section3" onclick="smoothScroll('section3')">使用AI生成MOD</a>
+            <a href="#section4" onclick="smoothScroll('section4')">导入MOD到游戏</a>
+            <!-- ✅ 新增：返回游戏按钮 -->
+            <a href="../index.html" onclick="event.preventDefault(); window.location.href='../index.html';" class="back-to-game">🏠 返回游戏</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>教程二：让AI看到游戏文件来制作mod</h1>
+            <p>通过本教程，你将学会如何提取游戏文件并使用AI来创建自定义MOD</p>
+        </div>
+
+        <div class="section" id="section1">
+            <div class="section-title">📱 准备工作</div>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <span class="step-content">
+                    首先需要用到一个软件，叫<span class="highlight">"mt管理器"</span>，软件下载去浏览器搜，还有要确保已经安装了主播模拟器游戏。
+                </span>
+                <div class="step-image">
+                    <img src="1.jpg" alt="MT管理器下载" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">2</span>
+                <span class="step-content">下载安装好了mt管理器之后，打开mt管理器。</span>
+            </div>
+
+            <div class="step">
+                <span class="step-number">3</span>
+                <span class="step-content">
+                    进入mt管理器后，点击左上角<span class="highlight">"≡"</span>。
+                </span>
+                <div class="step-image">
+                    <img src="2.jpg" alt="MT管理器菜单" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">4</span>
+                <span class="step-content">点击<span class="highlight">"安装包提取"</span>。</span>
+                <div class="step-image">
+                    <img src="3.jpg" alt="安装包提取" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">5</span>
+                <span class="step-content">找到<span class="highlight">"文字小游戏-主播模拟器"</span>游戏，点击它。</span>
+                <div class="step-image">
+                    <img src="4.jpg" alt="选择游戏" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">6</span>
+                <span class="step-content">点击<span class="highlight">"提取安装包"</span>。</span>
+                <div class="step-image">
+                    <img src="5.jpg" alt="提取安装包" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">7</span>
+                <span class="step-content">提取完毕后，点击<span class="highlight">"定位"</span>。</span>
+                <div class="step-image">
+                    <img src="6.jpg" alt="定位安装包" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">8</span>
+                <span class="step-content">定位看到安装包后，点击安装包再点击<span class="highlight">"查看"</span>。</span>
+                <div class="step-image">
+                    <img src="7.jpg" alt="查看安装包" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="8.jpg" alt="查看选项" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">9</span>
+                <span class="step-content">点击<span class="highlight">"assets"</span>文件夹。</span>
+                <div class="step-image">
+                    <img src="9.jpg" alt="assets文件夹" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">10</span>
+                <span class="step-content">这里就是游戏文件了，随便找个文件左右滑选中。</span>
+                <div class="step-image">
+                    <div class="gif-indicator">GIF</div>
+                    <img src="10.gif" alt="选择文件" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">11</span>
+                <span class="step-content">出现了选中颜色之后点左下角。</span>
+                <div class="step-image">
+                    <img src="11.jpg" alt="左下角按钮" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">12</span>
+                <span class="step-content">
+                    文件全选中之后，下滑一下右边文件列表（为方便寻找）再点击下方加号，输入<span class="highlight">主播模拟器</span>，点击文件夹，即可创建成功，点击刚创建的文件夹。
+                </span>
+                <div class="step-image">
+                    <img src="12.jpg" alt="创建文件夹" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="13.jpg" alt="输入文件夹名" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                    <img src="14.jpg" alt="创建成功" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                    <img src="15.jpg" alt="进入文件夹" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                    <img src="16.jpg" alt="文件夹内容" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">13</span>
+                <span class="step-content">再下滑一下左边。</span>
+                <div class="step-image">
+                    <img src="17.jpg" alt="下滑左边" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="18.jpg" alt="完成下滑" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">14</span>
+                <span class="step-content">随便长按，点击<span class="highlight">"解压"</span>。</span>
+                <div class="step-image">
+                    <img src="19.jpg" alt="解压文件" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="success-tip">
+                ✨ 就这样游戏文件全部提取出来了！
+            </div>
+
+            <div class="step-image">
+                <img src="20.jpg" alt="提取完成" loading="lazy" onclick="openImageViewer(this.src)">
+            </div>
+        </div>
+
+        <div class="section" id="section2">
+            <div class="section-title">🤖 使用AI生成MOD</div>
+
+            <div class="step">
+                <span class="step-number">15</span>
+                <span class="step-content">随便下个ai软件。</span>
+                <div class="step-image">
+                    <img src="21.jpg" alt="AI软件" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">16</span>
+                <span class="step-content">一般ai软件内都有上传文件的地方（以kimi为例），找到上传文件功能点击它。</span>
+                <div class="step-image">
+                    <img src="22.jpg" alt="上传文件功能" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="23.jpg" alt="选择文件" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">17</span>
+                <span class="step-content">找到你创建的文件夹，点进去。</span>
+                <div class="step-image">
+                    <img src="24.jpg" alt="找到文件夹" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">18</span>
+                <span class="step-content">
+                    长按选中可多选文件，让AI看这几个文件就行：
+                    <div class="important-files">
+                        <strong>必须上传的文件列表：</strong>
+                        <ul class="file-list">
+                            <li>game_core.js</li>
+                            <li>game_ui_core.js</li>
+                            <li>game_ui_works_core.js</li>
+                            <li>game_ui_settings_game.js</li>
+                            <li>game_features.js</li>
+                            <li>game_events.js</li>
+                            <li>game_mod_system.js</li>
+                            <li>index.html</li>
+                            <li>style.css</li>
+                        </ul>
+                    </div>
+                </span>
+                <div class="warning">
+                    <span class="warning-icon">⚠️</span>
+                    <strong>注意！</strong>不要把文件全都上传了！否则对话字数直接上限！
+                    <br><br>
+                    若你使用的ai软件上传了这几个文件后对话字数仍然上限就换一个ai或者减少一个文件，
+                    <span class="highlight">（index.html和style.css不要减）</span>
+                </span>
+                <div class="step-image">
+                    <div class="gif-indicator">GIF</div>
+                    <img src="25.gif" alt="选择文件" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">19</span>
+                <span class="step-content">点击<span class="highlight">"选择"</span>（不同手机系统不一样）</span>
+                <div class="step-image">
+                    <img src="26.jpg" alt="选择文件" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">20</span>
+                <span class="step-content">
+                    上传好了后，接下来输入关键词<span class="highlight">"这是主播模拟器html小游戏部分文件，现在请你设计一个mod，我这游戏里有导入功能"</span>
+                    剩下的就是你想要输入的内容了。
+                </span>
+                <div class="step-image">
+                    <img src="27.jpg" alt="输入提示词" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">21</span>
+                <span class="step-content">把话发出去之后，ai要写代码，让它写一段时间，写好之后，一般ai的代码框有复制键，点击复制键即可复制代码</span>
+                <div class="step-image">
+                    <img src="28.jpg" alt="复制代码" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="section3">
+            <div class="section-title">💾 保存MOD文件</div>
+
+            <div class="step">
+                <span class="step-number">22</span>
+                <span class="step-content">
+                    再回到mt管理器，找到创建的文件夹进入，在下方点加号，命名<span class="highlight">"这里随便输.js"</span>（<span class="highlight">".js"</span>必要），
+                    然后再点击文件，即可创建成功
+                </span>
+                <div class="step-image">
+                    <img src="29.jpg" alt="创建js文件" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="30.jpg" alt="命名文件" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                    <img src="31.jpg" alt="创建成功" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">23</span>
+                <span class="step-content">点击刚创建的文件进去，把复制的代码粘贴上去</span>
+                <div class="step-image">
+                    <img src="32.jpg" alt="打开文件" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="33.jpg" alt="粘贴代码" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">24</span>
+                <span class="step-content">然后点击保存并退出</span>
+                <div class="step-image">
+                    <img src="34.jpg" alt="保存文件" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="section4">
+            <div class="section-title">🎮 导入MOD到游戏</div>
+
+            <div class="step">
+                <span class="step-number">25</span>
+                <span class="step-content">再打开游戏，点击右上角设置，再点击mod管理，再点击导入mod文件</span>
+                <div class="step-image">
+                    <div class="gif-indicator">GIF</div>
+                    <img src="35.gif" alt="导入mod" loading="lazy" onclick="openImageViewer(this.src)">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">26</span>
+                <span class="step-content">接下来同样找到创建的那个文件夹点击进去，直接点击你创建的mod文件</span>
+                <div class="step-image">
+                    <img src="36.jpg" alt="选择mod文件" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="37.jpg" alt="确认选择" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">27</span>
+                <span class="step-content">最后，勾选文件，再点击确定加载mod，即可成功！</span>
+                <div class="step-image">
+                    <img src="38.jpg" alt="勾选文件" loading="lazy" onclick="openImageViewer(this.src)">
+                    <img src="39.jpg" alt="加载mod" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                    <img src="40.jpg" alt="成功导入" loading="lazy" onclick="openImageViewer(this.src)" style="margin-top: 10px;">
+                </div>
+            </div>
+
+            <div class="success-tip">
+                🎉 恭喜！你已经成功学会如何让AI看到游戏文件来制作mod了！
+            </div>
+        </div>
+    </div>
+
+    <div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
+        <img id="viewerImage" src="" alt="查看图片">
+    </div>
+
+    <div class="back-to-top" id="backToTop" onclick="scrollToTop()">
+        <svg viewBox="0 0 24 24">
+            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+        </svg>
+    </div>
+
+    <script>
+        // 进度条
+        function updateProgressBar() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrollPercent = (scrollTop / scrollHeight) * 100;
+            document.getElementById('progressBar').style.width = scrollPercent + '%';
+        }
+
+        // 平滑滚动
+        function smoothScroll(targetId) {
+            const element = document.getElementById(targetId);
+            element.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('navDropdown').classList.remove('active');
+        }
+
+        // 返回顶部
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 显示/隐藏返回顶部按钮
+        function toggleBackToTop() {
+            const backToTop = document.getElementById('backToTop');
+            if (window.pageYOffset > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        }
+
+        // 图片查看器
+        function openImageViewer(src) {
+            const viewer = document.getElementById('imageViewer');
+            const viewerImage = document.getElementById('viewerImage');
+            viewerImage.src = src;
+            viewer.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageViewer() {
+            const viewer = document.getElementById('imageViewer');
+            viewer.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // 导航菜单切换
+        function toggleNav() {
+            const dropdown = document.getElementById('navDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // 点击外部关闭导航
+        document.addEventListener('click', function(event) {
+            const navMenu = document.querySelector('.nav-menu');
+            const dropdown = document.getElementById('navDropdown');
+            if (!navMenu.contains(event.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        // 图片懒加载
+        function lazyLoadImages() {
+            const images = document.querySelectorAll('img[loading="lazy"]');
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src || img.src;
+                        img.classList.remove('loading-placeholder');
+                        observer.unobserve(img);
+                    }
+                });
+            });
+
+            images.forEach(img => {
+                img.classList.add('loading-placeholder');
+                imageObserver.observe(img);
+            });
+        }
+
+        // 添加步骤动画
+        function animateSteps() {
+            const steps = document.querySelectorAll('.step');
+            const stepObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            steps.forEach(step => {
+                step.style.opacity = '0';
+                step.style.transform = 'translateY(20px)';
+                step.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                stepObserver.observe(step);
+            });
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(event) {
+            // ESC键关闭图片查看器
+            if (event.key === 'Escape') {
+                closeImageViewer();
+            }
+            // 回车键返回顶部
+            if (event.key === 'Home') {
+                scrollToTop();
+            }
+        });
+
+        // 触摸手势支持
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        document.addEventListener('touchstart', function(event) {
+            touchStartY = event.changedTouches[0].screenY;
+        });
+
+        document.addEventListener('touchend', function(event) {
+            touchEndY = event.changedTouches[0].screenY;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            // 向上滑动超过100px显示返回顶部按钮
+            if (touchStartY - touchEndY > 100) {
+                document.getElementById('backToTop').classList.add('visible');
+            }
+            // 向下滑动隐藏返回顶部按钮
+            if (touchEndY - touchStartY > 100) {
+                document.getElementById('backToTop').classList.remove('visible');
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            lazyLoadImages();
+            animateSteps();
+            
+            // 添加加载动画
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                document.body.style.transition = 'opacity 0.5s ease';
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+
+        // 滚动事件监听
+        window.addEventListener('scroll', function() {
+            updateProgressBar();
+            toggleBackToTop();
+        });
+
+        // 防止图片拖拽
+        document.querySelectorAll('img').forEach(img => {
+            img.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+            });
+        });
+
+        // 添加复制代码功能提示
+        document.querySelectorAll('.file-list li').forEach(item => {
+            item.addEventListener('click', function() {
+                const text = this.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalContent = this.innerHTML;
+                    this.innerHTML = '<span style="color: #4CAF50;">✓ 已复制！</span>';
+                    setTimeout(() => {
+                        this.innerHTML = originalContent;
+                    }, 1500);
+                });
+            });
+        });
+
+        // 步骤完成标记
+        document.querySelectorAll('.step').forEach((step, index) => {
+            step.addEventListener('click', function() {
+                this.style.background = '#e8f5e9';
+                this.style.borderLeft = '4px solid #4CAF50';
+                setTimeout(() => {
+                    this.style.background = '';
+                    this.style.borderLeft = '';
+                }, 2000);
+            });
+        });
+
+        // 添加页面可见性检测
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                // 页面可见时更新进度条
+                updateProgressBar();
+            }
+        });
+
+        // 添加性能优化：防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 优化滚动事件
+        const optimizedScroll = debounce(() => {
+            updateProgressBar();
+            toggleBackToTop();
+        }, 10);
+
+        window.addEventListener('scroll', optimizedScroll);
+
+        // 添加页面卸载前的保存功能
+        window.addEventListener('beforeunload', function() {
+            // 保存当前滚动位置
+            localStorage.setItem('scrollPosition', window.pageYOffset);
+        });
+
+        // 页面加载时恢复滚动位置
+        window.addEventListener('load', function() {
+            const savedPosition = localStorage.getItem('scrollPosition');
+            if (savedPosition) {
+                window.scrollTo(0, parseInt(savedPosition));
+                localStorage.removeItem('scrollPosition');
+            }
+        });
+
+        // 添加打印样式
+        const printStyles = document.createElement('style');
+        printStyles.innerHTML = `
+            @media print {
+                .nav-menu, .back-to-top, .progress-bar { display: none !important; }
+                .section { page-break-inside: avoid; }
+                .step { page-break-inside: avoid; }
+                body { background: white !important; }
+                .container { box-shadow: none !important; }
+            }
+        `;
+        document.head.appendChild(printStyles);
+
+        console.log('✅ 教程页面已加载完成！');
+    </script>
+</body>
+</html>
