@@ -1,374 +1,478 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Mod中心 - 主播模拟器</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; 
-            background: #0a0a0a; 
-            color: #fff; 
-            line-height: 1.6;
-        }
-        .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            padding: 30px 20px; 
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .filter-bar { 
-            background: #161823; 
-            padding: 15px; 
-            border-radius: 10px; 
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .filter-btn { 
-            padding: 8px 16px; 
-            background: #222; 
-            border: 1px solid #333; 
-            border-radius: 8px; 
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .filter-btn.active { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            border-color: #667eea;
-        }
-        .mod-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
-            gap: 20px; 
-        }
-        .mod-card { 
-            background: #161823; 
-            border: 1px solid #333; 
-            border-radius: 15px; 
-            padding: 20px;
-            transition: transform 0.2s, border-color 0.3s;
-        }
-        .mod-card:hover { 
-            border-color: #667eea; 
-            transform: translateY(-5px);
-        }
-        .mod-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .mod-name { font-size: 18px; font-weight: bold; color: #fff; }
-        .mod-type { 
-            background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); 
-            color: #000; 
-            padding: 4px 8px; 
-            border-radius: 5px; 
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .mod-description { 
-            font-size: 14px; 
-            color: #ccc; 
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-        .mod-meta { 
-            font-size: 12px; 
-            color: #999; 
-            display: flex; 
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-        .mod-actions { 
-            display: flex; 
-            gap: 10px; 
-        }
-        .btn { 
-            flex: 1; 
-            padding: 10px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        .btn-primary { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: #fff;
-        }
-        .btn-secondary { background: #222; color: #ccc; border: 1px solid #333; }
-        .btn:active { transform: scale(0.95); }
-        .loading { text-align: center; padding: 40px; color: #999; }
-        .error { text-align: center; padding: 40px; color: #ff0050; }
-        .empty { text-align: center; padding: 40px; color: #999; }
-        .upload-btn { 
-            position: fixed; 
-            bottom: 30px; 
-            right: 30px; 
-            width: 60px; 
-            height: 60px; 
-            border-radius: 50%; 
-            background: linear-gradient(135deg, #00f2ea 0%, #667eea 100%); 
-            color: #000; 
-            border: none; 
-            font-size: 24px; 
-            cursor: pointer; 
-            box-shadow: 0 4px 15px rgba(0, 242, 234, 0.3);
-            transition: all 0.3s;
-        }
-        .upload-btn:hover { transform: translateY(-5px); box-shadow: 0 6px 20px rgba(0, 242, 234, 0.5); }
-        .code-modal { 
-            display: none; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0; 
-            background: rgba(0,0,0,0.9); 
-            z-index: 1000;
-        }
-        .code-content { 
-            background: #161823; 
-            margin: 50px auto; 
-            max-width: 800px; 
-            border-radius: 15px; 
-            padding: 20px;
-            max-height: 80vh;
-            overflow: auto;
-        }
-        .code-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .code-textarea { 
-            width: 100%; 
-            min-height: 400px; 
-            background: #0a0a0a; 
-            border: 1px solid #333; 
-            border-radius: 8px; 
-            color: #00ff00; 
-            font-family: 'Courier New', monospace; 
-            font-size: 13px; 
-            padding: 15px;
-            resize: vertical;
-        }
-        .copy-btn { 
-            background: #00f2ea; 
-            color: #000; 
-            border: none; 
-            padding: 8px 16px; 
-            border-radius: 5px; 
-            cursor: pointer;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>互动体验导航</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      color: #e2e8f0;
+      line-height: 1.6;
+      padding-bottom: 2rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 0 30px;
+      color: white;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 5vw, 2.5rem);
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      opacity: 0.85;
+      max-width: 600px;
+      margin: 0 auto;
+      color: #94a3b8;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      color: #e2e8f0;
+      margin-bottom: 20px;
+      padding-left: 10px;
+      border-left: 4px solid #60a5fa;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 6px 10px rgba(0, 0, 0, 0.15);
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    .card-content {
+      padding: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .game-icon { color: #60a5fa; }
+    .tool-icon { color: #34d399; }
+    .art-icon { color: #a78bfa; }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .warning-badge {
+      display: inline-block;
+      background: rgba(220, 38, 38, 0.15);
+      color: #fecaca;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      margin-top: 10px;
+      font-weight: 500;
+      border: 1px solid rgba(220, 38, 38, 0.3);
+    }
+
+    .warning-badge::before {
+      content: "⚠️ ";
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .category-icon {
+      font-size: 1.8rem;
+      margin-right: 12px;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+
+      header {
+        padding: 30px 0 20px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .card-content {
+        padding: 20px;
+      }
+
+      .card-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.3rem;
+      }
+    }
+
+    /* 点击效果 */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(96, 165, 250, 0.3);
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      pointer-events: none;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* 加载动画 */
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 页脚 */
+    footer {
+      text-align: center;
+      padding: 40px 0 20px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .footer-text {
+      opacity: 0.8;
+    }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🎮 主播模拟器Mod中心</h1>
-        <p style="margin-top: 10px; opacity: 0.9;">发现精彩Mod，扩展游戏乐趣！</p>
-    </div>
+  <div class="container">
+    <header>
+      <h1>互动体验导航</h1>
+      <p class="subtitle">探索有趣的模拟器和实用工具</p>
+    </header>
 
-    <div class="container">
-        <div class="filter-bar">
-            <div class="filter-btn active" onclick="filterMods('all')">全部</div>
-            <div class="filter-btn" onclick="filterMods('功能增强')">功能增强</div>
-            <div class="filter-btn" onclick="filterMods('自动化')">自动化</div>
-            <div class="filter-btn" onclick="filterMods('趣味玩法')">趣味玩法</div>
-            <div class="filter-btn" onclick="filterMods('视觉优化')">视觉优化</div>
-        </div>
-
-        <div id="modsList" class="mod-grid">
-            <div class="loading">正在加载Mod列表...</div>
-        </div>
-    </div>
-
-    <button class="upload-btn" onclick="location.href='upload.html'" title="上传Mod">+</button>
-
-    <div class="code-modal" id="codeModal">
-        <div class="code-content">
-            <div class="code-header">
-                <h2 id="codeModalTitle">Mod代码</h2>
-                <div>
-                    <button class="copy-btn" onclick="copyCode()">复制代码</button>
-                    <button class="btn btn-secondary" onclick="closeCodeModal()">关闭</button>
-                </div>
+    <!-- 游戏模拟器区 -->
+    <section class="section fade-in">
+      <div class="category-header">
+        <span class="category-icon">🎮</span>
+        <h2 class="section-title">游戏模拟器</h2>
+      </div>
+      <div class="grid">
+        <a href="https://liveforl.github.io/game/game" class="card" target="_blank" data-link="主播模拟器">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">🎥</div>
+              <div>
+                <h3 class="card-title">主播模拟器</h3>
+                <p class="card-desc">体验成为网络主播的乐趣</p>
+              </div>
             </div>
-            <textarea class="code-textarea" id="codeModalText" readonly></textarea>
-        </div>
-    </div>
+          </div>
+        </a>
 
-    <script>
-        const GITHUB_REPO = 'liveforl/liveforl.github.io'; // 修改这里
-        const ISSUES_API = `https://api.github.com/repos/${GITHUB_REPO}/issues`;
+        <a href="https://liveforl.github.io/game/game2" class="card" target="_blank" data-link="直播观看模拟器">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">👥</div>
+              <div>
+                <h3 class="card-title">直播观看模拟器</h3>
+                <p class="card-desc">模拟观众互动体验</p>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        let allMods = [];
-        let currentFilter = 'all';
+        <a href="https://liveforl.github.io/game/game3" class="card" target="_blank" data-link="窗外的死亡凝视">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">👁️</div>
+              <div>
+                <h3 class="card-title">窗外的死亡凝视</h3>
+                <p class="card-desc">恐怖氛围体验游戏</p>
+                <span class="warning-badge">突脸鬼图警告</span>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 加载Mod列表
-        async function loadMods() {
-            const container = document.getElementById('modsList');
-            
-            try {
-                // 使用GitHub API获取Issues（仅获取标签为"Mod提交"的）
-                const response = await fetch(`${ISSUES_API}?labels=Mod提交&state=open&per_page=100`);
-                
-                if (!response.ok) {
-                    throw new Error('无法加载Mod列表');
-                }
-                
-                const issues = await response.json();
-                
-                // 解析Issues为Mod数据
-                allMods = issues.map(issue => {
-                    // 从Issue body解析Mod信息
-                    const body = issue.body || '';
-                    const lines = body.split('\n');
-                    
-                    return {
-                        id: issue.number,
-                        name: extractField(lines, '名称'),
-                        description: extractField(lines, '描述'),
-                        type: extractField(lines, '类型'),
-                        version: extractField(lines, '版本要求'),
-                        code: extractCode(body),
-                        author: issue.user.login,
-                        createdAt: issue.created_at,
-                        url: issue.html_url,
-                        reactions: issue.reactions
-                    };
-                }).filter(mod => mod.name && mod.code); // 过滤无效数据
-                
-                renderMods();
-                
-            } catch (error) {
-                console.error('加载Mod失败:', error);
-                container.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
-            }
-        }
+        <a href="https://liveforl.github.io/game/game4" class="card" target="_blank" data-link="下班后的事">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">🌙</div>
+              <div>
+                <h3 class="card-title">下班后的事</h3>
+                <p class="card-desc">深夜办公室恐怖故事</p>
+                <span class="warning-badge">突脸鬼图警告</span>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 从Issue body提取字段
-        function extractField(lines, fieldName) {
-            const line = lines.find(l => l.includes(`**${fieldName}**`));
-            if (!line) return '';
-            return line.split('**')[2].replace('**', '').trim() || '';
-        }
+        <a href="https://liveforl.github.io/game/game5" class="card" target="_blank" data-link="心理测试？">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">🧠</div>
+              <div>
+                <h3 class="card-title">心理测试？</h3>
+                <p class="card-desc">探索内心世界的小测试</p>
+                <span class="warning-badge">突脸鬼图警告</span>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 提取代码块
-        function extractCode(body) {
-            const match = body.match(/```javascript\n([\s\S]*?)\n```/);
-            return match ? match[1] : '';
-        }
+        <a href="https://liveforl.github.io/game/game6" class="card" target="_blank" data-link="主播粉丝模拟器">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">❤️</div>
+              <div>
+                <h3 class="card-title">主播粉丝模拟器</h3>
+                <p class="card-desc">体验粉丝互动玩法</p>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 渲染Mod列表
-        function renderMods() {
-            const container = document.getElementById('modsList');
-            
-            // 过滤
-            let modsToShow = currentFilter === 'all' 
-                ? allMods 
-                : allMods.filter(mod => mod.type === currentFilter);
-            
-            if (modsToShow.length === 0) {
-                container.innerHTML = '<div class="empty">暂无Mod</div>';
-                return;
-            }
-            
-            container.innerHTML = modsToShow.map(mod => `
-                <div class="mod-card">
-                    <div class="mod-header">
-                        <div class="mod-name">${mod.name}</div>
-                        <div class="mod-type">${mod.type}</div>
-                    </div>
-                    <div class="mod-description">${mod.description}</div>
-                    <div class="mod-meta">
-                        <span>作者: @${mod.author}</span>
-                        <span>${formatDate(mod.createdAt)}</span>
-                    </div>
-                    <div class="mod-actions">
-                        <button class="btn btn-primary" onclick="viewCode(${mod.id})">查看代码</button>
-                        <button class="btn btn-secondary" onclick="downloadMod(${mod.id})">下载</button>
-                        <button class="btn btn-secondary" onclick="openIssue('${mod.url}')">详情</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        <a href="https://liveforl.github.io/game/game7" class="card" target="_blank" data-link="点按钮！">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">🔘</div>
+              <div>
+                <h3 class="card-title">点按钮！</h3>
+                <p class="card-desc">简单却充满惊喜的点击游戏</p>
+                <span class="warning-badge">突脸鬼图警告</span>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 过滤Mod
-        function filterMods(type) {
-            currentFilter = type;
-            
-            // 更新按钮状态
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            renderMods();
-        }
+        <a href="https://liveforl.github.io/game/game8" class="card" target="_blank" data-link="国家管理模拟器">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">🏛️</div>
+              <div>
+                <h3 class="card-title">国家管理模拟器</h3>
+                <p class="card-desc">体验治国理政的挑战</p>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 查看Mod代码
-        function viewCode(modId) {
-            const mod = allMods.find(m => m.id === modId);
-            if (!mod) return;
-            
-            document.getElementById('codeModalTitle').textContent = mod.name;
-            document.getElementById('codeModalText').value = mod.code;
-            document.getElementById('codeModal').style.display = 'block';
-        }
+        <a href="https://liveforl.github.io/game/game9" class="card" target="_blank" data-link="请等待水杯接满">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">💧</div>
+              <div>
+                <h3 class="card-title">请等待水杯接满</h3>
+                <p class="card-desc">测试耐心的休闲小游戏</p>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 关闭代码弹窗
-        function closeCodeModal() {
-            document.getElementById('codeModal').style.display = 'none';
-        }
+        <a href="https://liveforl.github.io/game/game10" class="card" target="_blank" data-link="四个不同思维的ai玩2048">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon game-icon">🤖</div>
+              <div>
+                <h3 class="card-title">四个AI玩2048</h3>
+                <p class="card-desc">观看AI的不同策略对决</p>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
 
-        // 复制代码
-        function copyCode() {
-            const textarea = document.getElementById('codeModalText');
-            textarea.select();
-            document.execCommand('copy');
-            alert('代码已复制到剪贴板！');
-        }
+    <!-- 实用工具区 -->
+    <section class="section fade-in">
+      <div class="category-header">
+        <span class="category-icon">🛠️</span>
+        <h2 class="section-title">实用工具</h2>
+      </div>
+      <div class="grid">
+        <a href="https://liveforl.github.io/kj/kj1" class="card" target="_blank" data-link="2000年～2105年春节倒计时">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon tool-icon">📅</div>
+              <div>
+                <h3 class="card-title">春节倒计时</h3>
+                <p class="card-desc">2000年～2105年春节日期查询</p>
+              </div>
+            </div>
+          </div>
+        </a>
 
-        // 下载Mod
-        function downloadMod(modId) {
-            const mod = allMods.find(m => m.id === modId);
-            if (!mod) return;
-            
-            const blob = new Blob([mod.code], { type: 'text/javascript' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${mod.name.replace(/\s+/g, '_')}.js`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
+        <a href="https://liveforl.github.io/kg" class="card" target="_blank" data-link="全球197个国家实时时间">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon tool-icon">🌍</div>
+              <div>
+                <h3 class="card-title">全球实时时间</h3>
+                <p class="card-desc">查看197个国家当前时间</p>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
 
-        // 打开GitHub Issue
-        function openIssue(url) {
-            window.open(url, '_blank');
-        }
+    <!-- 艺术展示区 -->
+    <section class="section fade-in">
+      <div class="category-header">
+        <span class="category-icon">🎨</span>
+        <h2 class="section-title">艺术展示</h2>
+      </div>
+      <div class="grid">
+        <a href="https://liveforl.github.io/hub" class="card" target="_blank" data-link="时间显示艺术">
+          <div class="card-content">
+            <div class="card-header">
+              <div class="card-icon art-icon">🕐</div>
+              <div>
+                <h3 class="card-title">时间显示艺术</h3>
+                <p class="card-desc">创意时间视觉化展示</p>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
 
-        // 格式化日期
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            const now = new Date();
-            const diff = now - date;
-            
-            if (diff < 60000) return '刚刚';
-            if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-            if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
-            if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
-            
-            return date.toLocaleDateString('zh-CN');
-        }
+    <footer>
+      <p class="footer-text">点击卡片即可跳转到对应页面</p>
+      <p class="footer-text" style="font-size: 0.8rem; margin-top: 8px;">⚠️ 请注意警告提示，谨慎选择</p>
+    </footer>
+  </div>
 
-        // 初始化加载
-        loadMods();
+  <script>
+    // 添加点击波纹效果
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        // 创建波纹元素
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple');
         
-        // 每30秒自动刷新
-        setInterval(loadMods, 30000);
-    </script>
+        // 计算位置
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        // 设置样式
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        
+        // 添加到卡片
+        this.appendChild(ripple);
+        
+        // 动画结束后移除
+        setTimeout(() => ripple.remove(), 600);
+      });
+    });
+
+    // 添加加载动画延迟
+    document.querySelectorAll('.fade-in').forEach((section, index) => {
+      section.style.animationDelay = (index * 0.1) + 's';
+    });
+
+    // 添加点击统计（可选）
+    document.querySelectorAll('a[data-link]').forEach(link => {
+      link.addEventListener('click', function() {
+        const linkName = this.getAttribute('data-link');
+        console.log('点击了：' + linkName);
+        // 可以在这里添加统计代码
+      });
+    });
+  </script>
 </body>
 </html>
