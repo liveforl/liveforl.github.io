@@ -1,0 +1,52 @@
+name: Mod自动审核
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查Mod代码
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (!issue.labels.find(l => l.name === 'Mod提交')) return;
+            
+            // 简单的安全检查
+            const dangerousPatterns = [
+              'localStorage.clear()',
+              'fetch(',
+              'XMLHttpRequest',
+              'eval('
+            ];
+            
+            const hasDangerousCode = dangerousPatterns.some(pattern => 
+              issue.body.includes(pattern)
+            );
+            
+            if (hasDangerousCode) {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: issue.number,
+                body: '⚠️ 检测到潜在危险代码，请等待人工审核。'
+              });
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: issue.number,
+                labels: ['需要人工审核']
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: issue.number,
+                body: '✅ 自动审核通过！感谢你的贡献。'
+              });
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: issue.number,
+                labels: ['已通过审核']
+              });
+            }
+
