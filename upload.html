@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>上传Mod - 主播模拟器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; 
+            background: #0a0a0a; 
+            color: #fff; 
+            line-height: 1.6; 
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 20px; 
+            text-align: center;
+        }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #00f2ea; font-weight: bold; }
+        input, textarea, select { 
+            width: 100%; 
+            padding: 12px; 
+            background: #161823; 
+            border: 2px solid #333; 
+            border-radius: 8px; 
+            color: #fff; 
+            font-size: 14px;
+        }
+        textarea { min-height: 200px; font-family: 'Courier New', monospace; }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #fff; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        .info-box { 
+            background: #161823; 
+            border: 1px solid #333; 
+            border-radius: 10px; 
+            padding: 15px; 
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #999;
+        }
+        .success { display: none; background: #00f2ea; color: #000; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .error { display: none; background: #ff0050; color: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 上传Mod到主播模拟器</h1>
+            <p style="margin-top: 10px; opacity: 0.9;">分享你的创意，让游戏更有趣！</p>
+        </div>
+
+        <div class="info-box">
+            <strong>📌 提交方式：</strong><br>
+            1. 填写Mod信息<br>
+            2. 点击提交会跳转到GitHub Issues页面<br>
+            3. 确认信息后点击"Submit new issue"<br>
+            4. 审核通过后Mod将显示在列表中
+        </div>
+
+        <div class="success" id="successBox"></div>
+        <div class="error" id="errorBox"></div>
+
+        <form id="modForm">
+            <div class="form-group">
+                <label>Mod名称 *</label>
+                <input type="text" id="modName" placeholder="例如：自动发布助手" required>
+            </div>
+
+            <div class="form-group">
+                <label>Mod描述 *</label>
+                <textarea id="modDescription" placeholder="请详细描述Mod的功能和使用方法..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Mod代码 *</label>
+                <textarea id="modCode" placeholder="粘贴你的JavaScript代码..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Mod类型</label>
+                <select id="modType">
+                    <option value="功能增强">功能增强</option>
+                    <option value="自动化">自动化</option>
+                    <option value="趣味玩法">趣味玩法</option>
+                    <option value="视觉优化">视觉优化</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>游戏版本要求</label>
+                <input type="text" id="gameVersion" placeholder="例如：1.0.0（选填）">
+            </div>
+
+            <button type="submit">🚀 提交Mod</button>
+        </form>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="index.html" style="color: #667aea; text-decoration: none;">← 返回Mod列表</a>
+        </div>
+    </div>
+
+    <script>
+        const GITHUB_REPO = '你的用户名/你的仓库名'; // 修改这里
+        const ISSUES_URL = `https://github.com/${GITHUB_REPO}/issues/new`;
+
+        document.getElementById('modForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('modName').value.trim();
+            const desc = document.getElementById('modDescription').value.trim();
+            const code = document.getElementById('modCode').value.trim();
+            const type = document.getElementById('modType').value;
+            const version = document.getElementById('gameVersion').value.trim();
+
+            if (!name || !desc || !code) {
+                showError('请填写所有必填项！');
+                return;
+            }
+
+            // 构建GitHub Issues内容
+            const issueBody = `
+## Mod信息
+- **名称**: ${name}
+- **类型**: ${type}
+- **版本要求**: ${version || '无要求'}
+
+## 描述
+${desc}
+
+## Mod代码
+\`\`\`javascript
+${code}
+\`\`\`
+
+## 检查清单
+- [ ] 我已测试此Mod
+- [ ] 我已遵循Mod开发规范
+- [ ] 此Mod不包含恶意代码
+`;
+
+            // 跳转到GitHub Issues页面（预填充内容）
+            const title = encodeURIComponent(`Mod提交: ${name}`);
+            const body = encodeURIComponent(issueBody);
+            const url = `${ISSUES_URL}?title=${title}&body=${body}&labels=Mod提交`;
+            
+            window.open(url, '_blank');
+            
+            showSuccess('已跳转到GitHub！请确认信息并提交Issue。');
+            
+            // 清空表单
+            setTimeout(() => {
+                document.getElementById('modForm').reset();
+            }, 2000);
+        });
+
+        function showSuccess(msg) {
+            const box = document.getElementById('successBox');
+            box.textContent = msg;
+            box.style.display = 'block';
+            setTimeout(() => box.style.display = 'none', 5000);
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            box.textContent = msg;
+            box.style.display = 'block';
+            setTimeout(() => box.style.display = 'none', 5000);
+        }
+    </script>
+</body>
+</html>
